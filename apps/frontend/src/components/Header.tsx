@@ -9,7 +9,7 @@ import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
-import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, Language } from '../providers/I18nProvider';
+import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../providers/I18nProvider';
 
 export default function Header() {
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);

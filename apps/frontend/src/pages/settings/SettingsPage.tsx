@@ -1,6 +1,6 @@
-import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, Language } from '../providers/I18nProvider';
-import { useUIStore } from '../stores/uiStore';
-import { useAuthStore } from '../stores/authStore';
+import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES, useI18n } from '@/providers/I18nProvider';
+import { useAuthStore } from '@/stores/authStore';
+import { useUIStore } from '@/stores/uiStore.ts';
 
 export default function SettingsPage() {
   const { t, language, setLanguage } = useI18n();
@@ -63,7 +63,7 @@ export default function SettingsPage() {
                 }`}
               >
                 <span className="block text-2xl mb-1">
-                  {lang === 'en' ? '🇬🇧' : lang === 'de' ? '🇩🇪' : lang === 'fr' ? '🇫🇷' : '🇷🇺'}
+                  {lang === 'en' ? '🇬🇧' : lang === 'de' ? '🇩🇪' : lang === 'fr' ? '🇫🇷' : 'RU'}
                 </span>
                 {LANGUAGE_NAMES[lang]}
               </button>

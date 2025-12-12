@@ -6,6 +6,7 @@ services:
   frontend:
     build:
       context: ./apps/frontend
+      # use Dockerfile.dev (exists) for development build
       dockerfile: Dockerfile.dev
     ports:
       - "5173:5173"
@@ -21,7 +22,7 @@ services:
   gateway:
     build:
       context: ./apps/gateway
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in apps/gateway
     ports:
       - "4000:4000"
     volumes:
@@ -37,7 +38,7 @@ services:
   user-service:
     build:
       context: ./apps/services/dotnet/UserService
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in UserService
     ports:
       - "5000:5000"
     volumes:
@@ -52,7 +53,7 @@ services:
   shop-service:
     build:
       context: ./apps/services/dotnet/ShopService
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in ShopService
     ports:
       - "5003:5003"
     volumes:
@@ -66,7 +67,7 @@ services:
   accounting-service:
     build:
       context: ./apps/services/dotnet/AccountingService
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in AccountingService
     ports:
       - "5001:5001"
     volumes:
@@ -80,7 +81,7 @@ services:
   masterdata-service:
     build:
       context: ./apps/services/dotnet/MasterdataService
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in MasterdataService
     ports:
       - "5002:5002"
     volumes:
@@ -95,7 +96,7 @@ services:
   company-service:
     build:
       context: ./apps/services/java/company-service
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in company-service
     ports:
       - "8081:8081"
     volumes:
@@ -109,7 +110,7 @@ services:
   notification-service:
     build:
       context: ./apps/services/java/notification-service
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in notification-service
     ports:
       - "8082:8082"
     volumes:
@@ -123,7 +124,7 @@ services:
   translation-service:
     build:
       context: ./apps/services/java/translation-service
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in translation-service
     ports:
       - "8083:8083"
     volumes:
@@ -137,7 +138,7 @@ services:
   scripting-service:
     build:
       context: ./apps/services/java/scripting-service
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in scripting-service
     ports:
       - "8084:8084"
     volumes:
@@ -150,7 +151,7 @@ services:
   edifact-service:
     build:
       context: ./apps/services/java/edifact-service
-      dockerfile: Dockerfile.dev
+      # use default Dockerfile in edifact-service
     ports:
       - "8085:8085"
     volumes:
@@ -167,8 +168,9 @@ services:
       POSTGRES_DB: userdb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+    # changed host port to avoid conflict with local Postgres on 5432
     ports:
-      - "5432:5432"
+      - "5442:5432"
     volumes:
       - postgres-users-data:/var/lib/postgresql/data
 

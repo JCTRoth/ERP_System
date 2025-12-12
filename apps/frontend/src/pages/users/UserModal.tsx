@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, Language } from '../../providers/I18nProvider';
+import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../../providers/I18nProvider';
 
 const CREATE_USER = gql`
   mutation CreateUser($input: CreateUserInput!) {

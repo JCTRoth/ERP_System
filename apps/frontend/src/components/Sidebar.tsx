@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   HomeIcon,
   BuildingOfficeIcon,
@@ -31,7 +31,6 @@ const menuItems = [
 
 export default function Sidebar() {
   const { t } = useI18n();
-  const location = useLocation();
   const sidebarOpen = useUIStore((state) => state.sidebarOpen);
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const user = useAuthStore((state) => state.user);

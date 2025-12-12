@@ -2,36 +2,37 @@ federation_version: =2.6.3
 
 subgraphs:
   user-service:
-    routing_url: http://user-service:8080/graphql
+    routing_url: http://localhost:8080/graphql
     schema:
-      subgraph_url: http://user-service:8080/graphql
+      subgraph_url: http://localhost:8080/graphql
 
-  company-service:
-    routing_url: http://company-service:8080/graphql
-    schema:
-      subgraph_url: http://company-service:8080/graphql
+  # Temporarily disabled other services until they are implemented
+  # company-service:
+  #   routing_url: http://localhost:8080/graphql
+  #   schema:
+  #     subgraph_url: http://localhost:8080/graphql
 
-  translation-service:
-    routing_url: http://translation-service:8081/graphql
-    schema:
-      subgraph_url: http://translation-service:8081/graphql
+  # translation-service:
+  #   routing_url: http://localhost:8081/graphql
+  #   schema:
+  #     subgraph_url: http://localhost:8081/graphql
 
-  shop-service:
-    routing_url: http://shop-service:8082/graphql
-    schema:
-      subgraph_url: http://shop-service:8082/graphql
+  # shop-service:
+  #   routing_url: http://localhost:8082/graphql
+  #   schema:
+  #     subgraph_url: http://localhost:8082/graphql
 
-  accounting-service:
-    routing_url: http://accounting-service:8083/graphql
-    schema:
-      subgraph_url: http://accounting-service:8083/graphql
+  # accounting-service:
+  #   routing_url: http://localhost:8083/graphql
+  #   schema:
+  #     subgraph_url: http://localhost:8083/graphql
 
-  notification-service:
-    routing_url: http://notification-service:8084/graphql
-    schema:
-      subgraph_url: http://notification-service:8084/graphql
+  # notification-service:
+  #   routing_url: http://localhost:8084/graphql
+  #   schema:
+  #     subgraph_url: http://localhost:8084/graphql
 
-  scripting-service:
-    routing_url: http://scripting-service:8085/graphql
-    schema:
-      subgraph_url: http://scripting-service:8085/graphql
+  # scripting-service:
+  #   routing_url: http://localhost:8085/graphql
+  #   schema:
+  #     subgraph_url: http://localhost:8085/graphql

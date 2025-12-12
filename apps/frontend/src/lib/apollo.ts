@@ -25,6 +25,10 @@ const authLink = setContext((_, { headers }) => {
 const errorLink = onError(({ graphQLErrors, networkError }) => {
   if (graphQLErrors) {
     graphQLErrors.forEach(({ message, locations, path }) => {
+      // Skip logging translations errors since the service is not available
+      if (message.includes('translations')) {
+        return;
+      }
       console.error(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
       
       // Handle authentication errors
@@ -61,3 +65,6 @@ export const apolloClient = new ApolloClient({
     },
   },
 });
+
+// Export a getter function for the Apollo client
+export const getApolloClient = () => apolloClient;

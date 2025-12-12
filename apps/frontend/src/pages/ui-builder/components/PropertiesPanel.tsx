@@ -21,7 +21,7 @@ export default function PropertiesPanel({ component, onUpdate }: PropertiesPanel
 
   const updateProp = (key: string, value: unknown) => {
     onUpdate(component.id, {
-      props: { ...component.props, [key] },
+      props: { ...component.props, [key]: value },
     });
   };
 

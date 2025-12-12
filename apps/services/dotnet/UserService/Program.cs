@@ -6,6 +6,9 @@ using Prometheus;
 using UserService.Data;
 using UserService.Services;
 using UserService.GraphQL;
+using UserService.Models;
+using BCrypt.Net;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -82,7 +85,25 @@ if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
-    db.Database.Migrate();
+    db.Database.EnsureCreated();
+
+    // Seed test user
+    if (!db.Users.Any(u => u.Email == "admin@erp-system.local"))
+    {
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!");
+        db.Users.Add(new UserService.Models.User
+        {
+            Id = Guid.NewGuid(),
+            Email = "admin@erp-system.local",
+            PasswordHash = passwordHash,
+            FirstName = "Admin",
+            LastName = "User",
+            IsActive = true,
+            EmailVerified = true,
+            PreferredLanguage = "en"
+        });
+        db.SaveChanges();
+    }
 }
 
 app.Run();

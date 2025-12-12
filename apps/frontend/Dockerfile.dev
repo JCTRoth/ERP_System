@@ -4,10 +4,12 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files
+# Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies — prefer clean install if lockfile exists, otherwise fall back
+# to `npm install` so Docker builds don't fail when a lockfile isn't present.
+RUN npm ci || npm install --prefer-offline --no-audit --no-fund
 
 # Copy source files
 COPY . .

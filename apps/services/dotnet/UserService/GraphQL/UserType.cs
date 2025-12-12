@@ -16,13 +16,13 @@ public class UserType : ObjectType<User>
             .Type<NonNullType<StringType>>();
 
         descriptor.Field(u => u.FirstName)
-            .Type<NonNullType<StringType>>();
+            .Type<StringType>();
 
         descriptor.Field(u => u.LastName)
-            .Type<NonNullType<StringType>>();
+            .Type<StringType>();
 
-        descriptor.Field(u => u.FullName)
-            .Type<NonNullType<StringType>>();
+        // descriptor.Field(u => u.FullName)
+        //     .Type<NonNullType<StringType>>();
 
         descriptor.Field(u => u.IsActive)
             .Type<NonNullType<BooleanType>>();

@@ -33,6 +33,9 @@ The ERP System is built using a microservices architecture with the following co
 
 ## Getting Started
 
+Pre Note
+Development: Docker Compose → Testing → CI/CD → Production: Kubernetes
+
 ### Prerequisites
 
 - Node.js 20+
