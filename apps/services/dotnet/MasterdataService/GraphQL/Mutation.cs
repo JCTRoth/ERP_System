@@ -193,7 +193,7 @@ public class Mutation
 
     // Location Mutations
     [GraphQLDescription("Create a new location")]
-    public async Task<Location> CreateLocation(
+    public async Task<BusinessLocation> CreateLocation(
         CreateLocationInput input,
         [Service] ILocationService locationService)
     {
@@ -201,7 +201,7 @@ public class Mutation
     }
 
     [GraphQLDescription("Update a location")]
-    public async Task<Location?> UpdateLocation(
+    public async Task<BusinessLocation?> UpdateLocation(
         Guid id,
         UpdateLocationInput input,
         [Service] ILocationService locationService)

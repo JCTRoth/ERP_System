@@ -68,7 +68,7 @@ public class Asset
     public Department? Department { get; set; }
     
     public Guid? LocationId { get; set; }
-    public Location? Location { get; set; }
+    public BusinessLocation? Location { get; set; }
     
     public Guid? CostCenterId { get; set; }
     public CostCenter? CostCenter { get; set; }

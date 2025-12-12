@@ -1,6 +1,7 @@
 using MasterdataService.Models;
 using MasterdataService.Services;
 using MasterdataService.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace MasterdataService.GraphQL;
 
@@ -164,7 +165,7 @@ public class AssetType
     }
 
     [GraphQLDescription("Get asset location")]
-    public async Task<Location?> GetLocation(
+    public async Task<BusinessLocation?> GetLocation(
         [Parent] Asset asset,
         [Service] ILocationService locationService)
     {
@@ -191,12 +192,12 @@ public class AssetType
     }
 }
 
-[ExtendObjectType(typeof(Location))]
+[ExtendObjectType(typeof(BusinessLocation))]
 public class LocationType
 {
     [GraphQLDescription("Get employees at location")]
     public async Task<IEnumerable<Employee>> GetEmployees(
-        [Parent] Location location,
+        [Parent] BusinessLocation location,
         [Service] MasterdataDbContext context)
     {
         return await context.Employees
@@ -206,7 +207,7 @@ public class LocationType
 
     [GraphQLDescription("Get assets at location")]
     public async Task<IEnumerable<Asset>> GetAssets(
-        [Parent] Location location,
+        [Parent] BusinessLocation location,
         [Service] IAssetService assetService)
     {
         return await assetService.GetByLocationAsync(location.Id);

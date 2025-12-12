@@ -70,7 +70,7 @@ public class Employee
     public CostCenter? CostCenter { get; set; }
     
     public Guid? LocationId { get; set; }
-    public Location? Location { get; set; }
+    public BusinessLocation? Location { get; set; }
     
     // Compensation
     [Column(TypeName = "decimal(18,2)")]
@@ -212,7 +212,7 @@ public enum CostCenterType
     Activity
 }
 
-public class Location
+public class BusinessLocation
 {
     [Key]
     public Guid Id { get; set; }
@@ -255,11 +255,11 @@ public class Location
     public string? Timezone { get; set; }
     
     public Guid? ParentLocationId { get; set; }
-    public Location? ParentLocation { get; set; }
+    public BusinessLocation? ParentLocation { get; set; }
     
     public bool IsActive { get; set; } = true;
     
-    public ICollection<Location> SubLocations { get; set; } = new List<Location>();
+    public ICollection<BusinessLocation> SubLocations { get; set; } = new List<BusinessLocation>();
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     
     public DateTime CreatedAt { get; set; }

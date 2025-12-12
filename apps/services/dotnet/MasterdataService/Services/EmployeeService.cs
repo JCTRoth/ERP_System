@@ -528,11 +528,11 @@ public class CostCenterService : ICostCenterService
 
 public interface ILocationService
 {
-    Task<Location?> GetByIdAsync(Guid id);
-    Task<IEnumerable<Location>> GetAllAsync();
-    Task<IEnumerable<Location>> GetHierarchyAsync();
-    Task<Location> CreateAsync(CreateLocationInput input);
-    Task<Location?> UpdateAsync(Guid id, UpdateLocationInput input);
+    Task<BusinessLocation?> GetByIdAsync(Guid id);
+    Task<IEnumerable<BusinessLocation>> GetAllAsync();
+    Task<IEnumerable<BusinessLocation>> GetHierarchyAsync();
+    Task<BusinessLocation> CreateAsync(CreateLocationInput input);
+    Task<BusinessLocation?> UpdateAsync(Guid id, UpdateLocationInput input);
     Task<bool> DeleteAsync(Guid id);
 }
 
@@ -547,7 +547,7 @@ public class LocationService : ILocationService
         _logger = logger;
     }
 
-    public async Task<Location?> GetByIdAsync(Guid id)
+    public async Task<BusinessLocation?> GetByIdAsync(Guid id)
     {
         return await _context.Locations
             .Include(l => l.SubLocations)
@@ -555,7 +555,7 @@ public class LocationService : ILocationService
             .FirstOrDefaultAsync(l => l.Id == id);
     }
 
-    public async Task<IEnumerable<Location>> GetAllAsync()
+    public async Task<IEnumerable<BusinessLocation>> GetAllAsync()
     {
         return await _context.Locations
             .Where(l => l.IsActive)
@@ -563,7 +563,7 @@ public class LocationService : ILocationService
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Location>> GetHierarchyAsync()
+    public async Task<IEnumerable<BusinessLocation>> GetHierarchyAsync()
     {
         return await _context.Locations
             .Where(l => l.ParentLocationId == null && l.IsActive)
@@ -572,9 +572,9 @@ public class LocationService : ILocationService
             .ToListAsync();
     }
 
-    public async Task<Location> CreateAsync(CreateLocationInput input)
+    public async Task<BusinessLocation> CreateAsync(CreateLocationInput input)
     {
-        var location = new Location
+        var location = new BusinessLocation
         {
             Id = Guid.NewGuid(),
             Code = input.Code,
@@ -604,7 +604,7 @@ public class LocationService : ILocationService
         return location;
     }
 
-    public async Task<Location?> UpdateAsync(Guid id, UpdateLocationInput input)
+    public async Task<BusinessLocation?> UpdateAsync(Guid id, UpdateLocationInput input)
     {
         var location = await _context.Locations.FindAsync(id);
         if (location == null) return null;

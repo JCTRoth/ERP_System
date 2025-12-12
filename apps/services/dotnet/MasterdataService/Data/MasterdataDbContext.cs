@@ -18,7 +18,7 @@ public class MasterdataDbContext : DbContext
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<CostCenter> CostCenters => Set<CostCenter>();
-    public DbSet<Location> Locations => Set<Location>();
+    public DbSet<BusinessLocation> Locations => Set<BusinessLocation>();
 
     // Assets
     public DbSet<Asset> Assets => Set<Asset>();
@@ -112,7 +112,7 @@ public class MasterdataDbContext : DbContext
         });
 
         // Location configuration
-        modelBuilder.Entity<Location>(entity =>
+        modelBuilder.Entity<BusinessLocation>(entity =>
         {
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasOne(e => e.ParentLocation)

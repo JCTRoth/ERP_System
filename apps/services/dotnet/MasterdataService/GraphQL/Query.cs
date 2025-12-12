@@ -164,7 +164,7 @@ public class Query
 
     // Location Queries
     [GraphQLDescription("Get a location by ID")]
-    public async Task<Location?> GetLocation(
+    public async Task<BusinessLocation?> GetLocation(
         Guid id,
         [Service] ILocationService locationService)
     {
@@ -172,7 +172,7 @@ public class Query
     }
 
     [GraphQLDescription("Get all locations")]
-    public async Task<IEnumerable<Location>> GetLocations(
+    public async Task<IEnumerable<BusinessLocation>> GetLocations(
         [Service] ILocationService locationService)
     {
         return await locationService.GetAllAsync();
