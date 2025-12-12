@@ -1,0 +1,84 @@
+{{- if .Values.services.gateway.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "erp-system.fullname" . }}-gateway
+  labels:
+    {{- include "erp-system.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: gateway
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: gateway
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: gateway
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.gateway.image.repository }}:{{ .Values.services.gateway.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.gateway.port }}
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.environment }}
+            - name: PORT
+              value: {{ .Values.services.gateway.port | quote }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "erp-system.fullname" . }}-secrets
+                  key: jwt-secret
+            - name: USER_SERVICE_URL
+              value: "http://{{ include "erp-system.fullname" . }}-user-service:{{ .Values.services.userService.port }}/graphql"
+            - name: SHOP_SERVICE_URL
+              value: "http://{{ include "erp-system.fullname" . }}-shop-service:{{ .Values.services.shopService.port }}/graphql"
+            - name: ACCOUNTING_SERVICE_URL
+              value: "http://{{ include "erp-system.fullname" . }}-accounting-service:{{ .Values.services.accountingService.port }}/graphql"
+            - name: MASTERDATA_SERVICE_URL
+              value: "http://{{ include "erp-system.fullname" . }}-masterdata-service:{{ .Values.services.masterdataService.port }}/graphql"
+            - name: COMPANY_SERVICE_URL
+              value: "http://{{ include "erp-system.fullname" . }}-company-service:{{ .Values.services.companyService.port }}/graphql"
+            - name: TRANSLATION_SERVICE_URL
+              value: "http://{{ include "erp-system.fullname" . }}-translation-service:{{ .Values.services.translationService.port }}/graphql"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.services.gateway.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "erp-system.fullname" . }}-gateway
+  labels:
+    {{- include "erp-system.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.gateway.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+{{- end }}

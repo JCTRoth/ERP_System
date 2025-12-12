@@ -1,0 +1,52 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # .NET Services (UserService, ShopService, AccountingService, MasterdataService)
+  - job_name: 'dotnet-services'
+    static_configs:
+      - targets:
+          - 'user-service:5000'
+          - 'shop-service:5001'
+          - 'accounting-service:5002'
+          - 'masterdata-service:5003'
+    metrics_path: /metrics
+
+  # Java Services (CompanyService, TranslationService, NotificationService, ScriptingService, EdifactService)
+  - job_name: 'java-services'
+    static_configs:
+      - targets:
+          - 'company-service:8080'
+          - 'translation-service:8081'
+          - 'notification-service:8082'
+          - 'scripting-service:8083'
+          - 'edifact-service:8084'
+    metrics_path: /actuator/prometheus
+
+  # Apollo Gateway
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['gateway:4000']
+    metrics_path: /metrics
+
+  # Kafka
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9092']
+
+  # PostgreSQL (via postgres_exporter - optional)
+  - job_name: 'postgres'
+    static_configs:
+      - targets:
+          - 'postgres-exporter:9187'
+
+  # Nginx
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:9113']

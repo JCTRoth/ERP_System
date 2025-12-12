@@ -1,0 +1,77 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: edifact-service
+  
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5439}/${DB_NAME:edifactdb}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+# MinIO configuration
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:erp-edifact}
+
+# DGS GraphQL
+dgs:
+  graphql:
+    path: /graphql
+    graphiql:
+      enabled: true
+
+# EDIFACT settings
+edifact:
+  supported-types:
+    - PRICAT  # Price Catalog
+    - PRODAT  # Product Data
+    - UTILMD  # Master Data for Utilities
+    - ORDERS  # Purchase Orders
+    - ORDRSP  # Order Response
+    - DESADV  # Despatch Advice
+    - INVOIC  # Invoice
+  default-version: D96A
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    com.erp: DEBUG
+    org.smooks: INFO

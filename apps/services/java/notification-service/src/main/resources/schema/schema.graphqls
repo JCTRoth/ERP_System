@@ -1,0 +1,86 @@
+type Query {
+    notification(id: ID!): EmailNotification
+    notificationsByCompany(companyId: ID!, page: Int, size: Int): [EmailNotification!]!
+    notificationsByUser(userId: ID!, page: Int, size: Int): [EmailNotification!]!
+    emailTemplates: [EmailTemplate!]!
+    emailTemplate(id: ID!): EmailTemplate
+}
+
+type Mutation {
+    sendEmail(input: SendEmailInput!): EmailNotification!
+    createEmailTemplate(input: CreateEmailTemplateInput!): EmailTemplate!
+    updateEmailTemplate(id: ID!, input: UpdateEmailTemplateInput!): EmailTemplate
+    deleteEmailTemplate(id: ID!): Boolean!
+}
+
+type EmailNotification {
+    id: ID!
+    companyId: ID
+    userId: ID
+    toEmail: String!
+    toName: String
+    subject: String!
+    templateName: String
+    status: NotificationStatus!
+    retryCount: Int!
+    errorMessage: String
+    sentAt: DateTime
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+type EmailTemplate {
+    id: ID!
+    companyId: ID
+    name: String!
+    subject: String!
+    bodyHtml: String!
+    bodyText: String
+    language: String!
+    description: String
+    isActive: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+enum NotificationStatus {
+    PENDING
+    SENDING
+    SENT
+    FAILED
+    CANCELLED
+}
+
+input SendEmailInput {
+    companyId: ID
+    userId: ID
+    toEmail: String!
+    toName: String
+    subject: String
+    templateName: String
+    templateData: JSON
+    bodyHtml: String
+    bodyText: String
+    language: String
+}
+
+input CreateEmailTemplateInput {
+    companyId: ID
+    name: String!
+    subject: String!
+    bodyHtml: String!
+    bodyText: String
+    language: String
+    description: String
+}
+
+input UpdateEmailTemplateInput {
+    subject: String
+    bodyHtml: String
+    bodyText: String
+    description: String
+    isActive: Boolean
+}
+
+scalar DateTime
+scalar JSON

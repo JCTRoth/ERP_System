@@ -1,0 +1,59 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: scripting-service
+  
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5438}/${DB_NAME:scriptingdb}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+# DGS GraphQL
+dgs:
+  graphql:
+    path: /graphql
+    graphiql:
+      enabled: true
+
+# Script execution settings
+scripting:
+  execution:
+    timeout-ms: 5000
+    max-memory-mb: 64
+    max-statements: 10000
+    allow-network: false
+    allow-file-access: false
+  cache:
+    enabled: true
+    max-size: 100
+    expire-after-write-minutes: 60
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    com.erp: DEBUG

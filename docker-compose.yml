@@ -1,0 +1,262 @@
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Databases (one per service)
+  # ==========================================================================
+  postgres-user:
+    image: postgres:16-alpine
+    container_name: erp-postgres-user
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-user-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d userdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-shop:
+    image: postgres:16-alpine
+    container_name: erp-postgres-shop
+    environment:
+      POSTGRES_DB: shopdb
+      POSTGRES_USER: erp_shop
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-shop-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_shop -d shopdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-accounting:
+    image: postgres:16-alpine
+    container_name: erp-postgres-accounting
+    environment:
+      POSTGRES_DB: accountingdb
+      POSTGRES_USER: erp_accounting
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-accounting-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_accounting -d accountingdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-company:
+    image: postgres:16-alpine
+    container_name: erp-postgres-company
+    environment:
+      POSTGRES_DB: companydb
+      POSTGRES_USER: erp_company
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-company-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_company -d companydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-translation:
+    image: postgres:16-alpine
+    container_name: erp-postgres-translation
+    environment:
+      POSTGRES_DB: translationdb
+      POSTGRES_USER: erp_translation
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres-translation-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_translation -d translationdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-masterdata:
+    image: postgres:16-alpine
+    container_name: erp-postgres-masterdata
+    environment:
+      POSTGRES_DB: masterdatadb
+      POSTGRES_USER: erp_masterdata
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres-masterdata-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_masterdata -d masterdatadb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Kafka
+  # ==========================================================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: erp-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: erp-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # MinIO (S3-compatible storage for logos)
+  # ==========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: erp-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Monitoring
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: erp-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: erp-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+
+  # ==========================================================================
+  # Nginx (reverse proxy for local development)
+  # ==========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: erp-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - frontend
+      - gateway
+
+  # ==========================================================================
+  # Application Services (placeholders - build from source)
+  # ==========================================================================
+  gateway:
+    build:
+      context: ./apps/gateway
+      dockerfile: Dockerfile
+    container_name: erp-gateway
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+    depends_on:
+      - kafka
+    profiles:
+      - app
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: erp-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:4000/graphql
+    profiles:
+      - app
+
+volumes:
+  postgres-user-data:
+  postgres-shop-data:
+  postgres-accounting-data:
+  postgres-company-data:
+  postgres-translation-data:
+  postgres-masterdata-data:
+  zookeeper-data:
+  zookeeper-logs:
+  kafka-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  default:
+    name: erp-network

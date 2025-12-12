@@ -1,0 +1,44 @@
+{
+  "name": "erp-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kubernetes-based ERP System with microservices architecture",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "nx run-many --target=serve --all",
+    "build": "nx run-many --target=build --all",
+    "test": "nx run-many --target=test --all",
+    "lint": "nx run-many --target=lint --all",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "nx": "nx",
+    "graph": "nx graph"
+  },
+  "devDependencies": {
+    "@nx/devkit": "^20.0.0",
+    "@nx/eslint": "^20.0.0",
+    "@nx/eslint-plugin": "^20.0.0",
+    "@nx/js": "^20.0.0",
+    "@nx/react": "^20.0.0",
+    "@nx/vite": "^20.0.0",
+    "@nx/web": "^20.0.0",
+    "@nx/workspace": "^20.0.0",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "nx": "^20.0.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

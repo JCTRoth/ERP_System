@@ -1,0 +1,84 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+out/
+target/
+bin/
+obj/
+
+# Nx
+.nx/
+nx-cloud.env
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# .NET
+*.dll
+*.exe
+*.pdb
+*.user
+*.suo
+packages/
+*.nupkg
+
+# Docker
+docker-compose.override.yml
+
+# Kubernetes secrets (never commit)
+*-secret.yaml
+*-secrets.yaml
+
+# MinIO data
+minio-data/
+
+# PostgreSQL data
+postgres-data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak

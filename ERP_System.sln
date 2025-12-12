@@ -1,0 +1,35 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{1787FE1D-075E-9E68-7218-25F1BD1BBEAB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "services", "services", "{7D78A933-E070-91E6-0665-0550164ABA83}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dotnet", "dotnet", "{E801D5A7-A3E0-2E77-1574-E60645C97CE9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserService", "apps\services\dotnet\UserService\UserService.csproj", "{B41E7E65-E3CF-47C8-49FC-F9339CB8A42E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B41E7E65-E3CF-47C8-49FC-F9339CB8A42E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B41E7E65-E3CF-47C8-49FC-F9339CB8A42E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B41E7E65-E3CF-47C8-49FC-F9339CB8A42E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B41E7E65-E3CF-47C8-49FC-F9339CB8A42E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7D78A933-E070-91E6-0665-0550164ABA83} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{E801D5A7-A3E0-2E77-1574-E60645C97CE9} = {7D78A933-E070-91E6-0665-0550164ABA83}
+		{B41E7E65-E3CF-47C8-49FC-F9339CB8A42E} = {E801D5A7-A3E0-2E77-1574-E60645C97CE9}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C11E7D4E-2065-4F24-BE8B-B5B5838A5689}
+	EndGlobalSection
+EndGlobal

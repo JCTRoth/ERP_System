@@ -1,0 +1,12 @@
+{
+  "demoCompany": {
+    "name": "Demo_Corporation",
+    "is_demo": true,
+    "logo_url": "/assets/demo-logo.svg"
+  },
+  "superAdmin": {
+    "email": "${SUPER_ADMIN_EMAIL}",
+    "createOnStartup": true
+  },
+  "defaultRoles": ["SUPER_ADMIN", "ADMIN", "USER", "VIEWER"]
+}

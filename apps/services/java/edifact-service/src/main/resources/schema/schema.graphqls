@@ -1,0 +1,52 @@
+type Query {
+    edifactMessage(id: ID!): EdifactMessage
+    edifactMessages(companyId: ID!, messageType: String, page: Int, size: Int): [EdifactMessage!]!
+}
+
+type Mutation {
+    generateEdifact(input: GenerateEdifactInput!): EdifactMessage!
+}
+
+type EdifactMessage {
+    id: ID!
+    companyId: ID!
+    messageType: String!
+    messageVersion: String
+    direction: Direction!
+    interchangeRef: String
+    messageRef: String
+    senderId: String
+    recipientId: String
+    filePath: String
+    originalFilename: String
+    parsedData: JSON
+    status: ProcessingStatus!
+    errorMessage: String
+    processedAt: DateTime
+    createdBy: ID
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+enum Direction {
+    INBOUND
+    OUTBOUND
+}
+
+enum ProcessingStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
+    REJECTED
+}
+
+input GenerateEdifactInput {
+    companyId: ID!
+    messageType: String!
+    data: JSON!
+    createdBy: ID
+}
+
+scalar DateTime
+scalar JSON

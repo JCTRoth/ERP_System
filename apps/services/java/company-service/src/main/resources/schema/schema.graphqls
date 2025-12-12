@@ -1,0 +1,136 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable", "@external", "@requires", "@extends"])
+
+type Query {
+    company(id: ID!): Company
+    companyByName(name: String!): Company
+    companies: [Company!]!
+    companiesByUser(userId: ID!): [Company!]!
+    
+    assignment(userId: ID!, companyId: ID!): UserCompanyAssignment
+    assignmentsByUser(userId: ID!): [UserCompanyAssignment!]!
+    assignmentsByCompany(companyId: ID!): [UserCompanyAssignment!]!
+    
+    dynamicFieldDefinitions(companyId: ID!): [DynamicFieldDefinition!]!
+    dynamicFieldDefinitionsByEntity(companyId: ID!, entityType: EntityType!): [DynamicFieldDefinition!]!
+    dynamicFieldValues(entityId: ID!): [DynamicFieldValue!]!
+}
+
+type Mutation {
+    createCompany(input: CreateCompanyInput!): Company!
+    updateCompany(id: ID!, input: UpdateCompanyInput!): Company!
+    deleteCompany(id: ID!): Boolean!
+    resetDemoCompany: Company!
+    
+    assignUserToCompany(input: AssignUserInput!): UserCompanyAssignment!
+    updateAssignmentRole(userId: ID!, companyId: ID!, role: UserRole!): UserCompanyAssignment!
+    removeUserFromCompany(userId: ID!, companyId: ID!): Boolean!
+    
+    createDynamicFieldDefinition(input: CreateDynamicFieldDefinitionInput!): DynamicFieldDefinition!
+    updateDynamicFieldDefinition(id: ID!, input: UpdateDynamicFieldDefinitionInput!): DynamicFieldDefinition!
+    deleteDynamicFieldDefinition(id: ID!): Boolean!
+    
+    setDynamicFieldValue(input: SetDynamicFieldValueInput!): DynamicFieldValue!
+    deleteDynamicFieldValue(definitionId: ID!, entityId: ID!): Boolean!
+}
+
+type Company @key(fields: "id") {
+    id: ID!
+    name: String!
+    logoUrl: String
+    settingsJson: JSON
+    isDemo: Boolean!
+    createdAt: DateTime!
+}
+
+type UserCompanyAssignment {
+    id: ID!
+    userId: ID!
+    companyId: ID!
+    companyName: String!
+    role: UserRole!
+    assignedAt: DateTime!
+}
+
+type DynamicFieldDefinition @key(fields: "id") {
+    id: ID!
+    companyId: ID!
+    entityType: EntityType!
+    fieldName: String!
+    fieldType: FieldType!
+    validationRules: JSON
+    displayOrder: Int!
+    createdAt: DateTime!
+}
+
+type DynamicFieldValue {
+    id: ID!
+    definitionId: ID!
+    entityId: ID!
+    fieldName: String!
+    valueJson: JSON
+}
+
+input CreateCompanyInput {
+    name: String!
+    settingsJson: JSON
+}
+
+input UpdateCompanyInput {
+    name: String
+    settingsJson: JSON
+}
+
+input AssignUserInput {
+    userId: ID!
+    companyId: ID!
+    role: UserRole!
+}
+
+input CreateDynamicFieldDefinitionInput {
+    companyId: ID!
+    entityType: EntityType!
+    fieldName: String!
+    fieldType: FieldType!
+    validationRules: JSON
+    displayOrder: Int
+}
+
+input UpdateDynamicFieldDefinitionInput {
+    validationRules: JSON
+    displayOrder: Int
+}
+
+input SetDynamicFieldValueInput {
+    definitionId: ID!
+    entityId: ID!
+    valueJson: JSON
+}
+
+enum UserRole {
+    SUPER_ADMIN
+    ADMIN
+    USER
+    VIEWER
+}
+
+enum EntityType {
+    CUSTOMER
+    PRODUCT
+    ORDER
+    INVOICE
+    SUPPLIER
+    CUSTOM
+}
+
+enum FieldType {
+    STRING
+    NUMBER
+    BOOLEAN
+    DATE
+    DATETIME
+    ENUM
+    JSON
+}
+
+scalar JSON
+scalar DateTime

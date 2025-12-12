@@ -1,0 +1,113 @@
+type Query {
+    scripts(companyId: ID!): [Script!]!
+    script(id: ID!): Script
+    scriptExecutions(scriptId: ID!, page: Int, size: Int): [ScriptExecution!]!
+    scriptStats(scriptId: ID!): ScriptStats!
+}
+
+type Mutation {
+    createScript(input: CreateScriptInput!): Script!
+    updateScript(id: ID!, input: UpdateScriptInput!): Script
+    deleteScript(id: ID!): Boolean!
+    executeScript(scriptId: ID!, input: JSON, executedBy: ID): ScriptExecutionResult!
+    executeTrigger(companyId: ID!, triggerEvent: TriggerEvent!, triggerEntity: String!, data: JSON, executedBy: ID): [ScriptExecutionResult!]!
+}
+
+type Script {
+    id: ID!
+    companyId: ID!
+    name: String!
+    description: String
+    code: String!
+    type: ScriptType!
+    triggerEvent: TriggerEvent
+    triggerEntity: String
+    isActive: Boolean!
+    version: Int!
+    createdBy: ID
+    updatedBy: ID
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+type ScriptExecution {
+    id: ID!
+    scriptId: ID!
+    companyId: ID!
+    executedBy: ID
+    inputData: JSON
+    outputData: JSON
+    status: ExecutionStatus!
+    errorMessage: String
+    executionTimeMs: Int
+    startedAt: DateTime!
+    completedAt: DateTime
+}
+
+type ScriptExecutionResult {
+    executionId: ID!
+    success: Boolean!
+    result: JSON
+    error: String
+    executionTimeMs: Int!
+}
+
+type ScriptStats {
+    successCount: Int!
+    failedCount: Int!
+    timeoutCount: Int!
+    averageExecutionTimeMs: Float!
+}
+
+enum ScriptType {
+    VALIDATION
+    TRANSFORMATION
+    CALCULATION
+    AUTOMATION
+    CUSTOM_FIELD
+}
+
+enum TriggerEvent {
+    BEFORE_CREATE
+    AFTER_CREATE
+    BEFORE_UPDATE
+    AFTER_UPDATE
+    BEFORE_DELETE
+    AFTER_DELETE
+    MANUAL
+    SCHEDULED
+}
+
+enum ExecutionStatus {
+    RUNNING
+    SUCCESS
+    FAILED
+    TIMEOUT
+    CANCELLED
+}
+
+input CreateScriptInput {
+    companyId: ID!
+    name: String!
+    description: String
+    code: String!
+    type: ScriptType!
+    triggerEvent: TriggerEvent
+    triggerEntity: String
+    isActive: Boolean
+    createdBy: ID
+}
+
+input UpdateScriptInput {
+    name: String
+    description: String
+    code: String
+    type: ScriptType
+    triggerEvent: TriggerEvent
+    triggerEntity: String
+    isActive: Boolean
+    updatedBy: ID
+}
+
+scalar DateTime
+scalar JSON

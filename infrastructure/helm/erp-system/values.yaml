@@ -1,0 +1,319 @@
+# =============================================================================
+# Global Configuration
+# =============================================================================
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# =============================================================================
+# Common Settings
+# =============================================================================
+replicaCount: 1
+environment: development
+
+image:
+  pullPolicy: IfNotPresent
+
+# =============================================================================
+# Services Configuration
+# =============================================================================
+services:
+  # Frontend (React)
+  frontend:
+    enabled: true
+    image:
+      repository: erp/frontend
+      tag: latest
+    port: 3000
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+  # Apollo Gateway
+  gateway:
+    enabled: true
+    image:
+      repository: erp/gateway
+      tag: latest
+    port: 4000
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 200m
+        memory: 256Mi
+
+  # .NET Services
+  userService:
+    enabled: true
+    image:
+      repository: erp/user-service
+      tag: latest
+    port: 5000
+    database:
+      name: userdb
+      user: erp_user
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+  shopService:
+    enabled: true
+    image:
+      repository: erp/shop-service
+      tag: latest
+    port: 5001
+    database:
+      name: shopdb
+      user: erp_shop
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+  accountingService:
+    enabled: true
+    image:
+      repository: erp/accounting-service
+      tag: latest
+    port: 5002
+    database:
+      name: accountingdb
+      user: erp_accounting
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+  masterdataService:
+    enabled: true
+    image:
+      repository: erp/masterdata-service
+      tag: latest
+    port: 5003
+    database:
+      name: masterdatadb
+      user: erp_masterdata
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+  # Java Services
+  companyService:
+    enabled: true
+    image:
+      repository: erp/company-service
+      tag: latest
+    port: 8080
+    database:
+      name: companydb
+      user: erp_company
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+
+  translationService:
+    enabled: true
+    image:
+      repository: erp/translation-service
+      tag: latest
+    port: 8081
+    database:
+      name: translationdb
+      user: erp_translation
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+  notificationService:
+    enabled: true
+    image:
+      repository: erp/notification-service
+      tag: latest
+    port: 8082
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+  scriptingService:
+    enabled: true
+    image:
+      repository: erp/scripting-service
+      tag: latest
+    port: 8083
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+
+  edifactService:
+    enabled: true
+    image:
+      repository: erp/edifact-service
+      tag: latest
+    port: 8084
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+# =============================================================================
+# Ingress Configuration
+# =============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+  hosts:
+    - host: erp.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+        - path: /graphql
+          pathType: Prefix
+          service: gateway
+        - path: /api
+          pathType: Prefix
+          service: gateway
+  tls: []
+
+# =============================================================================
+# PostgreSQL (Bitnami)
+# =============================================================================
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: ""  # Set via secret
+    database: erpdb
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+  metrics:
+    enabled: true
+
+# =============================================================================
+# Kafka (Bitnami)
+# =============================================================================
+kafka:
+  enabled: true
+  replicaCount: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+  zookeeper:
+    enabled: true
+    persistence:
+      enabled: true
+      size: 5Gi
+  metrics:
+    kafka:
+      enabled: true
+    jmx:
+      enabled: true
+
+# =============================================================================
+# MinIO (S3-compatible storage)
+# =============================================================================
+minio:
+  enabled: true
+  mode: standalone
+  persistence:
+    enabled: true
+    size: 10Gi
+  defaultBuckets: "company-logos,exports,imports"
+
+# =============================================================================
+# Monitoring
+# =============================================================================
+prometheus:
+  enabled: true
+  server:
+    persistentVolume:
+      enabled: true
+      size: 10Gi
+
+grafana:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 5Gi
+  adminUser: admin
+  adminPassword: ""  # Set via secret
+
+# =============================================================================
+# Security
+# =============================================================================
+networkPolicy:
+  enabled: true
+
+podSecurityPolicy:
+  enabled: false
+
+serviceAccount:
+  create: true
+  name: ""
+
+# =============================================================================
+# Secrets (reference external secrets or create)
+# =============================================================================
+secrets:
+  # Database passwords
+  postgresPassword: ""
+  
+  # SMTP credentials
+  smtpUsername: ""
+  smtpPassword: ""
+  
+  # MinIO credentials
+  minioRootUser: minioadmin
+  minioRootPassword: ""
+  
+  # JWT secret for auth
+  jwtSecret: ""
+  
+  # Super admin email
+  superAdminEmail: ""

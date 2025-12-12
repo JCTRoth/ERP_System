@@ -1,0 +1,73 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
+
+type Query {
+    translationKey(id: ID!): TranslationKey
+    translationKeys(namespace: String): [TranslationKey!]!
+    namespaces: [String!]!
+    
+    translation(keyName: String!, namespace: String!, language: String!, companyId: ID): String!
+    translationBundle(language: String!, companyId: ID, namespace: String): TranslationBundle!
+    translationValues(keyId: ID!): [TranslationValue!]!
+    
+    languages: [LanguageConfig!]!
+    defaultLanguage: LanguageConfig!
+}
+
+type Mutation {
+    createTranslationKey(input: CreateTranslationKeyInput!): TranslationKey!
+    deleteTranslationKey(id: ID!): Boolean!
+    
+    setTranslation(input: SetTranslationInput!): TranslationValue!
+    deleteCompanyOverrides(companyId: ID!): Boolean!
+}
+
+type TranslationKey @key(fields: "id") {
+    id: ID!
+    keyName: String!
+    namespace: String
+    description: String
+    createdAt: DateTime!
+    updatedAt: DateTime
+}
+
+type TranslationValue {
+    id: ID!
+    keyId: ID!
+    keyName: String!
+    language: String!
+    valueText: String
+    companyId: ID
+    isOverride: Boolean!
+    createdAt: DateTime!
+    updatedAt: DateTime
+}
+
+type TranslationBundle {
+    language: String!
+    companyId: ID
+    namespace: String
+    translations: JSON!
+}
+
+type LanguageConfig {
+    code: String!
+    name: String!
+    flag: String!
+    isDefault: Boolean!
+}
+
+input CreateTranslationKeyInput {
+    keyName: String!
+    namespace: String
+    description: String
+}
+
+input SetTranslationInput {
+    keyId: ID!
+    language: String!
+    valueText: String!
+    companyId: ID
+}
+
+scalar JSON
+scalar DateTime

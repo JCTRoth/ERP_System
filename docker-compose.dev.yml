@@ -1,0 +1,282 @@
+# Development Docker Compose
+# For local development with hot-reload
+
+services:
+  # Frontend
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/frontend/src:/app/src
+      - ./apps/frontend/public:/app/public
+    environment:
+      - VITE_GATEWAY_URL=http://localhost:4000
+    depends_on:
+      - gateway
+
+  # Gateway
+  gateway:
+    build:
+      context: ./apps/gateway
+      dockerfile: Dockerfile.dev
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./apps/gateway/src:/app/src
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - user-service
+      - company-service
+      - shop-service
+
+  # .NET Services
+  user-service:
+    build:
+      context: ./apps/services/dotnet/UserService
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./apps/services/dotnet/UserService:/app
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres-users;Database=userdb;Username=postgres;Password=postgres
+      - Jwt__Secret=your-super-secret-key-at-least-256-bits-long-for-hs256
+    depends_on:
+      - postgres-users
+
+  shop-service:
+    build:
+      context: ./apps/services/dotnet/ShopService
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./apps/services/dotnet/ShopService:/app
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres-shop;Database=shopdb;Username=postgres;Password=postgres
+    depends_on:
+      - postgres-shop
+
+  accounting-service:
+    build:
+      context: ./apps/services/dotnet/AccountingService
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./apps/services/dotnet/AccountingService:/app
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres-accounting;Database=accountingdb;Username=postgres;Password=postgres
+    depends_on:
+      - postgres-accounting
+
+  masterdata-service:
+    build:
+      context: ./apps/services/dotnet/MasterdataService
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./apps/services/dotnet/MasterdataService:/app
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres-masterdata;Database=masterdatadb;Username=postgres;Password=postgres
+    depends_on:
+      - postgres-masterdata
+
+  # Java Services
+  company-service:
+    build:
+      context: ./apps/services/java/company-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./apps/services/java/company-service/src:/app/src
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-company:5432/companydb
+    depends_on:
+      - postgres-company
+
+  notification-service:
+    build:
+      context: ./apps/services/java/notification-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./apps/services/java/notification-service/src:/app/src
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-notification:5432/notificationdb
+    depends_on:
+      - postgres-notification
+
+  translation-service:
+    build:
+      context: ./apps/services/java/translation-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./apps/services/java/translation-service/src:/app/src
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-translation:5432/translationdb
+    depends_on:
+      - postgres-translation
+
+  scripting-service:
+    build:
+      context: ./apps/services/java/scripting-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8084:8084"
+    volumes:
+      - ./apps/services/java/scripting-service/src:/app/src
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - postgres-company
+
+  edifact-service:
+    build:
+      context: ./apps/services/java/edifact-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8085:8085"
+    volumes:
+      - ./apps/services/java/edifact-service/src:/app/src
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - postgres-company
+
+  # PostgreSQL Databases
+  postgres-users:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: userdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-users-data:/var/lib/postgresql/data
+
+  postgres-shop:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shopdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres-shop-data:/var/lib/postgresql/data
+
+  postgres-accounting:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: accountingdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres-accounting-data:/var/lib/postgresql/data
+
+  postgres-masterdata:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: masterdatadb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5438:5432"
+    volumes:
+      - postgres-masterdata-data:/var/lib/postgresql/data
+
+  postgres-company:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: companydb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-company-data:/var/lib/postgresql/data
+
+  postgres-notification:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: notificationdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-notification-data:/var/lib/postgresql/data
+
+  postgres-translation:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: translationdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-translation-data:/var/lib/postgresql/data
+
+  # Observability
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+
+  # Message Queue (for notifications)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-users-data:
+  postgres-shop-data:
+  postgres-accounting-data:
+  postgres-masterdata-data:
+  postgres-company-data:
+  postgres-notification-data:
+  postgres-translation-data:
+  prometheus-data:
+  grafana-data:
+  redis-data:
+
+networks:
+  default:
+    name: erp-network

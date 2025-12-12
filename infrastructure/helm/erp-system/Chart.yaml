@@ -1,0 +1,34 @@
+apiVersion: v2
+name: erp-system
+description: ERP System Helm Chart - Kubernetes deployment for microservices architecture
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - erp
+  - microservices
+  - kubernetes
+  - graphql
+maintainers:
+  - name: ERP Team
+dependencies:
+  - name: postgresql
+    version: "13.2.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: kafka
+    version: "26.4.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: kafka.enabled
+  - name: minio
+    version: "12.8.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: minio.enabled
+  - name: prometheus
+    version: "25.0.0"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: prometheus.enabled
+  - name: grafana
+    version: "7.0.0"
+    repository: https://grafana.github.io/helm-charts
+    condition: grafana.enabled
