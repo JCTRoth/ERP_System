@@ -1,30 +1,8 @@
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS base
 WORKDIR /app
-EXPOSE 8080
+EXPOSE 5000
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
-WORKDIR /src
-COPY ["UserService.csproj", "./"]
-RUN dotnet restore "UserService.csproj"
-COPY . .
-RUN dotnet build "UserService.csproj" -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish "UserService.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
-WORKDIR /app
-
-# Create non-root user
-RUN addgroup -g 1001 appgroup && \
-    adduser -u 1001 -G appgroup -s /bin/sh -D appuser
-
-COPY --from=publish /app/publish .
-RUN chown -R appuser:appgroup /app
-
-USER appuser
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
-
-ENTRYPOINT ["dotnet", "UserService.dll"]
+# For development, we need write access to mounted volumes, so run as root
+# Check if we're in development mode (source code mounted)
+# If UserService.csproj exists, we're in dev mode, otherwise run published app
+ENTRYPOINT ["sh", "-c", "if [ -f UserService.csproj ]; then dotnet watch run --urls http://0.0.0.0:5000; else dotnet UserService.dll; fi"]

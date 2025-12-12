@@ -1,4 +1,6 @@
 using HotChocolate.ApolloFederation;
+using HotChocolate.Types;
+using HotChocolate.Types.Relay;
 using UserService.Models;
 
 namespace UserService.GraphQL;
