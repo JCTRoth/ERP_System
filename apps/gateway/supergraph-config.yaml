@@ -2,22 +2,24 @@ federation_version: =2.6.3
 
 subgraphs:
   user-service:
-    routing_url: http://localhost:8080/graphql
+    routing_url: http://user-service:5000/graphql
     schema:
-      subgraph_url: http://localhost:8080/graphql
+      subgraph_url: http://user-service:5000/graphql
 
-  # Temporarily disabled other services until they are implemented
-  # company-service:
-  #   routing_url: http://localhost:8080/graphql
-  #   schema:
-  #     subgraph_url: http://localhost:8080/graphql
+  company-service:
+    routing_url: http://company-service:8081/graphql
+    schema:
+      subgraph_url: http://company-service:8081/graphql
 
-  # translation-service:
-  #   routing_url: http://localhost:8081/graphql
-  #   schema:
-  #     subgraph_url: http://localhost:8081/graphql
+  translation-service:
+    routing_url: http://translation-service:8083/graphql
+    schema:
+      subgraph_url: http://translation-service:8083/graphql
 
-  # shop-service:
+  shop-service:
+    routing_url: http://shop-service:5003/graphql
+    schema:
+      subgraph_url: http://shop-service:5003/graphql
   #   routing_url: http://localhost:8082/graphql
   #   schema:
   #     subgraph_url: http://localhost:8082/graphql
