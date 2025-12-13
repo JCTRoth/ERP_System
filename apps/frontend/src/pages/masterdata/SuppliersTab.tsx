@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, gql } from '@apollo/client';
+import { useQuery, gql } from '@apollo/client';
 import {
   PlusIcon,
   PencilIcon,
@@ -73,7 +73,7 @@ export default function SuppliersTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, loading, refetch } = useQuery(GET_SUPPLIERS, {
+  const { data, loading } = useQuery(GET_SUPPLIERS, {
     variables: {
       first: 100,
       where: statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined,

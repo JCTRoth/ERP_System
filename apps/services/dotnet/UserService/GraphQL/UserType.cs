@@ -23,8 +23,8 @@ public class UserType : ObjectType<User>
         descriptor.Field(u => u.LastName)
             .Type<StringType>();
 
-        // descriptor.Field(u => u.FullName)
-        //     .Type<NonNullType<StringType>>();
+        descriptor.Field(u => u.FullName)
+            .Type<NonNullType<StringType>>();
 
         descriptor.Field(u => u.IsActive)
             .Type<NonNullType<BooleanType>>();

@@ -1,0 +1,523 @@
+= ERP System Development Manual
+
+== Overview
+
+This document provides comprehensive guidance for developing, running, and debugging the ERP microservices system locally.
+
+== Architecture
+
+The ERP system consists of:
+
+* **Frontend**: React + TypeScript + Vite + Apollo Client
+* **Gateway**: Apollo Gateway (GraphQL federation)
+* **Backend Services**:
+  - UserService (.NET 8 + HotChocolate GraphQL)
+  - ShopService (.NET 8)
+  - AccountingService (.NET 8)
+  - MasterdataService (.NET 8)
+  - CompanyService (Java + Spring Boot)
+  - TranslationService (Java + Spring Boot)
+  - NotificationService (Java + Spring Boot)
+  - ScriptingService (Java + Spring Boot)
+* **Infrastructure**:
+  - PostgreSQL databases (multiple instances)
+  - Redis
+  - MinIO (object storage)
+  - Prometheus + Grafana
+
+== Local Development Setup
+
+=== Prerequisites
+
+* Docker and Docker Compose
+* Node.js 18+ (managed via nvm)
+* .NET 8 SDK
+* Java 17+ (for Java services)
+* Git
+
+=== Quick Start
+
+1. Clone the repository:
++
+[source,bash]
+----
+git clone <repository-url>
+cd ERP_System
+----
+
+2. Start the system:
++
+[source,bash]
+----
+./start-local.sh
+----
++
+This script will:
+- Start all databases and Redis
+- Wait for databases to be ready
+- Start core services (UserService, Gateway, Frontend)
+- Perform health checks
+- Display access URLs
+
+3. Access the application:
+- Frontend: http://localhost:5173
+- GraphQL Gateway: http://localhost:4000/graphql
+- Login: admin@erp-system.local / Admin123!
+
+=== Manual Service Startup
+
+If you need to start services individually:
+
+[source,bash]
+----
+# Start databases only
+docker compose -f docker-compose.dev.yml up postgres-users postgres-shop redis -d
+
+# Start specific service
+docker compose -f docker-compose.dev.yml up user-service -d
+
+# Start with logs
+docker compose -f docker-compose.dev.yml up gateway
+----
+
+== Development Workflow
+
+=== Frontend Development
+
+The frontend runs in a Docker container with hot-reload enabled.
+
+==== Running Locally (Alternative)
+
+If you prefer running the frontend locally:
+
+[source,bash]
+----
+cd apps/frontend
+nvm use 18
+npm ci --legacy-peer-deps
+npm run dev
+----
+
+Update `vite.config.ts` proxy target to `http://localhost:4000` for local development.
+
+==== Building and Testing
+
+[source,bash]
+----
+cd apps/frontend
+npm run type-check    # TypeScript check
+npm run lint          # ESLint
+npm run test          # Vitest
+npm run build         # Production build
+----
+
+=== Backend Development
+
+==== .NET Services
+
+Each .NET service has its own directory under `apps/services/dotnet/`.
+
+[source,bash]
+----
+cd apps/services/dotnet/UserService
+dotnet restore
+dotnet build
+dotnet run
+----
+
+Services run on different ports:
+- UserService: 5000
+- ShopService: 5003
+- AccountingService: 5001
+- MasterdataService: 5002
+
+==== Java Services
+
+Java services are under `apps/services/java/`.
+
+[source,bash]
+----
+cd apps/services/java/company-service
+./gradlew build
+./gradlew bootRun
+----
+
+Services run on ports 8081+.
+
+=== Database Management
+
+==== Accessing PostgreSQL
+
+[source,bash]
+----
+# Connect to user database
+docker exec -it erp_system-postgres-users-1 psql -U postgres -d userdb
+
+# View all databases
+docker compose -f docker-compose.dev.yml ps | grep postgres
+----
+
+Database ports:
+- postgres-users: 5442
+- postgres-shop: 5436
+- postgres-company: 5433
+- postgres-accounting: 5437
+- postgres-masterdata: 5438
+- postgres-translation: 5435
+- postgres-notification: 5434
+
+==== Database Seeding
+
+UserService automatically seeds an admin user on startup.
+
+== Debugging Guide
+
+=== Common Issues
+
+==== 500 Errors on GraphQL Requests
+
+1. Check if Gateway is running:
++
+[source,bash]
+----
+curl http://localhost:4000/health
+----
+
+2. Check Gateway logs:
++
+[source,bash]
+----
+docker compose -f docker-compose.dev.yml logs gateway --tail 20
+----
+
+3. Verify UserService is responding:
++
+[source,bash]
+----
+curl -X POST http://localhost:5000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{__typename}"}'
+----
+
+4. Test full login through Gateway:
++
+[source,bash]
+----
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"mutation { login(email: \"admin@erp-system.local\", password: \"Admin123!\") { accessToken } }"}'
+----
+
+5. Check frontend proxy:
++
+[source,bash]
+----
+curl -X POST http://localhost:5173/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{__typename}"}'
+----
+
+==== Port Conflicts
+
+If you get "port already in use" errors:
+
+1. Find the process using the port:
++
+[source,bash]
+----
+lsof -i :5000
+----
+
+2. Kill the process:
++
+[source,bash]
+----
+kill -9 <PID>
+# or
+pkill -f <process-name>
+----
+
+3. Restart the service:
++
+[source,bash]
+----
+./start-local.sh
+----
+
+==== TypeScript Errors
+
+1. Run type check:
++
+[source,bash]
+----
+cd apps/frontend
+npm run type-check
+----
+
+2. If test files cause errors, exclude them in `tsconfig.json`:
++
+[source,json]
+----
+{
+  "exclude": [
+    "src/test",
+    "src/**/*.test.*",
+    "src/**/*.spec.*"
+  ]
+}
+----
+
+3. Restart TypeScript server in VS Code: `Ctrl+Shift+P` → "TypeScript: Restart TS Server"
+
+==== Java Service Build Failures
+
+1. Ensure Java 17+ is installed:
++
+[source,bash]
+----
+java -version
+----
+
+2. Check Gradle wrapper:
++
+[source,bash]
+----
+cd apps/services/java/<service>
+./gradlew --version
+----
+
+3. Clean and rebuild:
++
+[source,bash]
+----
+./gradlew clean build
+----
+
+=== Debugging Tools
+
+==== Log Collection Script
+
+For systematic log collection across all services:
+
+[source,bash]
+----
+./collect-logs.sh --compress
+----
+
+This creates a compressed archive of all logs, system info, and container statistics for sharing or analysis.
+
+==== Browser Developer Tools
+
+- **Network Tab**: Check GraphQL requests and responses
+- **Console**: View JavaScript errors and Apollo Client logs
+- **Application Tab**: Inspect local storage and session data
+
+==== Apollo DevTools
+
+Install the Apollo DevTools browser extension for GraphQL debugging.
+
+==== Docker Debugging
+
+1. View container logs:
++
+[source,bash]
+----
+docker compose -f docker-compose.dev.yml logs <service-name> -f
+----
+
+2. Access container shell:
++
+[source,bash]
+----
+docker exec -it erp_system-<service-name>-1 sh
+----
+
+3. Check container health:
++
+[source,bash]
+----
+docker ps
+docker stats
+----
+
+==== Database Debugging
+
+1. Connect to database:
++
+[source,bash]
+----
+docker exec -it erp_system-postgres-users-1 psql -U postgres -d userdb
+----
+
+2. View tables:
++
+[source,sql]
+----
+\dt
+SELECT * FROM users LIMIT 5;
+----
+
+==== GraphQL Debugging
+
+1. Test queries in Apollo Studio: https://studio.apollographql.com/sandbox
+
+2. Use the Gateway's GraphQL endpoint: http://localhost:4000/graphql
+
+3. Check federation status:
++
+[source,bash]
+----
+curl http://localhost:4000/health
+----
+
+=== Logs and Monitoring
+
+==== Log Collection
+
+For comprehensive debugging, use the automated log collection script:
+
+[source,bash]
+----
+./collect-logs.sh
+----
+
+This script:
+- Collects logs from all running Docker containers
+- Gathers system information and container statistics
+- Creates a timestamped log directory under `logs/`
+- Optionally compresses logs into an archive
+
+Options:
+- `--compress`: Automatically compress logs after collection
+- `--no-summary`: Skip creating the summary file
+- `--help`: Show usage information
+
+Example output structure:
+----
+logs/
+└── 20251213_193052/
+    ├── system_info.txt
+    ├── container_stats.txt
+    ├── frontend.log
+    ├── gateway.log
+    ├── user-service.log
+    └── ...
+----
+
+==== Service Logs
+
+[source,bash]
+----
+# All services
+docker compose -f docker-compose.dev.yml logs -f
+
+# Specific service
+docker compose -f docker-compose.dev.yml logs user-service -f
+----
+
+==== Application Logs
+
+- Frontend: Browser console
+- .NET Services: Container logs (structured JSON)
+- Java Services: Container logs
+- Gateway: Container logs
+
+==== Health Checks
+
+[source,bash]
+----
+# Gateway health
+curl http://localhost:4000/health
+
+# UserService health
+curl http://localhost:5000/health
+
+# Frontend (manual check)
+curl http://localhost:5173
+----
+
+== Testing
+
+=== Frontend Testing
+
+[source,bash]
+----
+cd apps/frontend
+npm run test          # Run tests
+npm run test:ui       # Run tests with UI
+----
+
+=== Backend Testing
+
+==== .NET Tests
+
+[source,bash]
+----
+cd apps/services/dotnet/UserService.Tests
+dotnet test
+----
+
+==== Integration Testing
+
+Use the `start-local.sh` script to ensure all services are running, then test end-to-end flows.
+
+== Deployment
+
+=== Local Production-like Setup
+
+Use `docker-compose.yml` for production-like local testing:
+
+[source,bash]
+----
+docker compose up -d
+----
+
+=== Kubernetes Deployment
+
+Use Helm charts in `infrastructure/helm/erp-system/`.
+
+=== CI/CD
+
+GitHub Actions workflows are defined in `.github/workflows/`.
+
+== Troubleshooting
+
+=== Service Won't Start
+
+1. Check dependencies are running
+2. Check logs for errors
+3. Verify configuration files
+4. Check port availability
+
+=== Database Connection Issues
+
+1. Ensure PostgreSQL containers are healthy
+2. Check connection strings in service configs
+3. Verify database names and credentials
+
+=== GraphQL Federation Issues
+
+1. Check supergraph-config.yaml
+2. Ensure all subgraph services are healthy
+3. Restart Gateway after subgraph changes
+
+=== Performance Issues
+
+1. Check resource usage: `docker stats`
+2. Monitor with Prometheus: http://localhost:9090
+3. View Grafana dashboards: http://localhost:3000
+
+== Contributing
+
+1. Create a feature branch
+2. Make changes with tests
+3. Run full test suite
+4. Submit pull request
+
+== Support
+
+For issues:
+1. Check this manual
+2. Review logs
+3. Search existing issues
+4. Create new issue with logs and reproduction steps

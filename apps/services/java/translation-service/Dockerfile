@@ -2,11 +2,19 @@ FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 # Copy entire project context so builds without gradle wrapper won't fail during COPY
 COPY . .
-RUN if [ -f gradlew ]; then \
-            chmod +x gradlew && ./gradlew bootJar --no-daemon; \
-        else \
-            echo "gradlew not found; skipping gradle build (ensure jar is provided or add gradle wrapper)"; \
-        fi
+
+# Install Gradle
+RUN apt-get update && apt-get install -y wget unzip \
+    && wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip \
+    && unzip gradle-8.5-bin.zip \
+    && mv gradle-8.5 /opt/gradle \
+    && ln -s /opt/gradle/bin/gradle /usr/bin/gradle \
+    && apt-get remove -y wget unzip \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build the application
+RUN gradle bootJar --no-daemon
 
 # Ensure there is at least one jar file so the final image can copy it even if build was skipped
 RUN set -- build/libs/*.jar; \

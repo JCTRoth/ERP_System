@@ -44,6 +44,46 @@ Development: Docker Compose → Testing → CI/CD → Production: Kubernetes
 - Docker & Docker Compose
 - PostgreSQL 15+
 
+### System Requirements
+
+#### Production Environment
+
+**Software Requirements:**
+- Kubernetes cluster
+
+**Hardware Requirements:**
+- **RAM**: Minimum 4GB per service instance, 8GB recommended for optimal performance
+- **CPU**: 2+ cores per service
+- **Storage**: 20GB+ available disk space
+- **Network**: Stable internet connection for external services
+
+**JVM Memory Configuration:**
+- Translation Service: -Xmx1024m (1GB heap)
+- Other Java Services: -Xmx2048m (2GB heap) recommended
+- .NET Services: 512MB minimum per service
+
+#### Development Environment
+
+**Software Requirements:**
+- Java Development Kit (JDK) 21
+- .NET 8 SDK
+- Node.js 20+ with npm
+- Docker & Docker Compose
+- PostgreSQL 15+ (local or containerized)
+- IDE with Java 21, .NET 8, and TypeScript support (VS Code, IntelliJ IDEA, etc.)
+- Git for version control
+
+**Hardware Requirements:**
+- **RAM**: Minimum 8GB, 16GB recommended for running all services simultaneously
+- **CPU**: 4+ cores recommended
+- **Storage**: 30GB+ available disk space
+- **Network**: Stable internet connection for package downloads
+
+**Development Memory Allocation:**
+- Frontend development: 2GB RAM
+- Individual service development: 2-4GB RAM per service
+- Full stack development: 8GB+ RAM total
+
 ### Quick Start with Docker
 
 ```bash
