@@ -51,7 +51,7 @@ class AuthenticatedDataSource extends RemoteGraphQLDataSource {
 // Define subgraph services
 const subgraphs = [
   { name: 'user-service', url: process.env.USER_SERVICE_URL || 'http://user-service:5000/graphql' },
-  // { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL || 'http://translation-service:8083/graphql' },
+  { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL || 'http://translation-service:8081/graphql' },
 ];
 
 // Create gateway

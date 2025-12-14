@@ -33,4 +33,12 @@ public class Query
         if (!userId.HasValue) return null;
         return await userService.GetByIdAsync(userId.Value);
     }
+
+    // Alias for GetCurrentUser to match API expectations
+    public async Task<UserDto?> Me(
+        [Service] IUserService userService,
+        [GlobalState("CurrentUserId")] Guid? userId)
+    {
+        return await GetCurrentUser(userService, userId);
+    }
 }

@@ -61,8 +61,12 @@ export default function CustomerModal({ customer, onClose }: CustomerModalProps)
     notes: '',
   });
 
-  const [createCustomer, { loading: createLoading }] = useMutation(CREATE_CUSTOMER);
-  const [updateCustomer, { loading: updateLoading }] = useMutation(UPDATE_CUSTOMER);
+  const [createCustomer, { loading: createLoading, error: createError }] = useMutation(CREATE_CUSTOMER, {
+    errorPolicy: 'all',
+  });
+  const [updateCustomer, { loading: updateLoading, error: updateError }] = useMutation(UPDATE_CUSTOMER, {
+    errorPolicy: 'all',
+  });
 
   useEffect(() => {
     if (customer) {
@@ -85,6 +89,12 @@ export default function CustomerModal({ customer, onClose }: CustomerModalProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check if service is available
+    if (createError?.message.includes('Unknown type') || updateError?.message.includes('Unknown type')) {
+      alert('The Customers service is not yet available. This feature will be enabled when the masterdata service is deployed.');
+      return;
+    }
 
     try {
       const input = {
@@ -110,6 +120,10 @@ export default function CustomerModal({ customer, onClose }: CustomerModalProps)
       }
       onClose();
     } catch (error) {
+      // Silently handle errors for unavailable services
+      if ((error as Error).message.includes('Unknown type')) {
+        return;
+      }
       console.error('Error saving customer:', error);
     }
   };

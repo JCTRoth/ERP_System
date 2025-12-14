@@ -9,6 +9,8 @@ type Query {
     translationBundle(language: String!, companyId: ID, namespace: String): TranslationBundle!
     translationValues(keyId: ID!): [TranslationValue!]!
     
+    translations(language: String!, companyId: ID): [Translation!]!
+    
     languages: [LanguageConfig!]!
     defaultLanguage: LanguageConfig!
 }
@@ -47,6 +49,11 @@ type TranslationBundle {
     companyId: ID
     namespace: String
     translations: JSON!
+}
+
+type Translation {
+    key: String!
+    value: String!
 }
 
 type LanguageConfig {

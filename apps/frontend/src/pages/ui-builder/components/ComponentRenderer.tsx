@@ -40,14 +40,15 @@ export default function ComponentRenderer({ component }: ComponentRendererProps)
       };
       return (
         <button className={buttonVariants[(props.variant as string) || 'primary']}>
-          {props.label as string}
+          {props.label && typeof props.label === 'string' ? props.label : 'Button'}
         </button>
       );
 
     case 'input':
+      const inputLabel = typeof props.label === 'string' ? props.label : undefined;
       return (
         <div>
-          {props.label && <label className="label mb-1">{props.label as string}</label>}
+          {inputLabel && <label className="label mb-1">{inputLabel}</label>}
           <input
             type={(props.type as string) || 'text'}
             placeholder={props.placeholder as string}
@@ -58,9 +59,10 @@ export default function ComponentRenderer({ component }: ComponentRendererProps)
       );
 
     case 'select':
+      const selectLabel = typeof props.label === 'string' ? props.label : undefined;
       return (
         <div>
-          {props.label && <label className="label mb-1">{props.label as string}</label>}
+          {selectLabel && <label className="label mb-1">{selectLabel}</label>}
           <select className="input" disabled>
             {((props.options as string[]) || []).map((option, i) => (
               <option key={i}>{option}</option>
@@ -70,17 +72,19 @@ export default function ComponentRenderer({ component }: ComponentRendererProps)
       );
 
     case 'checkbox':
+      const checkboxLabel = typeof props.label === 'string' ? props.label : undefined;
       return (
         <div className="flex items-center gap-2">
           <input type="checkbox" disabled className="h-4 w-4" />
-          <label className="text-sm">{props.label as string}</label>
+          {checkboxLabel && <label className="text-sm">{checkboxLabel}</label>}
         </div>
       );
 
     case 'card':
+      const cardTitle = typeof props.title === 'string' ? props.title : undefined;
       return (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700">
-          {props.title && <h3 className="font-semibold">{props.title as string}</h3>}
+          {cardTitle && <h3 className="font-semibold">{cardTitle}</h3>}
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Card content</p>
         </div>
       );

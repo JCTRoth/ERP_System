@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useQuery, useMutation, gql } from '@apollo/client';
+import { useQuery, gql } from '@apollo/client';
 import { PlusIcon, PencilIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, Language } from '../../providers/I18nProvider';
+import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../../providers/I18nProvider';
 import TranslationModal from './TranslationModal';
 
 const GET_TRANSLATION_KEYS = gql`

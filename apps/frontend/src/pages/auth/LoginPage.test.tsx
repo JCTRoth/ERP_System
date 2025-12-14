@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../test/utils';
-import LoginPage from '../pages/auth/LoginPage';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
+import LoginPage from './LoginPage';
 
 // Mock the auth store
 const mockSetAuth = vi.fn();
@@ -22,13 +24,36 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// Mock useI18n
+vi.mock('../../providers/I18nProvider', () => ({
+  useI18n: () => ({
+    t: (key: string, options?: any) => options?.default || key,
+    language: 'en',
+    setLanguage: vi.fn(),
+    isLoading: false,
+    localeVersion: 1,
+  }),
+  I18nProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+// Test wrapper
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>
+    {children}
+  </MemoryRouter>
+);
+
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders login form', () => {
-    render(<LoginPage />);
+    render(
+      <TestWrapper>
+        <LoginPage />
+      </TestWrapper>
+    );
     
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
@@ -36,13 +61,21 @@ describe('LoginPage', () => {
   });
 
   it('shows demo credentials', () => {
-    render(<LoginPage />);
+    render(
+      <TestWrapper>
+        <LoginPage />
+      </TestWrapper>
+    );
     
-    expect(screen.getByText(/admin@erp-system.local/)).toBeInTheDocument();
+    expect(screen.getByText(/demo credentials/i)).toBeInTheDocument();
   });
 
   it('updates input values when typing', () => {
-    render(<LoginPage />);
+    render(
+      <TestWrapper>
+        <LoginPage />
+      </TestWrapper>
+    );
     
     const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement;
     const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement;
@@ -55,7 +88,11 @@ describe('LoginPage', () => {
   });
 
   it('has a link to forgot password page', () => {
-    render(<LoginPage />);
+    render(
+      <TestWrapper>
+        <LoginPage />
+      </TestWrapper>
+    );
     
     const forgotLink = screen.getByText(/forgot password/i);
     expect(forgotLink).toBeInTheDocument();

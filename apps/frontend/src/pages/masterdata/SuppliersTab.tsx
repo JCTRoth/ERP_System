@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import {
-  PlusIcon,
   PencilIcon,
   TrashIcon,
   MagnifyingGlassIcon,
@@ -69,7 +68,6 @@ const RATING_MAP: Record<string, number> = {
 
 export default function SuppliersTab() {
   const { t } = useI18n();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -127,13 +125,6 @@ export default function SuppliersTab() {
             <option value="SUSPENDED">{t('masterdata.suspended')}</option>
           </select>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <PlusIcon className="h-5 w-5" />
-          {t('masterdata.addSupplier')}
-        </button>
       </div>
 
       {/* Table */}

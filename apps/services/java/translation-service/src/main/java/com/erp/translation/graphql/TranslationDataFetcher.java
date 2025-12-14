@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @DgsComponent
 @RequiredArgsConstructor
@@ -58,6 +59,13 @@ public class TranslationDataFetcher {
     @DgsQuery
     public List<TranslationValueDto> translationValues(@InputArgument String keyId) {
         return translationService.getValuesForKey(UUID.fromString(keyId));
+    }
+
+    @DgsQuery
+    public List<TranslationDto> translations(@InputArgument String language,
+                                             @InputArgument String companyId) {
+        UUID companyUuid = companyId != null ? UUID.fromString(companyId) : null;
+        return translationService.getAllTranslations(language, companyUuid);
     }
 
     @DgsQuery

@@ -15,6 +15,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
@@ -22,7 +23,7 @@
       "@erp/i18n": ["../../libs/i18n/src"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "src/test"],
   "exclude": [
     "src/test",
     "src/**/*.test.*",

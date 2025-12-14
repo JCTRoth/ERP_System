@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useQuery, useMutation, gql } from '@apollo/client';
+import { useQuery, gql } from '@apollo/client';
 import {
   PlusIcon,
   PencilIcon,
   EyeIcon,
-  DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import InvoiceModal from './InvoiceModal';

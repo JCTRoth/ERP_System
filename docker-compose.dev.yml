@@ -29,10 +29,12 @@ services:
       - ./apps/gateway/src:/app/src
     environment:
       - NODE_ENV=development
+      - TRANSLATION_SERVICE_URL=http://translation-service:8081/graphql
     depends_on:
       - user-service
       - company-service
       - shop-service
+      - translation-service
 
   # .NET Services
   user-service:
@@ -104,6 +106,11 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-company:5432/companydb
+      - DB_HOST=postgres-company
+      - DB_PORT=5432
+      - DB_NAME=companydb
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
     depends_on:
       - postgres-company
 
@@ -118,6 +125,11 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-notification:5432/notificationdb
+      - DB_HOST=postgres-notification
+      - DB_PORT=5432
+      - DB_NAME=notificationdb
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
     depends_on:
       - postgres-notification
 
@@ -132,6 +144,11 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-translation:5432/translationdb
+      - DB_HOST=postgres-translation
+      - DB_PORT=5432
+      - DB_NAME=translationdb
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
     depends_on:
       - postgres-translation
 
@@ -145,6 +162,11 @@ services:
       - ./apps/services/java/scripting-service/src:/app/src
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=postgres-company
+      - DB_PORT=5432
+      - DB_NAME=companydb
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
     depends_on:
       - postgres-company
 
@@ -158,6 +180,11 @@ services:
       - ./apps/services/java/edifact-service/src:/app/src
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=postgres-company
+      - DB_PORT=5432
+      - DB_NAME=companydb
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
     depends_on:
       - postgres-company
 

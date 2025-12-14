@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useI18n } from '../../providers/I18nProvider';
 import { authService } from '../../services/authService';
 
 export default function ForgotPasswordPage() {
   const { t } = useI18n();
-  const navigate = useNavigate();
   
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);

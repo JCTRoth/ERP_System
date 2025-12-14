@@ -99,6 +99,30 @@ check_service_health() {
     return 0
 }
 
+# Function to check GraphQL endpoint health
+check_graphql_health() {
+    local service_name=$1
+    local port=$2
+    local max_attempts=15
+    local attempt=1
+
+    print_status "Checking GraphQL endpoint for $service_name on port $port..."
+
+    while [ $attempt -le $max_attempts ]; do
+        if curl -f -X POST -H "Content-Type: application/json" -d '{"query":"{__typename}"}' http://localhost:$port/graphql >/dev/null 2>&1; then
+            print_status "$service_name GraphQL endpoint is ready!"
+            return 0
+        fi
+
+        echo -n "."
+        sleep 3
+        ((attempt++))
+    done
+
+    print_warning "$service_name GraphQL endpoint not ready, but continuing..."
+    return 0
+}
+
 # Main startup function
 main() {
     print_header "ERP System Local Startup"
@@ -135,10 +159,11 @@ main() {
 
     # Start core services
     print_header "Starting Core Services"
-    print_status "Starting UserService, Gateway, and Frontend..."
+    print_status "Starting UserService, TranslationService, Gateway, and Frontend..."
 
     docker compose -f "$COMPOSE_FILE" up -d \
         user-service \
+        translation-service \
         gateway \
         frontend
 
@@ -148,6 +173,21 @@ main() {
 
     # Check service health
     check_service_health "UserService" "5000"
+    check_graphql_health "UserService" "5000"
+    
+    check_service_health "TranslationService" "8083"
+    check_graphql_health "TranslationService" "8083"
+    
+    # Start gateway and frontend
+    print_status "Starting Gateway and Frontend..."
+    docker compose -f "$COMPOSE_FILE" up -d \
+        gateway \
+        frontend
+
+    # Wait a bit more for gateway to start
+    print_status "Waiting for Gateway to start..."
+    sleep 15
+
     check_service_health "Gateway" "4000"
 
     # Show status
@@ -161,6 +201,7 @@ main() {
     echo -e "${GREEN}Frontend:${NC}        http://localhost:5173"
     echo -e "${GREEN}GraphQL Gateway:${NC} http://localhost:4000/graphql"
     echo -e "${GREEN}UserService:${NC}     http://localhost:5000/graphql"
+    echo -e "${GREEN}TranslationService:${NC} http://localhost:8083/graphql"
     echo -e "${GREEN}MinIO (Storage):${NC} http://localhost:9001 (admin/admin)"
     echo ""
     echo -e "${YELLOW}Login Credentials:${NC}"

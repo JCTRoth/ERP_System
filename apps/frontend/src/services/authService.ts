@@ -12,8 +12,6 @@ const LOGIN_MUTATION = gql`
         firstName
         lastName
         preferredLanguage
-        role
-        permissions
       }
       accessToken
       refreshToken

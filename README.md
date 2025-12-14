@@ -229,7 +229,6 @@ mutation {
 
 Configuration files are located in `/config/`:
 - `email.json` - Email service settings
-- `i18n.json` - Internationalization settings
 - `seed.json` - Database seed data
 - `upload.json` - File upload settings
 

@@ -106,14 +106,6 @@ export default function AssetsTab() {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   // Summary stats
   const totalAssets = data?.assets?.totalCount || 0;
   const totalValue = data?.assets?.nodes?.reduce(

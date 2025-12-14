@@ -22,24 +22,21 @@ const authLink = setContext((_, { headers }) => {
   };
 });
 
-const errorLink = onError(({ graphQLErrors, networkError }) => {
+const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
   if (graphQLErrors) {
-    graphQLErrors.forEach(({ message, locations, path }) => {
-      // Skip logging translations errors since the service is not available
-      if (message.includes('translations')) {
+    graphQLErrors.forEach(({ message }) => {
+      // Skip logging for unavailable services
+      if (message.includes('translations') || message.includes('customers') || message.includes('Unknown type')) {
         return;
       }
-      console.error(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
-      
-      // Handle authentication errors
-      if (message.includes('Unauthorized') || message.includes('jwt expired')) {
-        useAuthStore.getState().logout();
-        window.location.href = '/auth/login';
-      }
+      console.error(`[GraphQL error]: ${operation.operationName}: ${message}`);
     });
   }
   if (networkError) {
-    console.error(`[Network error]: ${networkError}`);
+    // Only log actual network errors, not GraphQL 400 responses
+    if ('statusCode' in networkError && networkError.statusCode !== 400) {
+      console.error(`[Network error]: ${networkError}`);
+    }
   }
 });
 

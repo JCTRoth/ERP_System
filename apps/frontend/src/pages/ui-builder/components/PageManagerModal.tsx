@@ -4,7 +4,6 @@ import {
   PlusIcon,
   TrashIcon,
   DocumentDuplicateIcon,
-  PencilIcon,
 } from '@heroicons/react/24/outline';
 import { useUIBuilderStore, UIPage } from '../../../stores/uiBuilderStore';
 import { useI18n } from '../../../providers/I18nProvider';

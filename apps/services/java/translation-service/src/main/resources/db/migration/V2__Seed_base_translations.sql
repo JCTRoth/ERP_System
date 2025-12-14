@@ -28,6 +28,8 @@ INSERT INTO translation_keys (key_name, namespace, description) VALUES
 ('auth.rememberMe', 'auth', 'Remember me checkbox'),
 ('auth.forgotPassword', 'auth', 'Forgot password link'),
 ('auth.loginButton', 'auth', 'Login submit button'),
+('auth.signIn', 'auth', 'Sign in button and title'),
+('auth.demoCredentials', 'auth', 'Demo credentials label'),
 ('auth.error.invalidCredentials', 'auth', 'Invalid credentials error');
 
 -- Navigation namespace keys
@@ -43,12 +45,9 @@ INSERT INTO translation_keys (key_name, namespace, description) VALUES
 ('nav.uiBuilder', 'nav', 'UI Builder menu item');
 
 -- Get key IDs for seeding values
-WITH keys AS (
-    SELECT id, key_name FROM translation_keys
-)
 -- English translations
 INSERT INTO translation_values (key_id, language, value_text)
-SELECT id, 'en', CASE key_name
+SELECT tk.id, 'en', CASE tk.key_name
     WHEN 'app.title' THEN 'ERP System'
     WHEN 'app.loading' THEN 'Loading...'
     WHEN 'app.error.generic' THEN 'An error occurred'
@@ -71,6 +70,8 @@ SELECT id, 'en', CASE key_name
     WHEN 'auth.rememberMe' THEN 'Remember me'
     WHEN 'auth.forgotPassword' THEN 'Forgot password?'
     WHEN 'auth.loginButton' THEN 'Sign In'
+    WHEN 'auth.signIn' THEN 'Sign In'
+    WHEN 'auth.demoCredentials' THEN 'Demo credentials'
     WHEN 'auth.error.invalidCredentials' THEN 'Invalid email or password'
     WHEN 'nav.dashboard' THEN 'Dashboard'
     WHEN 'nav.companies' THEN 'Companies'
@@ -81,13 +82,13 @@ SELECT id, 'en', CASE key_name
     WHEN 'nav.settings' THEN 'Settings'
     WHEN 'nav.translations' THEN 'Translations'
     WHEN 'nav.uiBuilder' THEN 'UI Builder'
-    ELSE key_name
+    ELSE tk.key_name
 END
-FROM keys;
+FROM translation_keys tk;
 
 -- German translations
 INSERT INTO translation_values (key_id, language, value_text)
-SELECT id, 'de', CASE key_name
+SELECT tk.id, 'de', CASE tk.key_name
     WHEN 'app.title' THEN 'ERP-System'
     WHEN 'app.loading' THEN 'Laden...'
     WHEN 'app.error.generic' THEN 'Ein Fehler ist aufgetreten'
@@ -110,6 +111,8 @@ SELECT id, 'de', CASE key_name
     WHEN 'auth.rememberMe' THEN 'Angemeldet bleiben'
     WHEN 'auth.forgotPassword' THEN 'Passwort vergessen?'
     WHEN 'auth.loginButton' THEN 'Anmelden'
+    WHEN 'auth.signIn' THEN 'Anmelden'
+    WHEN 'auth.demoCredentials' THEN 'Demo-Zugangsdaten'
     WHEN 'auth.error.invalidCredentials' THEN 'Ungültige E-Mail oder Passwort'
     WHEN 'nav.dashboard' THEN 'Dashboard'
     WHEN 'nav.companies' THEN 'Unternehmen'
@@ -120,13 +123,13 @@ SELECT id, 'de', CASE key_name
     WHEN 'nav.settings' THEN 'Einstellungen'
     WHEN 'nav.translations' THEN 'Übersetzungen'
     WHEN 'nav.uiBuilder' THEN 'UI-Builder'
-    ELSE key_name
+    ELSE tk.key_name
 END
-FROM keys;
+FROM translation_keys tk;
 
 -- French translations
 INSERT INTO translation_values (key_id, language, value_text)
-SELECT id, 'fr', CASE key_name
+SELECT tk.id, 'fr', CASE tk.key_name
     WHEN 'app.title' THEN 'Système ERP'
     WHEN 'app.loading' THEN 'Chargement...'
     WHEN 'app.error.generic' THEN 'Une erreur est survenue'
@@ -149,6 +152,8 @@ SELECT id, 'fr', CASE key_name
     WHEN 'auth.rememberMe' THEN 'Se souvenir de moi'
     WHEN 'auth.forgotPassword' THEN 'Mot de passe oublié?'
     WHEN 'auth.loginButton' THEN 'Se connecter'
+    WHEN 'auth.signIn' THEN 'Se connecter'
+    WHEN 'auth.demoCredentials' THEN 'Identifiants de démonstration'
     WHEN 'auth.error.invalidCredentials' THEN 'Email ou mot de passe invalide'
     WHEN 'nav.dashboard' THEN 'Tableau de bord'
     WHEN 'nav.companies' THEN 'Entreprises'
@@ -159,13 +164,13 @@ SELECT id, 'fr', CASE key_name
     WHEN 'nav.settings' THEN 'Paramètres'
     WHEN 'nav.translations' THEN 'Traductions'
     WHEN 'nav.uiBuilder' THEN 'Constructeur UI'
-    ELSE key_name
+    ELSE tk.key_name
 END
-FROM keys;
+FROM translation_keys tk;
 
 -- Russian translations
 INSERT INTO translation_values (key_id, language, value_text)
-SELECT id, 'ru', CASE key_name
+SELECT tk.id, 'ru', CASE tk.key_name
     WHEN 'app.title' THEN 'ERP Система'
     WHEN 'app.loading' THEN 'Загрузка...'
     WHEN 'app.error.generic' THEN 'Произошла ошибка'
@@ -188,6 +193,8 @@ SELECT id, 'ru', CASE key_name
     WHEN 'auth.rememberMe' THEN 'Запомнить меня'
     WHEN 'auth.forgotPassword' THEN 'Забыли пароль?'
     WHEN 'auth.loginButton' THEN 'Войти'
+    WHEN 'auth.signIn' THEN 'Войти'
+    WHEN 'auth.demoCredentials' THEN 'Демо учетные данные'
     WHEN 'auth.error.invalidCredentials' THEN 'Неверный email или пароль'
     WHEN 'nav.dashboard' THEN 'Панель управления'
     WHEN 'nav.companies' THEN 'Компании'
@@ -198,6 +205,6 @@ SELECT id, 'ru', CASE key_name
     WHEN 'nav.settings' THEN 'Настройки'
     WHEN 'nav.translations' THEN 'Переводы'
     WHEN 'nav.uiBuilder' THEN 'Конструктор UI'
-    ELSE key_name
+    ELSE tk.key_name
 END
-FROM keys;
+FROM translation_keys tk;

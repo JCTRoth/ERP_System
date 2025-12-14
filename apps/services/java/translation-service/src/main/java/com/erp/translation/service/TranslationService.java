@@ -240,6 +240,45 @@ public class TranslationService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable(value = "translations", key = "#language + '-' + (#companyId != null ? #companyId : 'default')")
+    public List<TranslationDto> getAllTranslations(String language, UUID companyId) {
+        Map<String, String> translations = new HashMap<>();
+
+        // Get all default translations for this language
+        List<TranslationValue> defaultValues = valueRepository.findAllDefaultByLanguage(language);
+        for (TranslationValue value : defaultValues) {
+            String fullKey = value.getKey().getNamespace() + "." + value.getKey().getKeyName();
+            translations.put(fullKey, value.getValueText());
+        }
+
+        // If fallback needed, get fallback translations for missing keys
+        if (!language.equals(fallbackLanguage)) {
+            List<TranslationValue> fallbackValues = valueRepository.findAllDefaultByLanguage(fallbackLanguage);
+            for (TranslationValue value : fallbackValues) {
+                String fullKey = value.getKey().getNamespace() + "." + value.getKey().getKeyName();
+                translations.putIfAbsent(fullKey, value.getValueText());
+            }
+        }
+
+        // Apply company overrides if specified
+        if (companyId != null) {
+            List<TranslationValue> overrides = valueRepository.findAllByLanguageAndCompany(language, companyId);
+            for (TranslationValue value : overrides) {
+                String fullKey = value.getKey().getNamespace() + "." + value.getKey().getKeyName();
+                translations.put(fullKey, value.getValueText());
+            }
+        }
+
+        // Convert to list of TranslationDto
+        return translations.entrySet().stream()
+                .map(entry -> TranslationDto.builder()
+                        .key(entry.getKey())
+                        .value(entry.getValue())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     private TranslationValueDto toValueDto(TranslationValue value) {
         return TranslationValueDto.builder()
                 .id(value.getId())

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
+import { getApolloClient } from '../lib/apollo';
 import { useAuthStore } from '../stores/authStore';
 
 const GET_TRANSLATIONS = gql`
@@ -14,10 +15,11 @@ const GET_TRANSLATIONS = gql`
 type Language = 'en' | 'de' | 'fr' | 'ru';
 
 interface I18nContextType {
-  t: (key: string, params?: Record<string, string | number>) => string;
+  t: (key: string, params?: Record<string, string | number> | { default?: string } ) => string;
   language: Language;
   setLanguage: (lang: Language) => void;
   isLoading: boolean;
+  localeVersion: number;
 }
 
 const I18nContext = createContext<I18nContextType | null>(null);
@@ -63,26 +65,65 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, [data]);
 
-  const setLanguage = useCallback((lang: Language) => {
+  const setLanguage = (lang: Language) => {
+    // clear current translations to avoid stale UI and trigger loading state
+    setTranslations(new Map());
     setLanguageState(lang);
     localStorage.setItem('erp-language', lang);
     document.documentElement.lang = lang;
-  }, []);
 
-  const t = useCallback((key: string, params?: Record<string, string | number>): string => {
-    let value = translations.get(key) || key;
-    
+    // reset Apollo store so any language-dependent queries refetch
+    try {
+      const client = getApolloClient();
+      client.resetStore().catch(() => client.clearStore());
+    } catch (err) {
+      // ignore if Apollo client not available
+    }
+  };
+
+  // localeVersion increments whenever translations or language change, to force consumer updates
+  const [localeVersion, setLocaleVersion] = useState(0);
+
+  useEffect(() => {
+    // bump version when translations map updates
+    setLocaleVersion((v) => v + 1);
+  }, [translations, language]);
+
+  const t = (key: string, params?: Record<string, string | number> | { default?: string }): string => {
+    const fallback = (params && 'default' in params) ? (params as any).default : undefined;
+
+    // try direct lookup
+    let value = translations.get(key) ?? undefined;
+
+    // try common namespaced variants, e.g. `auth.signIn` -> `auth.auth.signIn`
+    if (!value) {
+      const parts = key.split('.');
+      if (parts.length === 2) {
+        const namespaced = `${parts[0]}.${parts[0]}.${parts[1]}`;
+        value = translations.get(namespaced) ?? undefined;
+      }
+    }
+
+    // fallback to provided default or the key itself humanized
+    value = value ?? fallback ?? key.replace(/\./g, ' ');
+
+    // interpolate params
+    let out = String(value);
     if (params) {
-      Object.entries(params).forEach(([paramKey, paramValue]) => {
-        value = value.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramValue));
+      const entries = Object.entries(params as Record<string, string | number>);
+      entries.forEach(([paramKey, paramValue]) => {
+        if (paramKey === 'default') return;
+        out = out.replace(new RegExp(`\{${paramKey}\}`, 'g'), String(paramValue));
       });
     }
-    
-    return value;
-  }, [translations]);
+
+    return out;
+  };
+
+  const value = useMemo(() => ({ t, language, setLanguage, isLoading: loading, localeVersion }), [t, language, setLanguage, loading, localeVersion]);
 
   return (
-    <I18nContext.Provider value={{ t, language, setLanguage, isLoading: loading }}>
+    <I18nContext.Provider value={value}>
       {children}
     </I18nContext.Provider>
   );

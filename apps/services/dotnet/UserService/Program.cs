@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 using Prometheus;
 using UserService.Data;
 using UserService.Services;
@@ -49,7 +50,20 @@ builder.Services
     .AddType<UserType>()
     .AddFiltering()
     .AddSorting()
-    .AddProjections();
+    .AddProjections()
+    .AddHttpRequestInterceptor(async (context, executor, builder, cancellationToken) =>
+    {
+        // Extract user ID from JWT token and set it in global state
+        if (context.User.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = context.User.FindFirst("sub")?.Value ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(userIdClaim, out var userId))
+            {
+                builder.SetGlobalState("CurrentUserId", userId);
+            }
+        }
+        await Task.CompletedTask;
+    });
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();

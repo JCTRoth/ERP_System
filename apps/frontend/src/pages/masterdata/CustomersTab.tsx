@@ -70,12 +70,25 @@ export default function CustomersTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, loading, refetch } = useQuery(GET_CUSTOMERS, {
+  const { data, loading, refetch, error } = useQuery(GET_CUSTOMERS, {
     variables: {
       first: 100,
       where: statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined,
     },
+    errorPolicy: 'all',
   });
+
+  // Handle unavailable service
+  if (error && error.message.includes('Unknown type')) {
+    return (
+      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-900/20">
+        <h3 className="font-semibold text-yellow-800 dark:text-yellow-400">Service Not Available</h3>
+        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-500">
+          The Customers service is not yet available. This feature will be enabled when the masterdata service is deployed.
+        </p>
+      </div>
+    );
+  }
 
   const [deleteCustomer] = useMutation(DELETE_CUSTOMER, {
     onCompleted: () => refetch(),
