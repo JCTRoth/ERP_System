@@ -4,8 +4,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../../providers/I18nProvider';
 
 const CREATE_USER = gql`
-  mutation CreateUser($input: CreateUserInput!) {
-    createUser(input: $input) {
+  mutation Register($email: String!, $password: String!, $firstName: String!, $lastName: String!, $preferredLanguage: String) {
+    register(email: $email, password: $password, firstName: $firstName, lastName: $lastName, preferredLanguage: $preferredLanguage) {
       id
       email
       firstName
@@ -65,22 +65,29 @@ export default function UserModal({ user, onClose }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const input = {
-      email: formData.email,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      preferredLanguage: formData.preferredLanguage,
-      isActive: formData.isActive,
-      ...(formData.password && { password: formData.password }),
-    };
-
     if (isEditing) {
       await updateUser({
-        variables: { id: user.id, input },
+        variables: { 
+          id: user.id, 
+          input: {
+            email: formData.email,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            preferredLanguage: formData.preferredLanguage,
+            isActive: formData.isActive,
+            ...(formData.password && { password: formData.password }),
+          }
+        },
       });
     } else {
       await createUser({
-        variables: { input: { ...input, password: formData.password } },
+        variables: { 
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          preferredLanguage: formData.preferredLanguage,
+        },
       });
     }
   };

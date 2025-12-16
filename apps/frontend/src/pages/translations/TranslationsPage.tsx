@@ -70,7 +70,7 @@ export default function TranslationsPage() {
   }) || [];
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -121,10 +121,10 @@ export default function TranslationsPage() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden flex-1 min-h-0">
+        <div className="overflow-x-auto h-full">
+          <table className="w-full h-full">
+            <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('translations.key')}

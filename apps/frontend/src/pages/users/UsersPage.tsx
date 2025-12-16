@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import UserModal from './UserModal';
 
@@ -19,8 +19,14 @@ const GET_USERS = gql`
 `;
 
 const DELETE_USER = gql`
-  mutation DeleteUser($id: ID!) {
-    deleteUser(id: $id)
+  mutation DeactivateUser($id: UUID!) {
+    deactivateUser(id: $id)
+  }
+`;
+
+const ACTIVATE_USER = gql`
+  mutation ActivateUser($id: UUID!) {
+    activateUser(id: $id)
   }
 `;
 
@@ -43,16 +49,23 @@ export default function UsersPage() {
   const [deleteUser] = useMutation(DELETE_USER, {
     onCompleted: () => refetch(),
   });
+  const [activateUser] = useMutation(ACTIVATE_USER, {
+    onCompleted: () => refetch(),
+  });
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeactivate = async (id: string) => {
     if (window.confirm(t('users.confirmDelete'))) {
       await deleteUser({ variables: { id } });
     }
+  };
+
+  const handleActivate = async (id: string) => {
+    await activateUser({ variables: { id } });
   };
 
   const handleModalClose = () => {
@@ -153,15 +166,27 @@ export default function UsersPage() {
                       <button
                         onClick={() => handleEdit(user)}
                         className="mr-2 text-blue-600 hover:text-blue-800"
+                        title={t('common.edit')}
                       >
                         <PencilIcon className="h-5 w-5" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
+                      {user.isActive ? (
+                        <button
+                          onClick={() => handleDeactivate(user.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title={t('users.deactivate')}
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleActivate(user.id)}
+                          className="text-green-600 hover:text-green-800"
+                          title={t('users.activate')}
+                        >
+                          <CheckIcon className="h-5 w-5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

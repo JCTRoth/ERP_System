@@ -11,12 +11,9 @@ public class Query
 {
     public string Test() => "Hello World";
 
-    public List<User> GetUsers()
+    public async Task<List<UserDto>> GetUsers([Service] IUserService userService)
     {
-        return new List<User>
-        {
-            new User { Id = Guid.NewGuid(), Email = "test@example.com", FirstName = "Test", LastName = "User" }
-        };
+        return await userService.GetAllAsync();
     }
 
     public async Task<User?> GetUser([Service] UserDbContext context, Guid id)
