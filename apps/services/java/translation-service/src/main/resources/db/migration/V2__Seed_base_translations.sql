@@ -17,7 +17,20 @@ INSERT INTO translation_keys (key_name, namespace, description) VALUES
 ('actions.search', 'common', 'Search button/placeholder'),
 ('actions.filter', 'common', 'Filter button'),
 ('actions.export', 'common', 'Export button'),
-('actions.import', 'common', 'Import button');
+('actions.import', 'common', 'Import button'),
+('logout', 'common', 'Logout button');
+
+-- Dashboard namespace keys
+INSERT INTO translation_keys (key_name, namespace, description) VALUES
+('welcome', 'dashboard', 'Welcome message'),
+('overview', 'dashboard', 'Overview section'),
+('totalCompanies', 'dashboard', 'Total companies metric'),
+('totalUsers', 'dashboard', 'Total users metric'),
+('revenue', 'dashboard', 'Revenue metric'),
+('growth', 'dashboard', 'Growth metric'),
+('recentOrders', 'dashboard', 'Recent orders section'),
+('recentUsers', 'dashboard', 'Recent users section'),
+('noRecentActivity', 'dashboard', 'No recent activity message');
 
 -- Auth namespace keys
 INSERT INTO translation_keys (key_name, namespace, description) VALUES
@@ -82,6 +95,16 @@ SELECT tk.id, 'en', CASE tk.key_name
     WHEN 'nav.settings' THEN 'Settings'
     WHEN 'nav.translations' THEN 'Translations'
     WHEN 'nav.uiBuilder' THEN 'UI Builder'
+    WHEN 'logout' THEN 'Logout'
+    WHEN 'welcome' THEN 'Welcome back, {name}!'
+    WHEN 'overview' THEN 'Overview'
+    WHEN 'totalCompanies' THEN 'Total Companies'
+    WHEN 'totalUsers' THEN 'Total Users'
+    WHEN 'revenue' THEN 'Revenue'
+    WHEN 'growth' THEN 'Growth'
+    WHEN 'recentOrders' THEN 'Recent Orders'
+    WHEN 'recentUsers' THEN 'Recent Users'
+    WHEN 'noRecentActivity' THEN 'No recent activity'
     ELSE tk.key_name
 END
 FROM translation_keys tk;
@@ -123,6 +146,16 @@ SELECT tk.id, 'de', CASE tk.key_name
     WHEN 'nav.settings' THEN 'Einstellungen'
     WHEN 'nav.translations' THEN 'Übersetzungen'
     WHEN 'nav.uiBuilder' THEN 'UI-Builder'
+    WHEN 'logout' THEN 'Abmelden'
+    WHEN 'welcome' THEN 'Willkommen zurück, {name}!'
+    WHEN 'overview' THEN 'Übersicht'
+    WHEN 'totalCompanies' THEN 'Anzahl Firmen'
+    WHEN 'totalUsers' THEN 'Anzahl Benutzer'
+    WHEN 'revenue' THEN 'Umsatz'
+    WHEN 'growth' THEN 'Wachstum'
+    WHEN 'recentOrders' THEN 'Neue Bestellungen'
+    WHEN 'recentUsers' THEN 'Neue Benutzer'
+    WHEN 'noRecentActivity' THEN 'Keine aktuellen Aktivitäten'
     ELSE tk.key_name
 END
 FROM translation_keys tk;
@@ -164,6 +197,16 @@ SELECT tk.id, 'fr', CASE tk.key_name
     WHEN 'nav.settings' THEN 'Paramètres'
     WHEN 'nav.translations' THEN 'Traductions'
     WHEN 'nav.uiBuilder' THEN 'Constructeur UI'
+    WHEN 'logout' THEN 'Déconnexion'
+    WHEN 'welcome' THEN 'Bon retour, {name} !'
+    WHEN 'overview' THEN 'Aperçu'
+    WHEN 'totalCompanies' THEN 'Total Entreprises'
+    WHEN 'totalUsers' THEN 'Total Utilisateurs'
+    WHEN 'revenue' THEN 'Revenus'
+    WHEN 'growth' THEN 'Croissance'
+    WHEN 'recentOrders' THEN 'Commandes récentes'
+    WHEN 'recentUsers' THEN 'Utilisateurs récents'
+    WHEN 'noRecentActivity' THEN 'Aucune activité récente'
     ELSE tk.key_name
 END
 FROM translation_keys tk;
@@ -205,6 +248,16 @@ SELECT tk.id, 'ru', CASE tk.key_name
     WHEN 'nav.settings' THEN 'Настройки'
     WHEN 'nav.translations' THEN 'Переводы'
     WHEN 'nav.uiBuilder' THEN 'Конструктор UI'
+    WHEN 'logout' THEN 'Выход'
+    WHEN 'welcome' THEN 'С возвращением, {name}!'
+    WHEN 'overview' THEN 'Обзор'
+    WHEN 'totalCompanies' THEN 'Всего компаний'
+    WHEN 'totalUsers' THEN 'Всего пользователей'
+    WHEN 'revenue' THEN 'Выручка'
+    WHEN 'growth' THEN 'Рост'
+    WHEN 'recentOrders' THEN 'Недавние заказы'
+    WHEN 'recentUsers' THEN 'Недавние пользователи'
+    WHEN 'noRecentActivity' THEN 'Нет недавней активности'
     ELSE tk.key_name
 END
 FROM translation_keys tk;

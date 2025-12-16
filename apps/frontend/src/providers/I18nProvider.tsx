@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { getApolloClient } from '../lib/apollo';
 import { useAuthStore } from '../stores/authStore';
@@ -19,8 +19,7 @@ interface I18nContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   isLoading: boolean;
-  localeVersion: number;
-}
+  localeVersion: number;  translations: Map<string, string>;}
 
 const I18nContext = createContext<I18nContextType | null>(null);
 
@@ -65,7 +64,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, [data]);
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     // clear current translations to avoid stale UI and trigger loading state
     setTranslations(new Map());
     setLanguageState(lang);
@@ -79,7 +78,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       // ignore if Apollo client not available
     }
-  };
+  }, []);
 
   // localeVersion increments whenever translations or language change, to force consumer updates
   const [localeVersion, setLocaleVersion] = useState(0);
@@ -89,7 +88,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setLocaleVersion((v) => v + 1);
   }, [translations, language]);
 
-  const t = (key: string, params?: Record<string, string | number> | { default?: string }): string => {
+  const t = useCallback((key: string, params?: Record<string, string | number> | { default?: string }): string => {
     const fallback = (params && 'default' in params) ? (params as any).default : undefined;
 
     // try direct lookup
@@ -118,9 +117,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
 
     return out;
-  };
+  }, [translations]);
 
-  const value = useMemo(() => ({ t, language, setLanguage, isLoading: loading, localeVersion }), [t, language, setLanguage, loading, localeVersion]);
+  const value = useMemo(() => ({ t, language, setLanguage, isLoading: loading, localeVersion, translations }), [t, language, setLanguage, loading, localeVersion, translations]);
 
   return (
     <I18nContext.Provider value={value}>
