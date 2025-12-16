@@ -28,6 +28,12 @@ public class Company {
     @Column(nullable = false, length = 255)
     private String name;
 
+    @Column(nullable = false, length = 255, unique = true)
+    private String slug;
+
+    @Column(length = 1000)
+    private String description;
+
     @Column(name = "logo_url")
     private String logoUrl;
 
@@ -38,6 +44,10 @@ public class Company {
     @Column(name = "is_demo", nullable = false)
     @Builder.Default
     private Boolean isDemo = false;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -54,7 +54,7 @@ builder.Services
     .AddSubscriptionType<Subscription>()
     .AddType<ProductType>()
     .AddType<OrderType>()
-    .AddType<CustomerType>()
+    .AddType<CustomerObjectType>()
     .AddType<CartType>()
     .AddFiltering()
     .AddSorting()

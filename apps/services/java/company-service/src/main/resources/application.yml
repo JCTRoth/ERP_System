@@ -92,3 +92,6 @@ dgs:
     path: /graphql
     graphiql:
       enabled: true
+  federation:
+    tracing:
+      enabled: false

@@ -5,14 +5,19 @@
 CREATE TABLE companies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL UNIQUE,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    description VARCHAR(1000),
     logo_url TEXT,
     settings_json JSONB DEFAULT '{}',
     is_demo BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_companies_name ON companies(name);
+CREATE INDEX idx_companies_slug ON companies(slug);
 CREATE INDEX idx_companies_is_demo ON companies(is_demo);
+CREATE INDEX idx_companies_is_active ON companies(is_active);
 
 -- User-Company Assignments table
 CREATE TABLE user_company_assignments (

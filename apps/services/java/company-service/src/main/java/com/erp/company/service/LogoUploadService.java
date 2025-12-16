@@ -3,6 +3,7 @@ package com.erp.company.service;
 import com.erp.company.dto.LogoUploadResponse;
 import com.erp.company.exception.InvalidRequestException;
 import io.minio.*;
+import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

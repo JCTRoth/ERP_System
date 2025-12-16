@@ -36,9 +36,12 @@ type Mutation {
 type Company @key(fields: "id") {
     id: ID!
     name: String!
+    slug: String!
+    description: String
     logoUrl: String
     settingsJson: JSON
     isDemo: Boolean!
+    isActive: Boolean!
     createdAt: DateTime!
 }
 
@@ -72,12 +75,18 @@ type DynamicFieldValue {
 
 input CreateCompanyInput {
     name: String!
+    slug: String!
+    description: String
     settingsJson: JSON
+    isActive: Boolean
 }
 
 input UpdateCompanyInput {
     name: String
+    slug: String
+    description: String
     settingsJson: JSON
+    isActive: Boolean
 }
 
 input AssignUserInput {

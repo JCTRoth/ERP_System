@@ -19,5 +19,14 @@ public class CreateCompanyRequest {
     @Size(min = 2, max = 255, message = "Company name must be between 2 and 255 characters")
     private String name;
     
+    @NotBlank(message = "Company slug is required")
+    @Size(min = 2, max = 255, message = "Company slug must be between 2 and 255 characters")
+    private String slug;
+    
+    @Size(max = 1000, message = "Company description must not exceed 1000 characters")
+    private String description;
+    
     private Map<String, Object> settingsJson;
+    
+    private Boolean isActive;
 }

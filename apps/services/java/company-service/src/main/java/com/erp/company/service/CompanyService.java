@@ -68,8 +68,11 @@ public class CompanyService {
 
         Company company = Company.builder()
                 .name(request.getName())
+                .slug(request.getSlug())
+                .description(request.getDescription())
                 .settingsJson(request.getSettingsJson())
                 .isDemo(false)
+                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .build();
 
         Company saved = companyRepository.save(company);
@@ -89,8 +92,20 @@ public class CompanyService {
             company.setName(request.getName());
         }
 
+        if (request.getSlug() != null) {
+            company.setSlug(request.getSlug());
+        }
+
+        if (request.getDescription() != null) {
+            company.setDescription(request.getDescription());
+        }
+
         if (request.getSettingsJson() != null) {
             company.setSettingsJson(request.getSettingsJson());
+        }
+
+        if (request.getIsActive() != null) {
+            company.setIsActive(request.getIsActive());
         }
 
         Company saved = companyRepository.save(company);

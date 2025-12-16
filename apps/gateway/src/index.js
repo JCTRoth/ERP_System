@@ -8,6 +8,9 @@ import { ApolloGateway, IntrospectAndCompose, RemoteGraphQLDataSource } from '@a
 import { expressMiddleware } from '@apollo/server/express4';
 import { collectDefaultMetrics, Registry, Counter, Histogram } from 'prom-client';
 
+// Enable debug logging
+process.env.DEBUG = 'apollo:gateway';
+
 const PORT = process.env.PORT || 4000;
 
 // Prometheus metrics
@@ -50,18 +53,32 @@ class AuthenticatedDataSource extends RemoteGraphQLDataSource {
 
 // Define subgraph services
 const subgraphs = [
-  { name: 'user-service', url: process.env.USER_SERVICE_URL || 'http://172.19.0.9:5000/graphql' },
-  { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL || 'http://172.19.0.8:8081/graphql' },
+  { name: 'user-service', url: process.env.USER_SERVICE_URL || 'http://user-service:5000/graphql' },
+  { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL || 'http://translation-service:8081/graphql' },
+  { name: 'company-service', url: process.env.COMPANY_SERVICE_URL || 'http://company-service:8080/graphql' },
+  { name: 'shop-service', url: process.env.SHOP_SERVICE_URL || 'http://shop-service:5003/graphql' },
 ];
 
 // Create gateway
 const gateway = new ApolloGateway({
   supergraphSdl: new IntrospectAndCompose({
     subgraphs,
+    pollIntervalInMs: 10000, // Poll every 10 seconds for changes
+    async onFailureToCompose(err) {
+      console.error('Failed to compose supergraph:', err);
+    },
+    subgraphHealthCheck: true,
   }),
   buildService({ name, url }) {
+    console.log(`Building service ${name} with URL ${url}`);
     return new AuthenticatedDataSource({ url });
   },
+});
+
+// Log when gateway is ready
+gateway.onSchemaLoadOrUpdate(({ apiSchema, coreSupergraphSdl }) => {
+  console.log('Gateway schema loaded/updated');
+  console.log(`API Schema has ${apiSchema.getQueryType()?.getFields() ? Object.keys(apiSchema.getQueryType().getFields()).length : 0} query fields`);
 });
 
 // Create Apollo Server

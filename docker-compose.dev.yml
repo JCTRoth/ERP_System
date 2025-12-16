@@ -29,7 +29,11 @@ services:
       - ./apps/gateway/src:/app/src
     environment:
       - NODE_ENV=development
+      - DEBUG=apollo:gateway
+      - USER_SERVICE_URL=http://user-service:5000/graphql
       - TRANSLATION_SERVICE_URL=http://translation-service:8081/graphql
+      - COMPANY_SERVICE_URL=http://company-service:8080/graphql
+      - SHOP_SERVICE_URL=http://shop-service:5003/graphql
     depends_on:
       - user-service
       - company-service
@@ -100,7 +104,7 @@ services:
       context: ./apps/services/java/company-service
       # use default Dockerfile in company-service
     ports:
-      - "8081:8081"
+      - "8081:8080"
     volumes:
       - ./apps/services/java/company-service/src:/app/src
     environment:

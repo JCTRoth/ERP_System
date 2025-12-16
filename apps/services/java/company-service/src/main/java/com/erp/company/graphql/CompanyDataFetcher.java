@@ -44,7 +44,10 @@ public class CompanyDataFetcher {
     public CompanyDto createCompany(@InputArgument Map<String, Object> input) {
         CreateCompanyRequest request = CreateCompanyRequest.builder()
                 .name((String) input.get("name"))
+                .slug((String) input.get("slug"))
+                .description((String) input.get("description"))
                 .settingsJson((Map<String, Object>) input.get("settingsJson"))
+                .isActive((Boolean) input.get("isActive"))
                 .build();
         return companyService.createCompany(request);
     }
@@ -53,7 +56,10 @@ public class CompanyDataFetcher {
     public CompanyDto updateCompany(@InputArgument String id, @InputArgument Map<String, Object> input) {
         UpdateCompanyRequest request = UpdateCompanyRequest.builder()
                 .name((String) input.get("name"))
+                .slug((String) input.get("slug"))
+                .description((String) input.get("description"))
                 .settingsJson((Map<String, Object>) input.get("settingsJson"))
+                .isActive((Boolean) input.get("isActive"))
                 .build();
         return companyService.updateCompany(UUID.fromString(id), request);
     }

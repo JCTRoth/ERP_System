@@ -13,5 +13,8 @@ import java.util.Map;
 @Builder
 public class UpdateCompanyRequest {
     private String name;
+    private String slug;
+    private String description;
     private Map<String, Object> settingsJson;
+    private Boolean isActive;
 }

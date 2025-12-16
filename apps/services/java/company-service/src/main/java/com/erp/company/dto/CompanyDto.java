@@ -16,8 +16,11 @@ import java.util.UUID;
 public class CompanyDto {
     private UUID id;
     private String name;
+    private String slug;
+    private String description;
     private String logoUrl;
     private Map<String, Object> settingsJson;
     private Boolean isDemo;
+    private Boolean isActive;
     private Instant createdAt;
 }
