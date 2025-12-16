@@ -120,8 +120,11 @@ public record UpdateInvoiceInput(
 public record UpdateInvoiceLineItemInput(
     Guid Id,
     string? Description,
+    string? Sku,
+    Guid? ProductId,
     Guid? AccountId,
     int? Quantity,
+    string? Unit,
     decimal? UnitPrice,
     decimal? DiscountPercent,
     decimal? TaxRate

@@ -165,18 +165,18 @@ public class OrderService : IOrderService
 
         // Calculate shipping
         decimal shippingAmount = 0;
-        if (input.ShippingMethodId.HasValue)
-        {
-            var shippingMethod = await _context.ShippingMethods.FindAsync(input.ShippingMethodId);
-            if (shippingMethod != null)
-            {
-                shippingAmount = shippingMethod.Price;
-                if (shippingMethod.FreeShippingThreshold.HasValue && subtotal >= shippingMethod.FreeShippingThreshold)
-                {
-                    shippingAmount = 0;
-                }
-            }
-        }
+        // if (input.ShippingMethodId.HasValue)
+        // {
+        //     var shippingMethod = await _context.ShippingMethods.FindAsync(input.ShippingMethodId);
+        //     if (shippingMethod != null)
+        //     {
+        //         shippingAmount = shippingMethod.Price;
+        //         if (shippingMethod.FreeShippingThreshold.HasValue && subtotal >= shippingMethod.FreeShippingThreshold)
+        //         {
+        //             shippingAmount = 0;
+        //         }
+        //     }
+        // }
 
         // Apply coupon
         decimal discountAmount = 0;

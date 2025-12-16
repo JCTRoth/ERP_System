@@ -90,6 +90,20 @@ public class AccountingDbContext : DbContext
             entity.Ignore(e => e.AmountDue);
         });
 
+        // Configure one-to-one relationship between Invoice and JournalEntry
+        modelBuilder.Entity<Invoice>()
+            .HasOne(i => i.JournalEntry)
+            .WithOne(j => j.Invoice)
+            .HasForeignKey<JournalEntry>(j => j.InvoiceId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Configure one-to-one relationship between PaymentRecord and JournalEntry
+        modelBuilder.Entity<PaymentRecord>()
+            .HasOne(p => p.JournalEntry)
+            .WithOne(j => j.Payment)
+            .HasForeignKey<JournalEntry>(j => j.PaymentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // InvoiceLineItem configuration
         modelBuilder.Entity<InvoiceLineItem>(entity =>
         {

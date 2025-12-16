@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace AccountingService.Models;
 
@@ -10,6 +11,7 @@ public class InvoiceLineItem
 
     public Guid InvoiceId { get; set; }
 
+    [JsonIgnore]
     public Invoice Invoice { get; set; } = null!;
 
     public int LineNumber { get; set; }

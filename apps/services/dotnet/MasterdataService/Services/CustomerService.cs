@@ -79,7 +79,7 @@ public class CustomerService : ICustomerService
             Id = Guid.NewGuid(),
             CustomerNumber = customerNumber,
             Name = input.Name,
-            Type = Enum.Parse<CustomerType>(input.Type),
+            Type = Enum.Parse<CustomerType>(input.Type, true),
             ContactPerson = input.ContactPerson,
             Email = input.Email,
             Phone = input.Phone,

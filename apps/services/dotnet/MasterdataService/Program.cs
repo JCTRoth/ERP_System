@@ -66,6 +66,11 @@ builder.Services
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
+// Add Controllers
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
@@ -79,11 +84,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Apply migrations on startup
+// Apply migrations on startup (only for relational databases)
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<MasterdataDbContext>();
-    dbContext.Database.Migrate();
+    if (dbContext.Database.IsRelational())
+    {
+        dbContext.Database.Migrate();
+    }
 }
 
 app.UseCors();
@@ -100,7 +108,14 @@ app.MapHealthChecks("/health");
 // GraphQL endpoint
 app.MapGraphQL();
 
+// Controllers
+app.MapControllers();
+
 // WebSocket for subscriptions
 app.UseWebSockets();
 
 app.Run();
+
+public partial class Program { }
+
+public partial class Program { }

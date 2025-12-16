@@ -109,6 +109,10 @@ public class MasterdataDbContext : DbContext
                 .WithMany(e => e.SubCostCenters)
                 .HasForeignKey(e => e.ParentCostCenterId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.ResponsiblePerson)
+                .WithOne()
+                .HasForeignKey<CostCenter>(e => e.ResponsiblePersonId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Location configuration

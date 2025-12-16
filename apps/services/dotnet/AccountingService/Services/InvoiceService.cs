@@ -19,6 +19,7 @@ public interface IInvoiceService
     Task<Invoice?> UpdateStatusAsync(UpdateInvoiceStatusInput input);
     Task<Invoice?> RecordPaymentAsync(Guid invoiceId, decimal amount, string? reference);
     Task<bool> CancelAsync(Guid id, string? reason);
+    Task<bool> DeleteAsync(Guid id);
 }
 
 public class InvoiceService : IInvoiceService
@@ -251,7 +252,7 @@ public class InvoiceService : IInvoiceService
         }
 
         // Update basic fields
-        if (input.Type.HasValue) invoice.Type = input.Type.Value;
+        if (!string.IsNullOrEmpty(input.Type)) invoice.Type = Enum.Parse<InvoiceType>(input.Type, true);
         if (input.CustomerId.HasValue) invoice.CustomerId = input.CustomerId;
         if (input.SupplierId.HasValue) invoice.SupplierId = input.SupplierId;
         if (!string.IsNullOrEmpty(input.CustomerName)) invoice.CustomerName = input.CustomerName;
@@ -287,16 +288,15 @@ public class InvoiceService : IInvoiceService
                     UnitPrice = lineInput.UnitPrice ?? 0,
                     DiscountPercent = lineInput.DiscountPercent ?? 0,
                     TaxRate = lineInput.TaxRate ?? 0,
-                    LineTotal = ((lineInput.UnitPrice ?? 0) * (lineInput.Quantity ?? 1)) * (1 - (lineInput.DiscountPercent ?? 0) / 100)
+                    Total = ((lineInput.UnitPrice ?? 0) * (lineInput.Quantity ?? 1)) * (1 - (lineInput.DiscountPercent ?? 0) / 100)
                 };
                 invoice.LineItems.Add(lineItem);
             }
 
             // Recalculate totals
-            invoice.Subtotal = invoice.LineItems.Sum(li => li.LineTotal);
-            invoice.TaxAmount = invoice.LineItems.Sum(li => li.LineTotal * li.TaxRate);
+            invoice.Subtotal = invoice.LineItems.Sum(li => li.Total);
+            invoice.TaxAmount = invoice.LineItems.Sum(li => li.Total * li.TaxRate);
             invoice.Total = invoice.Subtotal + invoice.TaxAmount;
-            invoice.AmountDue = invoice.Total - invoice.AmountPaid;
         }
 
         invoice.UpdatedAt = DateTime.UtcNow;
@@ -414,5 +414,16 @@ public class InvoiceService : IInvoiceService
             null,
             lines
         ));
+    }
+
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var invoice = await _context.Invoices.FindAsync(id);
+        if (invoice == null)
+            return false;
+
+        _context.Invoices.Remove(invoice);
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

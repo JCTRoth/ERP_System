@@ -103,6 +103,7 @@ app.UseAuthorization();
 
 app.UseWebSockets();
 app.MapGraphQL();
+app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapMetrics();
 
@@ -115,3 +116,5 @@ if (app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+public partial class Program { }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace AccountingService.Models;
 
@@ -96,13 +97,16 @@ public class Invoice
     [MaxLength(50)]
     public string? PaymentTerms { get; set; } = "Net 30";
 
+    [JsonIgnore]
     public ICollection<InvoiceLineItem> LineItems { get; set; } = new List<InvoiceLineItem>();
 
+    [JsonIgnore]
     public ICollection<PaymentRecord> Payments { get; set; } = new List<PaymentRecord>();
 
     // Linked journal entry
     public Guid? JournalEntryId { get; set; }
 
+    [JsonIgnore]
     public JournalEntry? JournalEntry { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

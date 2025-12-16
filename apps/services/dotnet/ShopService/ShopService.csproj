@@ -26,4 +26,8 @@
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ShopService.Tests" />
+  </ItemGroup>
+
 </Project>

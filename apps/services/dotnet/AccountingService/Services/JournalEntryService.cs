@@ -21,16 +21,17 @@ public class JournalEntryService : IJournalEntryService
 {
     private readonly AccountingDbContext _context;
     private readonly ILogger<JournalEntryService> _logger;
-    private readonly IAccountService _accountService;
+    //private readonly IAccountService _accountService;
 
     public JournalEntryService(
         AccountingDbContext context,
-        ILogger<JournalEntryService> logger,
-        IAccountService accountService)
+        ILogger<JournalEntryService> logger
+        //IAccountService accountService
+        )
     {
         _context = context;
         _logger = logger;
-        _accountService = accountService;
+        //_accountService = accountService;
     }
 
     public async Task<JournalEntry?> GetByIdAsync(Guid id)
@@ -140,12 +141,14 @@ public class JournalEntryService : IJournalEntryService
         }
 
         // Update account balances
+        /*
         foreach (var line in entry.Lines)
         {
             await _accountService.UpdateBalanceAsync(
                 line.AccountId,
                 line.DebitAmount - line.CreditAmount);
         }
+        */
 
         entry.Status = JournalEntryStatus.Posted;
         entry.UpdatedAt = DateTime.UtcNow;
