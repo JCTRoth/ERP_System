@@ -54,6 +54,8 @@ test-results/
 .gradle/
 gradle-app.setting
 !gradle-wrapper.jar
+gradle-wrapper.properties
+gradle-*-bin.zip
 
 # .NET
 *.dll
