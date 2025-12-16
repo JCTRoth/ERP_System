@@ -25,7 +25,7 @@ const UPDATE_PRODUCT = gql`
 
 const GET_CATEGORIES = gql`
   query GetCategories {
-    categories {
+    categories(first: 50) {
       nodes {
         id
         name
@@ -36,7 +36,7 @@ const GET_CATEGORIES = gql`
 
 const GET_BRANDS = gql`
   query GetBrands {
-    brands {
+    brands(first: 50) {
       nodes {
         id
         name
@@ -53,8 +53,8 @@ interface Product {
   price: number;
   compareAtPrice: number | null;
   costPrice: number;
-  quantity: number;
-  isActive: boolean;
+  stockQuantity: number;
+  status: string;
   category: { id: string; name: string } | null;
   brand: { id: string; name: string } | null;
 }
@@ -75,7 +75,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
     price: 0,
     compareAtPrice: 0,
     costPrice: 0,
-    quantity: 0,
+    stockQuantity: 0,
     categoryId: '',
     brandId: '',
     isActive: true,
@@ -96,10 +96,10 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         price: product.price,
         compareAtPrice: product.compareAtPrice || 0,
         costPrice: product.costPrice,
-        quantity: product.quantity,
+        stockQuantity: product.stockQuantity,
         categoryId: product.category?.id || '',
         brandId: product.brand?.id || '',
-        isActive: product.isActive,
+        isActive: product.status === 'ACTIVE',
       });
     }
   }, [product]);
@@ -109,15 +109,20 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
 
     try {
       const input = {
-        sku: formData.sku,
         name: formData.name,
+        sku: formData.sku,
         description: formData.description || null,
         price: formData.price,
         compareAtPrice: formData.compareAtPrice || null,
         costPrice: formData.costPrice,
+        stockQuantity: formData.stockQuantity,
+        trackInventory: true,
+        allowBackorder: false,
+        status: formData.isActive ? 'ACTIVE' : 'DRAFT',
+        isFeatured: false,
+        isDigital: false,
         categoryId: formData.categoryId || null,
         brandId: formData.brandId || null,
-        isActive: formData.isActive,
       };
 
       if (isEditing) {
@@ -126,12 +131,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         });
       } else {
         await createProduct({
-          variables: {
-            input: {
-              ...input,
-              quantity: formData.quantity,
-            },
-          },
+          variables: { input },
         });
       }
       onClose();
@@ -251,8 +251,8 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
               <input
                 type="number"
                 min="0"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
+                value={formData.stockQuantity}
+                onChange={(e) => setFormData({ ...formData, stockQuantity: parseInt(e.target.value) })}
                 className="input mt-1 w-full"
                 disabled={isEditing}
               />

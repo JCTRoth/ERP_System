@@ -24,7 +24,8 @@ public record CreateAccountInput(
     string Category,
     Guid? ParentAccountId,
     string Currency,
-    bool IsActive
+    bool IsActive,
+    string? AccountCode
 );
 
 public record UpdateAccountInput(
@@ -96,6 +97,36 @@ public record UpdateInvoiceStatusInput(
     string? InternalNotes
 );
 
+public record UpdateInvoiceInput(
+    Guid Id,
+    string? Type,
+    Guid? CustomerId,
+    Guid? SupplierId,
+    string? CustomerName,
+    string? SupplierName,
+    string? BillingAddress,
+    string? BillingCity,
+    string? BillingPostalCode,
+    string? BillingCountry,
+    string? VatNumber,
+    DateTime? IssueDate,
+    DateTime? DueDate,
+    decimal? TaxRate,
+    string? Notes,
+    string? PaymentTerms,
+    List<UpdateInvoiceLineItemInput>? LineItems
+);
+
+public record UpdateInvoiceLineItemInput(
+    Guid Id,
+    string? Description,
+    Guid? AccountId,
+    int? Quantity,
+    decimal? UnitPrice,
+    decimal? DiscountPercent,
+    decimal? TaxRate
+);
+
 // Journal Entry DTOs
 public record JournalEntryDto(
     Guid Id,
@@ -157,7 +188,9 @@ public record CreatePaymentRecordInput(
     string? PayeeName,
     string? PayerIban,
     string? PayeeIban,
-    string? Notes
+    string? Notes,
+    string? PaymentMethod,
+    string? ReferenceNumber
 );
 
 // Bank Account DTOs
@@ -186,7 +219,61 @@ public record CreateBankAccountInput(
     string Type,
     decimal InitialBalance,
     bool IsPrimary,
-    Guid? AccountId
+    Guid? AccountId,
+    string? AccountName,
+    string? RoutingNumber,
+    string? SwiftCode,
+    decimal? OpeningBalance,
+    Guid? GlAccountId
+);
+
+public record UpdateBankAccountInput(
+    Guid Id,
+    string? Name,
+    string? BankName,
+    string? AccountNumber,
+    string? Iban,
+    string? Bic,
+    string? Currency,
+    string? Type,
+    bool? IsActive,
+    bool? IsPrimary,
+    string? AccountName,
+    string? RoutingNumber,
+    string? SwiftCode,
+    Guid? GlAccountId
+);
+
+public record CreateBankTransactionInput(
+    Guid BankAccountId,
+    string Type,
+    decimal Amount,
+    string? Description,
+    DateTime? TransactionDate,
+    string? Reference,
+    Guid? RelatedInvoiceId,
+    Guid? RelatedPaymentId,
+    string? CheckNumber,
+    Guid? PaymentRecordId
+);
+
+public record CreateReconciliationInput(
+    Guid BankAccountId,
+    DateTime StartDate,
+    DateTime EndDate,
+    decimal OpeningBalance,
+    decimal ClosingBalance,
+    List<ReconciliationLineInput> Transactions,
+    List<Guid>? TransactionIds,
+    DateTime? StatementDate,
+    decimal? StatementEndingBalance,
+    string? Notes,
+    string? ReconciledBy
+);
+
+public record ReconciliationLineInput(
+    Guid TransactionId,
+    bool IsReconciled
 );
 
 // Reporting DTOs
@@ -195,9 +282,16 @@ public record BalanceSheetDto(
     decimal TotalAssets,
     decimal TotalLiabilities,
     decimal TotalEquity,
-    List<AccountBalanceDto> Assets,
-    List<AccountBalanceDto> Liabilities,
-    List<AccountBalanceDto> Equity
+    List<BalanceSheetLineDto> Assets,
+    List<BalanceSheetLineDto> Liabilities,
+    List<BalanceSheetLineDto> Equity
+);
+
+public record BalanceSheetLineDto(
+    Guid AccountId,
+    string AccountNumber,
+    string AccountName,
+    decimal Balance
 );
 
 public record IncomeStatementDto(
@@ -206,8 +300,15 @@ public record IncomeStatementDto(
     decimal TotalRevenue,
     decimal TotalExpenses,
     decimal NetIncome,
-    List<AccountBalanceDto> Revenue,
-    List<AccountBalanceDto> Expenses
+    List<IncomeStatementLineDto> Revenue,
+    List<IncomeStatementLineDto> Expenses
+);
+
+public record IncomeStatementLineDto(
+    Guid AccountId,
+    string AccountNumber,
+    string AccountName,
+    decimal Amount
 );
 
 public record AccountBalanceDto(
@@ -243,7 +344,63 @@ public record CashFlowDto(
     List<CashFlowItemDto> Financing
 );
 
+public record CashFlowStatementDto(
+    DateTime From,
+    DateTime To,
+    decimal OperatingCashFlow,
+    decimal InvestingCashFlow,
+    decimal FinancingCashFlow,
+    decimal NetCashFlow,
+    List<CashFlowItemDto> OperatingActivities,
+    List<CashFlowItemDto> InvestingActivities,
+    List<CashFlowItemDto> FinancingActivities
+);
+
+public record AccountStatementDto(
+    Guid AccountId,
+    string AccountNumber,
+    string AccountName,
+    DateTime From,
+    DateTime To,
+    decimal OpeningBalance,
+    decimal ClosingBalance,
+    List<AccountTransactionDto> Transactions
+);
+
+public record AccountTransactionDto(
+    DateTime Date,
+    string Description,
+    decimal Debit,
+    decimal Credit,
+    decimal Balance
+);
+
+public record AccountStatementLineDto(
+    DateTime Date,
+    string Description,
+    decimal Debit,
+    decimal Credit,
+    decimal Balance
+);
+
+public record AgingReportDto(
+    DateTime AsOf,
+    List<AgingBucketDto> Buckets
+);
+
+public record AgingBucketDto(
+    string Range,
+    int DaysOverdue,
+    decimal Amount,
+    int InvoiceCount
+);
+
 public record CashFlowItemDto(
+    string Description,
+    decimal Amount
+);
+
+public record CashFlowLineDto(
     string Description,
     decimal Amount
 );

@@ -15,6 +15,8 @@ public class BankAccount
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
+    public string AccountName => Name; // Alias
+
     [MaxLength(100)]
     public string? BankName { get; set; }
 
@@ -26,6 +28,12 @@ public class BankAccount
 
     [MaxLength(11)]
     public string? Bic { get; set; }
+
+    [MaxLength(9)]
+    public string? RoutingNumber { get; set; }
+
+    [MaxLength(11)]
+    public string? SwiftCode { get; set; }
 
     [MaxLength(3)]
     public string Currency { get; set; } = "EUR";
@@ -47,7 +55,14 @@ public class BankAccount
     // Link to chart of accounts
     public Guid? AccountId { get; set; }
 
+    public Guid? GlAccountId => AccountId; // Alias
+
     public Account? Account { get; set; }
+
+    public DateTime? LastReconciledDate { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal LastReconciledBalance { get; set; } = 0;
 
     public ICollection<BankTransaction> Transactions { get; set; } = new List<BankTransaction>();
 
@@ -91,6 +106,14 @@ public class BankTransaction
     [MaxLength(50)]
     public string? CounterpartyIban { get; set; }
 
+    [MaxLength(50)]
+    public string? CheckNumber { get; set; }
+
+    public Guid? PaymentRecordId => MatchedPaymentId; // Alias
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal RunningBalance => BalanceAfter; // Alias
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal BalanceAfter { get; set; }
 
@@ -117,10 +140,88 @@ public enum BankAccountType
 
 public enum BankTransactionType
 {
+    Deposit,
+    Withdrawal,
+    Check,
+    Transfer,
+    InterestCredit,
+    Fee,
+    Adjustment,
     Credit,
     Debit,
-    Transfer,
-    Fee,
     Interest,
     Other
+}
+
+public enum ReconciliationStatus
+{
+    Pending,
+    InProgress,
+    Completed,
+    Discrepancy,
+    Reconciled,
+    UnreconciledDifference
+}
+
+public class BankReconciliation
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid BankAccountId { get; set; }
+
+    public BankAccount BankAccount { get; set; } = null!;
+
+    public DateTime StartDate { get; set; }
+
+    public DateTime EndDate { get; set; }
+
+    public DateTime? StatementDate { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal OpeningBalance { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal ClosingBalance { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal StatementEndingBalance { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal BookBalance { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal Difference => StatementEndingBalance - BookBalance;
+
+    public ReconciliationStatus Status { get; set; } = ReconciliationStatus.Pending;
+
+    [MaxLength(1000)]
+    public string? Notes { get; set; }
+
+    [MaxLength(100)]
+    public string? ReconciledBy { get; set; }
+
+    public DateTime? ReconciledAt { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<BankReconciliationLine> Lines { get; set; } = new List<BankReconciliationLine>();
+}
+
+public class BankReconciliationLine
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    public Guid ReconciliationId { get; set; }
+
+    public BankReconciliation Reconciliation { get; set; } = null!;
+
+    public Guid TransactionId { get; set; }
+
+    public BankTransaction Transaction { get; set; } = null!;
+
+    public bool IsReconciled { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -41,7 +41,9 @@ export default function CompaniesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
 
-  const { data, loading, refetch } = useQuery(GET_COMPANIES);
+  const { data, loading, error, refetch } = useQuery(GET_COMPANIES, {
+    errorPolicy: 'all',
+  });
   const [deleteCompany] = useMutation(DELETE_COMPANY, {
     onCompleted: () => refetch(),
   });
@@ -76,6 +78,7 @@ export default function CompaniesPage() {
         <button
           onClick={() => setIsModalOpen(true)}
           className="btn-primary flex items-center gap-2"
+          disabled={error?.message?.includes('Unknown type') || error?.message?.includes('Cannot query field')}
         >
           <PlusIcon className="h-5 w-5" />
           {t('companies.addCompany')}
@@ -84,8 +87,18 @@ export default function CompaniesPage() {
 
       {/* Table */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {error?.message?.includes('Unknown type') || error?.message?.includes('Cannot query field') ? (
+          <div className="border border-yellow-200 bg-yellow-50 p-6 text-center dark:border-yellow-900/30 dark:bg-yellow-900/20">
+            <h3 className="mb-2 font-semibold text-yellow-800 dark:text-yellow-400">
+              {t('common.serviceUnavailable')}
+            </h3>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              The Companies service is not yet available. This feature will be enabled when the company service is deployed.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
@@ -179,7 +192,8 @@ export default function CompaniesPage() {
               )}
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Modal */}

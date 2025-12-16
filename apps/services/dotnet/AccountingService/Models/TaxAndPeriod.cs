@@ -81,6 +81,8 @@ public class FiscalPeriod
     public Guid? ClosedByUserId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? UpdatedAt { get; set; }
 }
 
 public enum FiscalPeriodType

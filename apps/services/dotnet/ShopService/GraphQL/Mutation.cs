@@ -12,7 +12,18 @@ public class Mutation
     public async Task<Product> CreateProduct(
         [Service] IProductService productService,
         CreateProductInput input)
-        => await productService.CreateAsync(input);
+    {
+        try
+        {
+            return await productService.CreateAsync(input);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating product: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            throw;
+        }
+    }
 
     public async Task<Product?> UpdateProduct(
         [Service] IProductService productService,

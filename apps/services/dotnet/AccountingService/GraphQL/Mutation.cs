@@ -286,7 +286,7 @@ public class Mutation
             Name = input.Name,
             StartDate = input.StartDate,
             EndDate = input.EndDate,
-            FiscalYear = input.FiscalYear,
+            Year = input.FiscalYear,
             Period = input.Period,
             Status = FiscalPeriodStatus.Open,
             CreatedAt = DateTime.UtcNow

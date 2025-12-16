@@ -31,8 +31,19 @@ public class PaymentRecord
 
     public PaymentMethod Method { get; set; }
 
+    public string PaymentMethod => Method.ToString(); // Alias
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal Amount { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal RefundedAmount { get; set; } = 0;
+
+    public bool IsRefund { get; set; } = false;
+
+    public Guid? OriginalPaymentId { get; set; }
+
+    public PaymentRecord? OriginalPayment { get; set; }
 
     [MaxLength(3)]
     public string Currency { get; set; } = "EUR";
@@ -43,6 +54,9 @@ public class PaymentRecord
 
     [MaxLength(200)]
     public string? Reference { get; set; }
+
+    [MaxLength(200)]
+    public string? ReferenceNumber { get; set; }
 
     [MaxLength(200)]
     public string? TransactionId { get; set; }
@@ -90,7 +104,20 @@ public enum PaymentRecordStatus
     Completed,
     Failed,
     Cancelled,
-    Reversed
+    Reversed,
+    Refunded
+}
+
+public enum PaymentStatus
+{
+    Pending = PaymentRecordStatus.Pending,
+    Processing = PaymentRecordStatus.Processing,
+    Completed = PaymentRecordStatus.Completed,
+    Failed = PaymentRecordStatus.Failed,
+    Cancelled = PaymentRecordStatus.Cancelled,
+    Refunded = PaymentRecordStatus.Refunded,
+    Confirmed,
+    Voided
 }
 
 public enum PaymentMethod

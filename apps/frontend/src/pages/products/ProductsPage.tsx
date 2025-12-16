@@ -17,12 +17,9 @@ const GET_PRODUCTS = gql`
         id
         sku
         name
-        description
         price
-        compareAtPrice
-        costPrice
-        quantity
-        isActive
+        stockQuantity
+        status
         category {
           id
           name
@@ -37,7 +34,6 @@ const GET_PRODUCTS = gql`
         hasNextPage
         endCursor
       }
-      totalCount
     }
   }
 `;
@@ -56,8 +52,8 @@ interface Product {
   price: number;
   compareAtPrice: number | null;
   costPrice: number;
-  quantity: number;
-  isActive: boolean;
+  stockQuantity: number;
+  status: string;
   category: { id: string; name: string } | null;
   brand: { id: string; name: string } | null;
   createdAt: string;
@@ -70,11 +66,11 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, loading, refetch } = useQuery(GET_PRODUCTS, {
+  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
     variables: {
       first: 50,
-      where: statusFilter !== 'all' ? { isActive: { eq: statusFilter === 'active' } } : undefined,
     },
+    errorPolicy: 'all',
   });
 
   const [deleteProduct] = useMutation(DELETE_PRODUCT, {
@@ -98,10 +94,14 @@ export default function ProductsPage() {
     refetch();
   };
 
-  const filteredProducts = data?.products?.nodes?.filter((product: Product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = data?.products?.nodes?.filter((product: Product) => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && product.status === 'ACTIVE') ||
+      (statusFilter === 'inactive' && product.status !== 'ACTIVE');
+    return matchesSearch && matchesStatus;
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -157,7 +157,16 @@ export default function ProductsPage() {
 
       {/* Table */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
+        {error?.message?.includes('Unknown type') || error?.message?.includes('Cannot query field') ? (
+          <div className="border border-yellow-200 bg-yellow-50 p-6 text-center dark:border-yellow-900/30 dark:bg-yellow-900/20">
+            <h3 className="mb-2 font-semibold text-yellow-800 dark:text-yellow-400">
+              {t('common.serviceUnavailable')}
+            </h3>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              The Products service is not yet available. This feature will be enabled when the shop service is deployed.
+            </p>
+          </div>
+        ) : (
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -225,25 +234,25 @@ export default function ProductsPage() {
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       <span
                         className={`font-medium ${
-                          product.quantity <= 0
+                          product.stockQuantity <= 0
                             ? 'text-red-600'
-                            : product.quantity <= 10
+                            : product.stockQuantity <= 10
                             ? 'text-yellow-600'
                             : 'text-green-600'
                         }`}
                       >
-                        {product.quantity}
+                        {product.stockQuantity}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                          product.isActive
+                          product.status === 'Active'
                             ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                             : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}
                       >
-                        {product.isActive ? t('common.active') : t('common.inactive')}
+                        {product.status === 'Active' ? t('common.active') : t('common.inactive')}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
@@ -267,10 +276,10 @@ export default function ProductsPage() {
               )}
             </tbody>
           </table>
-        </div>
+        )}
 
         {/* Pagination Info */}
-        {data?.products && (
+        {!error?.message?.includes('Unknown type') && !error?.message?.includes('Cannot query field') && data?.products && (
           <div className="border-t border-gray-200 px-6 py-3 dark:border-gray-700">
             <p className="text-sm text-gray-500">
               {t('common.showing')} {filteredProducts?.length || 0} {t('common.of')}{' '}

@@ -1,6 +1,7 @@
 using AccountingService.Models;
 using AccountingService.Services;
 using AccountingService.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace AccountingService.GraphQL;
 

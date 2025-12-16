@@ -56,7 +56,6 @@ builder.Services
     .AddProjections()
     .AddInMemorySubscriptions()
     .AddApolloFederation()
-    .AddAuthorization()
     .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = builder.Environment.IsDevelopment());
 
 // Add health checks

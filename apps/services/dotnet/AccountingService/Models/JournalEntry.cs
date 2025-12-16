@@ -101,7 +101,9 @@ public enum JournalEntryType
     Closing,
     Reversing,
     Opening,
-    Manual
+    Manual,
+    Payment,
+    Sales
 }
 
 public enum JournalEntryStatus

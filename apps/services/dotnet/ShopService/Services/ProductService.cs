@@ -133,10 +133,10 @@ public class ProductService : IProductService
             CategoryId = input.CategoryId,
             BrandId = input.BrandId,
             SupplierId = input.SupplierId,
-            Status = Enum.Parse<ProductStatus>(input.Status),
+            Status = Enum.Parse<ProductStatus>(input.Status, ignoreCase: true),
             IsFeatured = input.IsFeatured,
             IsDigital = input.IsDigital,
-            Slug = input.Slug ?? GenerateSlug(input.Name),
+            Slug = input.Slug ?? await GenerateUniqueSlugAsync(input.Name),
             MetaTitle = input.MetaTitle,
             MetaDescription = input.MetaDescription,
             CreatedAt = DateTime.UtcNow
@@ -175,7 +175,7 @@ public class ProductService : IProductService
         if (input.CategoryId.HasValue) product.CategoryId = input.CategoryId;
         if (input.BrandId.HasValue) product.BrandId = input.BrandId;
         if (input.SupplierId.HasValue) product.SupplierId = input.SupplierId;
-        if (!string.IsNullOrEmpty(input.Status)) product.Status = Enum.Parse<ProductStatus>(input.Status);
+        if (!string.IsNullOrEmpty(input.Status)) product.Status = Enum.Parse<ProductStatus>(input.Status, ignoreCase: true);
         if (input.IsFeatured.HasValue) product.IsFeatured = input.IsFeatured.Value;
         if (input.IsDigital.HasValue) product.IsDigital = input.IsDigital.Value;
         if (input.Slug != null) product.Slug = input.Slug;
@@ -282,6 +282,21 @@ public class ProductService : IProductService
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    private async Task<string> GenerateUniqueSlugAsync(string name)
+    {
+        var baseSlug = GenerateSlug(name);
+        var slug = baseSlug;
+        var counter = 1;
+
+        while (await _context.Products.AnyAsync(p => p.Slug == slug))
+        {
+            slug = $"{baseSlug}-{counter}";
+            counter++;
+        }
+
+        return slug;
     }
 
     private static string GenerateSlug(string name)

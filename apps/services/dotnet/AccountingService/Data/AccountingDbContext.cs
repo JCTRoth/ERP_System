@@ -15,6 +15,8 @@ public class AccountingDbContext : DbContext
     public DbSet<PaymentRecord> PaymentRecords => Set<PaymentRecord>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
+    public DbSet<BankReconciliation> BankReconciliations => Set<BankReconciliation>();
+    public DbSet<BankReconciliationLine> BankReconciliationLines => Set<BankReconciliationLine>();
     public DbSet<TaxRate> TaxRates => Set<TaxRate>();
     public DbSet<FiscalPeriod> FiscalPeriods => Set<FiscalPeriod>();
 

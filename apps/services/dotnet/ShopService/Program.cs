@@ -65,6 +65,9 @@ builder.Services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Controllers
+builder.Services.AddControllers();
+
 // Health checks
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
@@ -108,7 +111,7 @@ if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ShopDbContext>();
-    db.Database.Migrate();
+    db.Database.EnsureCreated();
 }
 
 app.Run();

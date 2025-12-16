@@ -9,11 +9,22 @@ namespace ShopService.GraphQL;
 public class Query
 {
     // Products
+    [UsePaging]
     [UseProjection]
     [UseFiltering]
     [UseSorting]
     public IQueryable<Product> GetProducts([Service] ShopDbContext context)
-        => context.Products.Include(p => p.Images).Include(p => p.Category).AsNoTracking();
+    {
+        try
+        {
+            return context.Products.Include(p => p.Images).Include(p => p.Category).AsNoTracking();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetProducts: {ex.Message}");
+            throw;
+        }
+    }
 
     public async Task<Product?> GetProduct([Service] IProductService productService, Guid id)
         => await productService.GetByIdAsync(id);
@@ -35,11 +46,22 @@ public class Query
         => await productService.GetLowStockAsync(threshold);
 
     // Categories
+    [UsePaging]
     [UseProjection]
     [UseFiltering]
     [UseSorting]
     public IQueryable<Category> GetCategories([Service] ShopDbContext context)
-        => context.Categories.Include(c => c.SubCategories).AsNoTracking();
+    {
+        try
+        {
+            return context.Categories.Include(c => c.SubCategories).AsNoTracking();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetCategories: {ex.Message}");
+            throw;
+        }
+    }
 
     public async Task<Category?> GetCategory([Service] ICategoryService categoryService, Guid id)
         => await categoryService.GetByIdAsync(id);
@@ -48,11 +70,22 @@ public class Query
         => await categoryService.GetRootCategoriesAsync();
 
     // Brands
+    [UsePaging]
     [UseProjection]
     [UseFiltering]
     [UseSorting]
     public IQueryable<Brand> GetBrands([Service] ShopDbContext context)
-        => context.Brands.AsNoTracking();
+    {
+        try
+        {
+            return context.Brands.AsNoTracking();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetBrands: {ex.Message}");
+            throw;
+        }
+    }
 
     public async Task<Brand?> GetBrand([Service] IBrandService brandService, Guid id)
         => await brandService.GetByIdAsync(id);

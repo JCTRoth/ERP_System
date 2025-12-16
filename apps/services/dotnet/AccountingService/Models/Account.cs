@@ -16,6 +16,10 @@ public class Account
     public string AccountNumber { get; set; } = string.Empty;
 
     [Required]
+    [MaxLength(20)]
+    public string AccountCode { get; set; } = string.Empty;
+
+    [Required]
     [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
 

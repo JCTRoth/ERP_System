@@ -53,6 +53,8 @@ public class Invoice
 
     public DateTime IssueDate { get; set; } = DateTime.UtcNow;
 
+    public DateTime InvoiceDate => IssueDate; // Alias for compatibility
+
     public DateTime DueDate { get; set; }
 
     public DateTime? PaidDate { get; set; }
@@ -72,8 +74,12 @@ public class Invoice
     [Column(TypeName = "decimal(18,2)")]
     public decimal Total { get; set; }
 
+    public decimal TotalAmount => Total; // Alias
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal AmountPaid { get; set; } = 0;
+
+    public decimal PaidAmount => AmountPaid; // Alias
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal AmountDue => Total - AmountPaid;
@@ -121,5 +127,6 @@ public enum InvoiceStatus
     Paid,
     Overdue,
     Cancelled,
-    Disputed
+    Disputed,
+    Void
 }

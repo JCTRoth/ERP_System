@@ -20,21 +20,21 @@ subgraphs:
     routing_url: http://shop-service:5003/graphql
     schema:
       subgraph_url: http://shop-service:5003/graphql
-  #   routing_url: http://localhost:8082/graphql
-  #   schema:
-  #     subgraph_url: http://localhost:8082/graphql
+      routing_url: http://localhost:8082/graphql
+      schema:
+       subgraph_url: http://localhost:8082/graphql
 
-  # accounting-service:
-  #   routing_url: http://accounting-service:5001/graphql
-  #   schema:
-  #     subgraph_url: http://accounting-service:5001/graphql
+  accounting-service:
+     routing_url: http://accounting-service:5001/graphql
+     schema:
+       subgraph_url: http://accounting-service:5001/graphql
 
-  # notification-service:
-  #   routing_url: http://localhost:8084/graphql
-  #   schema:
-  #     subgraph_url: http://localhost:8084/graphql
+  notification-service:
+     routing_url: http://localhost:8084/graphql
+     schema:
+       subgraph_url: http://localhost:8084/graphql
 
-  # scripting-service:
-  #   routing_url: http://localhost:8085/graphql
-  #   schema:
-  #     subgraph_url: http://localhost:8085/graphql
+  scripting-service:
+     routing_url: http://localhost:8085/graphql
+     schema:
+       subgraph_url: http://localhost:8085/graphql

@@ -13,7 +13,9 @@ public interface IInvoiceService
     Task<IEnumerable<Invoice>> GetByCustomerAsync(Guid customerId);
     Task<IEnumerable<Invoice>> GetBySupplierAsync(Guid supplierId);
     Task<IEnumerable<Invoice>> GetOverdueAsync();
+    Task<IEnumerable<Invoice>> GetByStatusAsync(InvoiceStatus status);
     Task<Invoice> CreateAsync(CreateInvoiceInput input);
+    Task<Invoice?> UpdateAsync(UpdateInvoiceInput input);
     Task<Invoice?> UpdateStatusAsync(UpdateInvoiceStatusInput input);
     Task<Invoice?> RecordPaymentAsync(Guid invoiceId, decimal amount, string? reference);
     Task<bool> CancelAsync(Guid id, string? reason);
@@ -225,6 +227,86 @@ public class InvoiceService : IInvoiceService
         return invoice;
     }
 
+    public async Task<IEnumerable<Invoice>> GetByStatusAsync(InvoiceStatus status)
+    {
+        return await _context.Invoices
+            .Include(i => i.LineItems)
+            .Where(i => i.Status == status)
+            .OrderByDescending(i => i.IssueDate)
+            .ToListAsync();
+    }
+
+    public async Task<Invoice?> UpdateAsync(UpdateInvoiceInput input)
+    {
+        var invoice = await _context.Invoices
+            .Include(i => i.LineItems)
+            .FirstOrDefaultAsync(i => i.Id == input.Id);
+
+        if (invoice == null) return null;
+
+        if (invoice.Status == InvoiceStatus.Paid || invoice.Status == InvoiceStatus.Cancelled)
+        {
+            _logger.LogWarning("Cannot update paid or cancelled invoice {InvoiceNumber}", invoice.InvoiceNumber);
+            return null;
+        }
+
+        // Update basic fields
+        if (input.Type.HasValue) invoice.Type = input.Type.Value;
+        if (input.CustomerId.HasValue) invoice.CustomerId = input.CustomerId;
+        if (input.SupplierId.HasValue) invoice.SupplierId = input.SupplierId;
+        if (!string.IsNullOrEmpty(input.CustomerName)) invoice.CustomerName = input.CustomerName;
+        if (!string.IsNullOrEmpty(input.SupplierName)) invoice.SupplierName = input.SupplierName;
+        if (!string.IsNullOrEmpty(input.BillingAddress)) invoice.BillingAddress = input.BillingAddress;
+        if (!string.IsNullOrEmpty(input.BillingCity)) invoice.BillingCity = input.BillingCity;
+        if (!string.IsNullOrEmpty(input.BillingPostalCode)) invoice.BillingPostalCode = input.BillingPostalCode;
+        if (!string.IsNullOrEmpty(input.BillingCountry)) invoice.BillingCountry = input.BillingCountry;
+        if (!string.IsNullOrEmpty(input.VatNumber)) invoice.VatNumber = input.VatNumber;
+        if (input.IssueDate.HasValue) invoice.IssueDate = input.IssueDate.Value;
+        if (input.DueDate.HasValue) invoice.DueDate = input.DueDate.Value;
+        if (input.TaxRate.HasValue) invoice.TaxRate = input.TaxRate.Value;
+        if (!string.IsNullOrEmpty(input.Notes)) invoice.Notes = input.Notes;
+        if (!string.IsNullOrEmpty(input.PaymentTerms)) invoice.PaymentTerms = input.PaymentTerms;
+
+        // Update line items if provided
+        if (input.LineItems != null && input.LineItems.Any())
+        {
+            // Remove existing line items
+            _context.InvoiceLineItems.RemoveRange(invoice.LineItems);
+
+            // Add new line items
+            foreach (var lineInput in input.LineItems)
+            {
+                var lineItem = new InvoiceLineItem
+                {
+                    Description = lineInput.Description ?? "",
+                    Sku = lineInput.Sku,
+                    ProductId = lineInput.ProductId,
+                    AccountId = lineInput.AccountId,
+                    Quantity = lineInput.Quantity ?? 1,
+                    Unit = lineInput.Unit ?? "pcs",
+                    UnitPrice = lineInput.UnitPrice ?? 0,
+                    DiscountPercent = lineInput.DiscountPercent ?? 0,
+                    TaxRate = lineInput.TaxRate ?? 0,
+                    LineTotal = ((lineInput.UnitPrice ?? 0) * (lineInput.Quantity ?? 1)) * (1 - (lineInput.DiscountPercent ?? 0) / 100)
+                };
+                invoice.LineItems.Add(lineItem);
+            }
+
+            // Recalculate totals
+            invoice.Subtotal = invoice.LineItems.Sum(li => li.LineTotal);
+            invoice.TaxAmount = invoice.LineItems.Sum(li => li.LineTotal * li.TaxRate);
+            invoice.Total = invoice.Subtotal + invoice.TaxAmount;
+            invoice.AmountDue = invoice.Total - invoice.AmountPaid;
+        }
+
+        invoice.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Invoice {InvoiceNumber} updated", invoice.InvoiceNumber);
+
+        return invoice;
+    }
+
     public async Task<bool> CancelAsync(Guid id, string? reason)
     {
         var invoice = await _context.Invoices.FindAsync(id);
@@ -277,6 +359,29 @@ public class InvoiceService : IInvoiceService
         if (lastInvoice != null)
         {
             var lastSequence = lastInvoice.InvoiceNumber.Split('-').LastOrDefault();
+            if (int.TryParse(lastSequence, out var num))
+            {
+                sequence = num + 1;
+            }
+        }
+
+        return $"{yearPrefix}-{sequence:D5}";
+    }
+
+    private async Task<string> GeneratePaymentNumberAsync()
+    {
+        var date = DateTime.UtcNow;
+        var yearPrefix = $"PAY-{date:yyyy}";
+
+        var lastPayment = await _context.PaymentRecords
+            .Where(p => p.PaymentNumber.StartsWith(yearPrefix))
+            .OrderByDescending(p => p.PaymentNumber)
+            .FirstOrDefaultAsync();
+
+        int sequence = 1;
+        if (lastPayment != null)
+        {
+            var lastSequence = lastPayment.PaymentNumber.Split('-').LastOrDefault();
             if (int.TryParse(lastSequence, out var num))
             {
                 sequence = num + 1;

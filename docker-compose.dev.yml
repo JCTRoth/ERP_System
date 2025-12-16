@@ -34,6 +34,7 @@ services:
       - TRANSLATION_SERVICE_URL=http://translation-service:8081/graphql
       - COMPANY_SERVICE_URL=http://company-service:8080/graphql
       - SHOP_SERVICE_URL=http://shop-service:5003/graphql
+      - ACCOUNTING_SERVICE_URL=http://accounting-service:5001/graphql
     depends_on:
       - user-service
       - company-service
@@ -66,23 +67,23 @@ services:
       - ./apps/services/dotnet/ShopService:/app
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres-shop;Database=shopdb;Username=postgres;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres-shop;Database=shopdb;Username=erp_shop;Password=devpassword
     depends_on:
       - postgres-shop
 
-  accounting-service:
-    build:
-      context: ./apps/services/dotnet/AccountingService
-      # use default Dockerfile in AccountingService
-    ports:
-      - "5001:5001"
-    volumes:
-      - ./apps/services/dotnet/AccountingService:/app
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres-accounting;Database=accountingdb;Username=postgres;Password=postgres
-    depends_on:
-      - postgres-accounting
+  # accounting-service:
+  #   build:
+  #     context: ./apps/services/dotnet/AccountingService
+  #     # use default Dockerfile in AccountingService
+  #   ports:
+  #     - "5001:5001"
+  #   volumes:
+  #     - ./apps/services/dotnet/AccountingService:/app
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #     - ConnectionStrings__DefaultConnection=Host=postgres-accounting;Database=accountingdb;Username=postgres;Password=postgres
+  #   depends_on:
+  #     - postgres-accounting
 
   masterdata-service:
     build:
@@ -209,8 +210,8 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: shopdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: erp_shop
+      POSTGRES_PASSWORD: devpassword
     ports:
       - "5436:5432"
     volumes:

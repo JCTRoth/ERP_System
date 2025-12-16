@@ -37,7 +37,7 @@ public class Query
 
     [GraphQLDescription("Get accounts by type")]
     public async Task<IEnumerable<Account>> GetAccountsByType(
-        AccountType type,
+        Models.AccountType type,
         [Service] IAccountService accountService)
     {
         return await accountService.GetByTypeAsync(type);
