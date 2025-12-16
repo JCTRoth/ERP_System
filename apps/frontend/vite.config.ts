@@ -15,11 +15,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/graphql': {
-        target: 'http://localhost:4000',
+        target: 'http://172.19.0.7:4000',
         changeOrigin: true,
       },
       '/api': {
-        target: 'http://localhost:4000',
+        target: 'http://172.19.0.7:4000',
         changeOrigin: true,
       },
     },

@@ -6,6 +6,8 @@ import com.erp.translation.service.TranslationService;
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsMutation;
 import com.netflix.graphql.dgs.DgsQuery;
+import com.netflix.graphql.dgs.DgsData;
+import com.netflix.graphql.dgs.DgsDataFetchingEnvironment;
 import com.netflix.graphql.dgs.InputArgument;
 import lombok.RequiredArgsConstructor;
 
@@ -59,6 +61,12 @@ public class TranslationDataFetcher {
     @DgsQuery
     public List<TranslationValueDto> translationValues(@InputArgument String keyId) {
         return translationService.getValuesForKey(UUID.fromString(keyId));
+    }
+
+    @DgsData(parentType = "TranslationKey", field = "values")
+    public List<TranslationValueDto> values(DgsDataFetchingEnvironment dfe) {
+        TranslationKeyDto key = dfe.getSource();
+        return translationService.getValuesForKey(key.getId());
     }
 
     @DgsQuery

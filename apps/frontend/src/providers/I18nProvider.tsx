@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { useQuery, gql } from '@apollo/client';
 import { getApolloClient } from '../lib/apollo';
 import { useAuthStore } from '../stores/authStore';
+import { localTranslations, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type Language } from '../locales';
 
 const GET_TRANSLATIONS = gql`
   query GetTranslations($language: String!, $companyId: ID) {
@@ -12,25 +13,16 @@ const GET_TRANSLATIONS = gql`
   }
 `;
 
-type Language = 'en' | 'de' | 'fr' | 'ru';
-
 interface I18nContextType {
   t: (key: string, params?: Record<string, string | number> | { default?: string } ) => string;
   language: Language;
   setLanguage: (lang: Language) => void;
   isLoading: boolean;
-  localeVersion: number;  translations: Map<string, string>;}
+  localeVersion: number;
+  translations: Map<string, string>;
+}
 
 const I18nContext = createContext<I18nContextType | null>(null);
-
-const SUPPORTED_LANGUAGES: Language[] = ['en', 'de', 'fr', 'ru'];
-
-const LANGUAGE_NAMES: Record<Language, string> = {
-  en: 'English',
-  de: 'Deutsch',
-  fr: 'Français',
-  ru: 'Русский',
-};
 
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
@@ -44,8 +36,31 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     return SUPPORTED_LANGUAGES.includes(browserLang) ? browserLang : 'en';
   });
 
-  const [translations, setTranslations] = useState<Map<string, string>>(new Map());
+  // Initialize translations with local fallbacks
+  const [translations, setTranslations] = useState<Map<string, string>>(() => {
+    const initial = new Map<string, string>();
+    const local = localTranslations['en']; // Start with English
+    Object.entries(local).forEach(([key, value]) => {
+      initial.set(key, value);
+    });
+    return initial;
+  });
   const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+
+  // Load local translations when language changes
+  useEffect(() => {
+    const local = localTranslations[language];
+    if (local) {
+      setTranslations(() => {
+        const updated = new Map<string, string>();
+        // First, load all local translations for the new language
+        Object.entries(local).forEach(([key, value]) => {
+          updated.set(key, value);
+        });
+        return updated;
+      });
+    }
+  }, [language]);
 
   const { data, loading } = useQuery(GET_TRANSLATIONS, {
     variables: { language, companyId: currentCompanyId },
@@ -54,19 +69,31 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     onError: () => {},
   });
 
+  // Merge service translations on top of local translations (service overrides local)
   useEffect(() => {
     if (data?.translations) {
-      const newTranslations = new Map<string, string>();
-      data.translations.forEach((t: { key: string; value: string }) => {
-        newTranslations.set(t.key, t.value);
+      setTranslations((prev) => {
+        const updated = new Map(prev);
+        // Override with service translations
+        data.translations.forEach((t: { key: string; value: string }) => {
+          updated.set(t.key, t.value);
+        });
+        return updated;
       });
-      setTranslations(newTranslations);
     }
   }, [data]);
 
   const setLanguage = useCallback((lang: Language) => {
-    // clear current translations to avoid stale UI and trigger loading state
-    setTranslations(new Map());
+    // Load local translations first for immediate UI update
+    const local = localTranslations[lang];
+    if (local) {
+      const updated = new Map<string, string>();
+      Object.entries(local).forEach(([key, value]) => {
+        updated.set(key, value);
+      });
+      setTranslations(updated);
+    }
+    
     setLanguageState(lang);
     localStorage.setItem('erp-language', lang);
     document.documentElement.lang = lang;
@@ -136,5 +163,7 @@ export function useI18n() {
   return context;
 }
 
+// Re-export from locales for backwards compatibility
 export { SUPPORTED_LANGUAGES, LANGUAGE_NAMES };
 export type { Language };
+

@@ -7,29 +7,29 @@ const CREATE_TRANSLATION_KEY = gql`
   mutation CreateTranslationKey($input: CreateTranslationKeyInput!) {
     createTranslationKey(input: $input) {
       id
-      key
+      keyName
       namespace
     }
   }
 `;
 
 const UPDATE_TRANSLATION = gql`
-  mutation UpdateTranslation($keyId: ID!, $language: String!, $value: String!) {
-    updateTranslation(keyId: $keyId, language: $language, value: $value) {
+  mutation UpdateTranslation($keyId: ID!, $language: String!, $valueText: String!) {
+    setTranslation(input: { keyId: $keyId, language: $language, valueText: $valueText }) {
       id
-      value
+      valueText
     }
   }
 `;
 
 interface TranslationValue {
   language: string;
-  value: string;
+  valueText: string;
 }
 
 interface TranslationKey {
   id: string;
-  key: string;
+  keyName: string;
   namespace: string;
   values: TranslationValue[];
 }
@@ -43,12 +43,12 @@ export default function TranslationModal({ translationKey, onClose }: Props) {
   const { t } = useI18n();
   const isEditing = !!translationKey;
 
-  const [key, setKey] = useState(translationKey?.key || '');
+  const [key, setKey] = useState(translationKey?.keyName || '');
   const [namespace, setNamespace] = useState(translationKey?.namespace || 'common');
   const [values, setValues] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     SUPPORTED_LANGUAGES.forEach((lang) => {
-      initial[lang] = translationKey?.values.find((v) => v.language === lang)?.value || '';
+      initial[lang] = translationKey?.values.find((v) => v.language === lang)?.valueText || '';
     });
     return initial;
   });
@@ -69,27 +69,35 @@ export default function TranslationModal({ translationKey, onClose }: Props) {
             variables: {
               keyId: translationKey.id,
               language: lang,
-              value: values[lang],
+              valueText: values[lang],
             },
           });
         }
       }
     } else {
-      // Create new translation key with values
-      await createKey({
+      // Create new translation key
+      const result = await createKey({
         variables: {
           input: {
-            key,
+            keyName: key,
             namespace,
-            values: SUPPORTED_LANGUAGES
-              .filter((lang) => values[lang])
-              .map((lang) => ({
-                language: lang,
-                value: values[lang],
-              })),
           },
         },
       });
+
+      // Set translations for each language
+      const newKeyId = result.data.createTranslationKey.id;
+      for (const lang of SUPPORTED_LANGUAGES) {
+        if (values[lang]) {
+          await updateTranslation({
+            variables: {
+              keyId: newKeyId,
+              language: lang,
+              valueText: values[lang],
+            },
+          });
+        }
+      }
     }
 
     onClose();

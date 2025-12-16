@@ -8,11 +8,11 @@ const GET_TRANSLATION_KEYS = gql`
   query GetTranslationKeys {
     translationKeys {
       id
-      key
+      keyName
       namespace
       values {
         language
-        value
+        valueText
       }
     }
   }
@@ -20,12 +20,12 @@ const GET_TRANSLATION_KEYS = gql`
 
 interface TranslationValue {
   language: string;
-  value: string;
+  valueText: string;
 }
 
 interface TranslationKey {
   id: string;
-  key: string;
+  keyName: string;
   namespace: string;
   values: TranslationValue[];
 }
@@ -64,8 +64,8 @@ export default function TranslationsPage() {
   const filteredKeys = data?.translationKeys?.filter((tk: TranslationKey) => {
     const matchesNamespace = !filterNamespace || tk.namespace === filterNamespace;
     const matchesSearch = !searchTerm || 
-      tk.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tk.values.some(v => v.value.toLowerCase().includes(searchTerm.toLowerCase()));
+      tk.keyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tk.values.some(v => v.valueText.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesNamespace && matchesSearch;
   }) || [];
 
@@ -159,7 +159,7 @@ export default function TranslationsPage() {
                 filteredKeys.map((tk: TranslationKey) => (
                   <tr key={tk.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="whitespace-nowrap px-6 py-4 font-mono text-sm">
-                      {tk.key}
+                      {tk.keyName}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-gray-500 dark:text-gray-400">
                       {tk.namespace}
@@ -168,7 +168,7 @@ export default function TranslationsPage() {
                       const value = tk.values.find(v => v.language === lang);
                       return (
                         <td key={lang} className="max-w-xs truncate px-6 py-4">
-                          {value?.value || (
+                          {value?.valueText || (
                             <span className="text-gray-400 italic">
                               {t('translations.missing')}
                             </span>

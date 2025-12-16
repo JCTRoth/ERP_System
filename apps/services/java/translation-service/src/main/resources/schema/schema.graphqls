@@ -28,6 +28,7 @@ type TranslationKey @key(fields: "id") {
     keyName: String!
     namespace: String
     description: String
+    values: [TranslationValue!]!
     createdAt: DateTime!
     updatedAt: DateTime
 }
