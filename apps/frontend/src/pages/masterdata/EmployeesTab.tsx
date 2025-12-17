@@ -91,7 +91,7 @@ export default function EmployeesTab() {
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data: employeesData, loading: employeesLoading } = useQuery(GET_EMPLOYEES, {
+  const { data: employeesData, loading: employeesLoading, error: employeesError } = useQuery(GET_EMPLOYEES, {
     variables: {
       first: 100,
       where: {
@@ -99,9 +99,26 @@ export default function EmployeesTab() {
         ...(statusFilter !== 'all' && { status: { eq: statusFilter } }),
       },
     },
+    errorPolicy: 'all',
   });
 
-  const { data: departmentsData, loading: departmentsLoading } = useQuery(GET_DEPARTMENTS);
+  const { data: departmentsData, loading: departmentsLoading, error: departmentsError } = useQuery(GET_DEPARTMENTS, {
+    errorPolicy: 'all',
+  });
+
+  // Handle unavailable service
+  if (employeesError || departmentsError) {
+    return (
+      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-900/20">
+        <h3 className="font-semibold text-yellow-800 dark:text-yellow-400">
+          {t('common.serviceUnavailable') || 'Service Unavailable'}
+        </h3>
+        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-500">
+          The Employees & Departments data could not be loaded. This feature will be available when the masterdata service is deployed.
+        </p>
+      </div>
+    );
+  }
 
   const filteredEmployees = employeesData?.employees?.nodes?.filter((emp: Employee) =>
     `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||

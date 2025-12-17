@@ -19,7 +19,13 @@ import NotFoundPage from './pages/NotFoundPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? <>{children}</> : <Navigate to="/auth/login" replace />;
+  const accessToken = useAuthStore((state) => state.accessToken);
+  
+  if (!isAuthenticated || !accessToken) {
+    return <Navigate to="/auth/login" replace />;
+  }
+  
+  return <>{children}</>;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {

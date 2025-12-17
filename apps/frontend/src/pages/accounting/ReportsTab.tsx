@@ -100,18 +100,34 @@ export default function ReportsTab() {
   );
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const { data: balanceSheetData, loading: bsLoading } = useQuery(GET_BALANCE_SHEET, {
+  const { data: balanceSheetData, loading: bsLoading, error: bsError } = useQuery(GET_BALANCE_SHEET, {
     variables: { asOfDate: asOfDate + 'T23:59:59Z' },
     skip: selectedReport !== 'balance-sheet',
+    errorPolicy: 'all',
   });
 
-  const { data: incomeStatementData, loading: isLoading } = useQuery(GET_INCOME_STATEMENT, {
+  const { data: incomeStatementData, loading: isLoading, error: isError } = useQuery(GET_INCOME_STATEMENT, {
     variables: {
       startDate: startDate + 'T00:00:00Z',
       endDate: endDate + 'T23:59:59Z',
     },
     skip: selectedReport !== 'income-statement',
+    errorPolicy: 'all',
   });
+
+  // Handle unavailable service
+  if (bsError || isError) {
+    return (
+      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-900/20">
+        <h3 className="font-semibold text-yellow-800 dark:text-yellow-400">
+          {t('common.serviceUnavailable') || 'Service Unavailable'}
+        </h3>
+        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-500">
+          The Financial Reports data could not be loaded. This feature will be available when the accounting service is deployed.
+        </p>
+      </div>
+    );
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

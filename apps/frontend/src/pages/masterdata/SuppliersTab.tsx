@@ -4,28 +4,27 @@ import {
   PencilIcon,
   TrashIcon,
   MagnifyingGlassIcon,
-  StarIcon,
 } from '@heroicons/react/24/outline';
-import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { useI18n } from '../../providers/I18nProvider';
 
 const GET_SUPPLIERS = gql`
-  query GetSuppliers($first: Int, $where: SupplierFilterInput) {
-    suppliers(first: $first, where: $where, order: { supplierNumber: ASC }) {
+  query GetSuppliers($first: Int) {
+    suppliers(first: $first) {
       nodes {
         id
-        supplierNumber
         name
-        legalName
-        type
-        status
-        rating
+        code
+        contactPerson
         email
         phone
-        website
-        taxId
-        paymentTermDays
+        address
+        city
+        postalCode
+        country
+        vatNumber
+        leadTimeDays
         currency
+        isActive
         createdAt
       }
       totalCount
@@ -35,68 +34,53 @@ const GET_SUPPLIERS = gql`
 
 interface Supplier {
   id: string;
-  supplierNumber: string;
   name: string;
-  legalName: string;
-  type: string;
-  status: string;
-  rating: string;
-  email: string;
-  phone: string;
-  website: string;
-  taxId: string;
-  paymentTermDays: number;
+  code: string | null;
+  contactPerson: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  country: string | null;
+  vatNumber: string | null;
+  leadTimeDays: number;
   currency: string;
+  isActive: boolean;
   createdAt: string;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  INACTIVE: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400',
-  PENDING_APPROVAL: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  SUSPENDED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-};
-
-const RATING_MAP: Record<string, number> = {
-  EXCELLENT: 5,
-  GOOD: 4,
-  SATISFACTORY: 3,
-  NEEDS_IMPROVEMENT: 2,
-  POOR: 1,
-  NOT_RATED: 0,
-};
 
 export default function SuppliersTab() {
   const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, loading } = useQuery(GET_SUPPLIERS, {
+  const { data, loading, error } = useQuery(GET_SUPPLIERS, {
     variables: {
-      first: 100,
-      where: statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined,
+      first: 20,
     },
+    errorPolicy: 'all',
   });
 
-  const filteredSuppliers = data?.suppliers?.nodes?.filter((supplier: Supplier) =>
-    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.supplierNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const renderRating = (rating: string) => {
-    const stars = RATING_MAP[rating] || 0;
+  // Handle unavailable service or errors gracefully
+  if (error) {
     return (
-      <div className="flex items-center gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          star <= stars ? (
-            <StarIconSolid key={star} className="h-4 w-4 text-yellow-400" />
-          ) : (
-            <StarIcon key={star} className="h-4 w-4 text-gray-300" />
-          )
-        ))}
+      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-900/20">
+        <h3 className="font-semibold text-yellow-800 dark:text-yellow-400">
+          {t('common.serviceUnavailable') || 'Service Unavailable'}
+        </h3>
+        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-500">
+          The Suppliers data could not be loaded. Please try again later.
+        </p>
       </div>
     );
-  };
+  }
+
+  const suppliers = data?.suppliers?.nodes || [];
+  const filteredSuppliers = suppliers.filter((supplier: Supplier) =>
+    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supplier.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supplier.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div>
@@ -113,17 +97,6 @@ export default function SuppliersTab() {
               className="input w-64 pl-10"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="input"
-          >
-            <option value="all">{t('common.allStatuses')}</option>
-            <option value="ACTIVE">{t('common.active')}</option>
-            <option value="INACTIVE">{t('common.inactive')}</option>
-            <option value="PENDING_APPROVAL">{t('masterdata.pendingApproval')}</option>
-            <option value="SUSPENDED">{t('masterdata.suspended')}</option>
-          </select>
         </div>
       </div>
 
@@ -134,19 +107,19 @@ export default function SuppliersTab() {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                  {t('masterdata.supplierNumber')}
+                  {t('masterdata.code') || 'Code'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('masterdata.name')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                  {t('masterdata.type')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('masterdata.contact')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                  {t('masterdata.rating')}
+                  {t('masterdata.location') || 'Location'}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                  {t('masterdata.leadTime') || 'Lead Time'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('common.status')}
@@ -163,30 +136,25 @@ export default function SuppliersTab() {
                     {t('common.loading')}
                   </td>
                 </tr>
-              ) : filteredSuppliers?.length === 0 ? (
+              ) : filteredSuppliers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     {t('masterdata.noSuppliers')}
                   </td>
                 </tr>
               ) : (
-                filteredSuppliers?.map((supplier: Supplier) => (
+                filteredSuppliers.map((supplier: Supplier) => (
                   <tr key={supplier.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className="font-mono font-medium">{supplier.supplierNumber}</span>
+                      <span className="font-mono font-medium">{supplier.code || '-'}</span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div>
                         <p className="font-medium">{supplier.name}</p>
-                        {supplier.legalName && supplier.legalName !== supplier.name && (
-                          <p className="text-sm text-gray-500">{supplier.legalName}</p>
+                        {supplier.contactPerson && (
+                          <p className="text-sm text-gray-500">{supplier.contactPerson}</p>
                         )}
                       </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span className="text-sm">
-                        {t(`masterdata.supplierType.${supplier.type.toLowerCase()}`)}
-                      </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="text-sm">
@@ -195,15 +163,28 @@ export default function SuppliersTab() {
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      {renderRating(supplier.rating)}
+                      <div className="text-sm">
+                        {supplier.city && supplier.country ? (
+                          <p>{supplier.city}, {supplier.country}</p>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span className="text-sm">
+                        {supplier.leadTimeDays} {t('common.days') || 'days'}
+                      </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                          STATUS_COLORS[supplier.status] || STATUS_COLORS.ACTIVE
+                          supplier.isActive
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
                         }`}
                       >
-                        {t(`masterdata.status.${supplier.status.toLowerCase()}`)}
+                        {supplier.isActive ? (t('common.active') || 'Active') : (t('common.inactive') || 'Inactive')}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
@@ -223,6 +204,13 @@ export default function SuppliersTab() {
           </table>
         </div>
       </div>
+
+      {/* Total count */}
+      {data?.suppliers?.totalCount !== undefined && data.suppliers.totalCount >= 0 && (
+        <div className="mt-4 text-sm text-gray-500">
+          {t('common.total')}: {data.suppliers.totalCount} {t('masterdata.suppliers')?.toLowerCase() || 'suppliers'}
+        </div>
+      )}
     </div>
   );
 }

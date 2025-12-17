@@ -143,7 +143,20 @@ public class ProductService : IProductService
         };
 
         _context.Products.Add(product);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            if (ex.InnerException?.Message.Contains("IX_products_sku") == true ||
+                ex.InnerException?.Message.Contains("duplicate") == true ||
+                ex.InnerException?.Message.Contains("unique") == true)
+            {
+                throw new Exception("A product with this SKU already exists. Please use a different SKU.");
+            }
+            throw; // rethrow other errors
+        }
 
         _logger.LogInformation("Product created: {ProductId} - {ProductName}", product.Id, product.Name);
 
@@ -184,7 +197,20 @@ public class ProductService : IProductService
 
         product.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            if (ex.InnerException?.Message.Contains("IX_products_sku") == true ||
+                ex.InnerException?.Message.Contains("duplicate") == true ||
+                ex.InnerException?.Message.Contains("unique") == true)
+            {
+                throw new Exception("A product with this SKU already exists. Please use a different SKU.");
+            }
+            throw; // rethrow other errors
+        }
         _logger.LogInformation("Product updated: {ProductId}", product.Id);
 
         return product;

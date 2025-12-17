@@ -67,7 +67,7 @@ services:
       - ./apps/services/dotnet/ShopService:/app
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres-shop;Database=shopdb;Username=erp_shop;Password=devpassword
+      - ConnectionStrings__DefaultConnection=Host=postgres-shop;Database=shopdb;Username=postgres;Password=postgres
     depends_on:
       - postgres-shop
 
@@ -210,8 +210,8 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: shopdb
-      POSTGRES_USER: erp_shop
-      POSTGRES_PASSWORD: devpassword
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5436:5432"
     volumes:

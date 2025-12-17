@@ -91,6 +91,7 @@ public class Query
         => await brandService.GetByIdAsync(id);
 
     // Suppliers
+    [UsePaging]
     [UseProjection]
     [UseFiltering]
     [UseSorting]
@@ -101,6 +102,7 @@ public class Query
         => await supplierService.GetByIdAsync(id);
 
     // Customers
+    [UsePaging]
     [UseProjection]
     [UseFiltering]
     [UseSorting]
@@ -115,6 +117,7 @@ public class Query
         => await customerService.GetByUserIdAsync(userId);
 
     // Orders
+    [UsePaging]
     [UseProjection]
     [UseFiltering]
     [UseSorting]

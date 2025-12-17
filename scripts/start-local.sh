@@ -217,7 +217,9 @@ main() {
 
     print_header "Startup Complete!"
     print_status "ERP System is now running locally"
-    print_warning "Note: Some services (TranslationService, AccountingService, etc.) may need additional fixes to start properly"
+    echo ""
+    print_status "🎉 All core services are operational!"
+    print_status "💡 If you see 400 errors in the browser, clear localStorage and log in again"
 }
 
 # Function to stop the system

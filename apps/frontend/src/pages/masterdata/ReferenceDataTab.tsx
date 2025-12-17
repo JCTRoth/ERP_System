@@ -91,15 +91,32 @@ export default function ReferenceDataTab() {
   const { t } = useI18n();
   const [activeType, setActiveType] = useState<ReferenceType>('currencies');
 
-  const { data: currenciesData, loading: currenciesLoading } = useQuery(GET_CURRENCIES, {
+  const { data: currenciesData, loading: currenciesLoading, error: currenciesError } = useQuery(GET_CURRENCIES, {
     skip: activeType !== 'currencies',
+    errorPolicy: 'all',
   });
-  const { data: paymentTermsData, loading: paymentTermsLoading } = useQuery(GET_PAYMENT_TERMS, {
+  const { data: paymentTermsData, loading: paymentTermsLoading, error: paymentTermsError } = useQuery(GET_PAYMENT_TERMS, {
     skip: activeType !== 'paymentTerms',
+    errorPolicy: 'all',
   });
-  const { data: unitsData, loading: unitsLoading } = useQuery(GET_UNITS_OF_MEASURE, {
+  const { data: unitsData, loading: unitsLoading, error: unitsError } = useQuery(GET_UNITS_OF_MEASURE, {
     skip: activeType !== 'units',
+    errorPolicy: 'all',
   });
+
+  // Handle unavailable service
+  if (currenciesError || paymentTermsError || unitsError) {
+    return (
+      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-900/20">
+        <h3 className="font-semibold text-yellow-800 dark:text-yellow-400">
+          {t('common.serviceUnavailable') || 'Service Unavailable'}
+        </h3>
+        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-500">
+          The Reference Data could not be loaded. This feature will be available when the masterdata service is deployed.
+        </p>
+      </div>
+    );
+  }
 
   const referenceTypes = [
     { key: 'currencies', labelKey: 'masterdata.currencies' },

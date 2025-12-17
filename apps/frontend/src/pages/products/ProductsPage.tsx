@@ -11,8 +11,8 @@ import { useI18n } from '../../providers/I18nProvider';
 import ProductModal from './ProductModal';
 
 const GET_PRODUCTS = gql`
-  query GetProducts($first: Int, $after: String, $where: ProductFilterInput) {
-    products(first: $first, after: $after, where: $where) {
+  query GetProducts($first: Int, $after: String) {
+    products(first: $first, after: $after) {
       nodes {
         id
         sku
@@ -20,20 +20,13 @@ const GET_PRODUCTS = gql`
         price
         stockQuantity
         status
-        category {
-          id
-          name
-        }
-        brand {
-          id
-          name
-        }
         createdAt
       }
       pageInfo {
         hasNextPage
         endCursor
       }
+      totalCount
     }
   }
 `;
@@ -54,8 +47,6 @@ interface Product {
   costPrice: number;
   stockQuantity: number;
   status: string;
-  category: { id: string; name: string } | null;
-  brand: { id: string; name: string } | null;
   createdAt: string;
 }
 
@@ -68,9 +59,15 @@ export default function ProductsPage() {
 
   const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
     variables: {
-      first: 50,
+      first: 20,
     },
     errorPolicy: 'all',
+    onCompleted: (data) => {
+      console.log('Products query completed:', data);
+    },
+    onError: (error) => {
+      console.error('Products query error:', error);
+    },
   });
 
   const [deleteProduct] = useMutation(DELETE_PRODUCT, {
@@ -176,9 +173,6 @@ export default function ProductsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('products.sku')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                  {t('products.category')}
-                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('products.price')}
                 </th>
@@ -212,16 +206,10 @@ export default function ProductsPage() {
                     <td className="whitespace-nowrap px-6 py-4">
                       <div>
                         <p className="font-medium">{product.name}</p>
-                        {product.brand && (
-                          <p className="text-sm text-gray-500">{product.brand.name}</p>
-                        )}
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-gray-500 dark:text-gray-400">
                       {product.sku}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-gray-500 dark:text-gray-400">
-                      {product.category?.name || '-'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       <p className="font-medium">{formatCurrency(product.price)}</p>
@@ -247,12 +235,12 @@ export default function ProductsPage() {
                     <td className="whitespace-nowrap px-6 py-4">
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                          product.status === 'Active'
+                          product.status === 'ACTIVE'
                             ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                             : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}
                       >
-                        {product.status === 'Active' ? t('common.active') : t('common.inactive')}
+                        {product.status === 'ACTIVE' ? t('common.active') : t('common.inactive')}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">

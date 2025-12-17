@@ -72,10 +72,10 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
     sku: '',
     name: '',
     description: '',
-    price: 0,
-    compareAtPrice: 0,
-    costPrice: 0,
-    stockQuantity: 0,
+    price: '',
+    compareAtPrice: '',
+    costPrice: '',
+    stockQuantity: '',
     categoryId: '',
     brandId: '',
     isActive: true,
@@ -93,10 +93,10 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         sku: product.sku,
         name: product.name,
         description: product.description || '',
-        price: product.price,
-        compareAtPrice: product.compareAtPrice || 0,
-        costPrice: product.costPrice,
-        stockQuantity: product.stockQuantity,
+        price: product.price.toString(),
+        compareAtPrice: product.compareAtPrice?.toString() || '',
+        costPrice: product.costPrice.toString(),
+        stockQuantity: product.stockQuantity.toString(),
         categoryId: product.category?.id || '',
         brandId: product.brand?.id || '',
         isActive: product.status === 'ACTIVE',
@@ -112,10 +112,10 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         name: formData.name,
         sku: formData.sku,
         description: formData.description || null,
-        price: formData.price,
-        compareAtPrice: formData.compareAtPrice || null,
-        costPrice: formData.costPrice,
-        stockQuantity: formData.stockQuantity,
+        price: parseFloat(formData.price) || 0,
+        compareAtPrice: formData.compareAtPrice ? parseFloat(formData.compareAtPrice) || null : null,
+        costPrice: parseFloat(formData.costPrice) || 0,
+        stockQuantity: parseInt(formData.stockQuantity) || 0,
         trackInventory: true,
         allowBackorder: false,
         status: formData.isActive ? 'ACTIVE' : 'DRAFT',
@@ -135,8 +135,14 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         });
       }
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
+      const message = error?.message || '';
+      if (message.toLowerCase().includes('duplicate') || message.toLowerCase().includes('unique') || message.toLowerCase().includes('sku')) {
+        alert(t('products.duplicateSku') || 'A product with this SKU already exists. Please use a different SKU.');
+      } else {
+        alert(t('common.error') || 'An error occurred while saving the product.');
+      }
     }
   };
 
@@ -210,7 +216,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                 min="0"
                 step="0.01"
                 value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 className="input mt-1 w-full"
               />
             </div>
@@ -223,7 +229,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                 min="0"
                 step="0.01"
                 value={formData.compareAtPrice}
-                onChange={(e) => setFormData({ ...formData, compareAtPrice: parseFloat(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, compareAtPrice: e.target.value })}
                 className="input mt-1 w-full"
               />
             </div>
@@ -237,7 +243,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                 min="0"
                 step="0.01"
                 value={formData.costPrice}
-                onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
                 className="input mt-1 w-full"
               />
             </div>
@@ -252,7 +258,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                 type="number"
                 min="0"
                 value={formData.stockQuantity}
-                onChange={(e) => setFormData({ ...formData, stockQuantity: parseInt(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
                 className="input mt-1 w-full"
                 disabled={isEditing}
               />

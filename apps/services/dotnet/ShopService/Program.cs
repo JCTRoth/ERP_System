@@ -59,7 +59,17 @@ builder.Services
     .AddFiltering()
     .AddSorting()
     .AddProjections()
-    .AddInMemorySubscriptions();
+    .AddInMemorySubscriptions()
+    .ModifyPagingOptions(opt =>
+    {
+        opt.MaxPageSize = 50;
+        opt.DefaultPageSize = 20;
+        opt.IncludeTotalCount = true;
+    })
+    .AddMaxExecutionDepthRule(15)
+    .AddMaxExecutionDepthRule(15)
+    .AddCostAnalysis()
+    .ModifyCostOptions(o => o.MaxFieldCost = 0);
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();

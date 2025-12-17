@@ -27,39 +27,65 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
 
   if (graphQLErrors) {
     graphQLErrors.forEach(({ message, extensions }) => {
-      if (message.includes('translations') || message.includes('customers') || message.includes('Unknown type')) {
+      // Skip known non-critical errors (schema mismatches, unavailable services)
+      if (message.includes('translations') || 
+          message.includes('customers') || 
+          message.includes('Unknown type') ||
+          message.includes('Cannot query field') ||
+          message.includes('Unknown argument') ||
+          message.includes('GRAPHQL_VALIDATION_FAILED')) {
         return;
       }
 
       const code = extensions?.code;
+      // Only force logout for explicit auth errors
       if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') {
         shouldForceLogout = true;
         return;
       }
-
-      console.error(`[GraphQL error]: ${operation.operationName}: ${message}`);
     });
   }
 
   if (networkError) {
     if ('statusCode' in networkError) {
       const statusCode = networkError.statusCode;
+      
+      // Only force logout for explicit auth failures (401/403)
       if (statusCode === 401 || statusCode === 403) {
         shouldForceLogout = true;
-      } else if (statusCode !== 400) {
-        console.error(`[Network error]: ${networkError}`);
       }
-    } else {
+      // Note: 400 errors are NOT auth errors - they're usually validation/schema issues
+    }
+  }
+
+  // Only log errors if not forcing logout (to avoid noisy auth errors)
+  if (!shouldForceLogout) {
+    if (graphQLErrors) {
+      graphQLErrors.forEach(({ message, extensions }) => {
+        // Skip logging for known schema/service issues
+        if (message.includes('Cannot query field') ||
+            message.includes('Unknown argument') ||
+            message.includes('Unknown type') ||
+            extensions?.code === 'GRAPHQL_VALIDATION_FAILED') {
+          return;
+        }
+        console.error(`[GraphQL error]: ${operation.operationName}: ${message}`);
+      });
+    }
+
+    if (networkError) {
       console.error(`[Network error]: ${networkError}`);
     }
   }
 
   if (shouldForceLogout) {
-    const logout = useAuthStore.getState().logout;
-    logout();
-    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-      window.location.assign('/login');
-    }
+    setTimeout(() => {
+      const logout = useAuthStore.getState().logout;
+      logout();
+      if (typeof window !== 'undefined' && window.location.pathname !== '/auth/login') {
+        window.location.assign('/auth/login');
+      }
+    }, 0);
   }
 });
 

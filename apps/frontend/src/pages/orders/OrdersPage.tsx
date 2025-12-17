@@ -87,9 +87,10 @@ export default function OrdersPage() {
 
   const { data, loading, refetch } = useQuery(GET_ORDERS, {
     variables: {
-      first: 50,
+      first: 20,
       where: statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined,
     },
+    errorPolicy: 'all',
   });
 
   const [cancelOrder] = useMutation(CANCEL_ORDER, {
@@ -281,7 +282,7 @@ export default function OrdersPage() {
         </div>
 
         {/* Pagination Info */}
-        {data?.orders && (
+        {data?.orders?.totalCount !== undefined && data.orders.totalCount >= 0 && (
           <div className="border-t border-gray-200 px-6 py-3 dark:border-gray-700">
             <p className="text-sm text-gray-500">
               {t('common.showing')} {filteredOrders?.length || 0} {t('common.of')}{' '}

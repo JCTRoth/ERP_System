@@ -73,7 +73,7 @@ export default function JournalEntriesTab() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  const { data, loading } = useQuery(GET_JOURNAL_ENTRIES, {
+  const { data, loading, error } = useQuery(GET_JOURNAL_ENTRIES, {
     variables: {
       first: 100,
       where: {
@@ -81,7 +81,22 @@ export default function JournalEntriesTab() {
         ...(typeFilter !== 'all' && { type: { eq: typeFilter } }),
       },
     },
+    errorPolicy: 'all',
   });
+
+  // Handle unavailable service
+  if (error) {
+    return (
+      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-900/20">
+        <h3 className="font-semibold text-yellow-800 dark:text-yellow-400">
+          {t('common.serviceUnavailable') || 'Service Unavailable'}
+        </h3>
+        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-500">
+          The Journal Entries data could not be loaded. This feature will be available when the accounting service is deployed.
+        </p>
+      </div>
+    );
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

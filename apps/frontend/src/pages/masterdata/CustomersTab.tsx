@@ -10,25 +10,19 @@ import { useI18n } from '../../providers/I18nProvider';
 import CustomerModal from './CustomerModal';
 
 const GET_CUSTOMERS = gql`
-  query GetCustomers($first: Int, $where: CustomerFilterInput) {
-    customers(first: $first, where: $where, order: { customerNumber: ASC }) {
-      nodes {
-        id
-        customerNumber
-        name
-        legalName
-        type
-        status
-        email
-        phone
-        website
-        taxId
-        creditLimit
-        paymentTermDays
-        currency
-        createdAt
-      }
-      totalCount
+  query GetCustomers {
+    customers {
+      id
+      customerNumber
+      name
+      contactPerson
+      email
+      phone
+      website
+      taxId
+      creditLimit
+      status
+      createdAt
     }
   }
 `;
@@ -53,51 +47,50 @@ interface Customer {
   creditLimit: number;
   paymentTermDays: number;
   currency: string;
-  createdAt: string;
+  contactPerson: string;
 }
-
-const CUSTOMER_STATUS_COLORS: Record<string, string> = {
-  ACTIVE: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  INACTIVE: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400',
-  ON_HOLD: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  BLOCKED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-};
 
 export default function CustomersTab() {
   const { t } = useI18n();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
   const { data, loading, refetch, error } = useQuery(GET_CUSTOMERS, {
     variables: {
-      first: 100,
-      where: statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined,
+      first: 20,
     },
     errorPolicy: 'all',
   });
-
-  // Handle unavailable service
-  if (error && error.message.includes('Unknown type')) {
-    return (
-      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-900/20">
-        <h3 className="font-semibold text-yellow-800 dark:text-yellow-400">Service Not Available</h3>
-        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-500">
-          The Customers service is not yet available. This feature will be enabled when the masterdata service is deployed.
-        </p>
-      </div>
-    );
-  }
 
   const [deleteCustomer] = useMutation(DELETE_CUSTOMER, {
     onCompleted: () => refetch(),
   });
 
   const handleEdit = (customer: Customer) => {
-    setSelectedCustomer(customer);
+    setEditingCustomer(customer);
     setIsModalOpen(true);
   };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingCustomer(null);
+    refetch();
+  };
+
+  // Handle unavailable service or errors gracefully
+  if (error) {
+    return (
+      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-900/20">
+        <h3 className="font-semibold text-yellow-800 dark:text-yellow-400">
+          {t('common.serviceUnavailable') || 'Service Unavailable'}
+        </h3>
+        <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-500">
+          The Customers data could not be loaded. Please try again later.
+        </p>
+      </div>
+    );
+  }
 
   const handleDelete = async (id: string) => {
     if (window.confirm(t('masterdata.confirmDelete'))) {
@@ -105,24 +98,16 @@ export default function CustomersTab() {
     }
   };
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setSelectedCustomer(null);
-    refetch();
-  };
-
-  const filteredCustomers = data?.customers?.nodes?.filter((customer: Customer) =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.customerNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
+  const customers = data?.customers || [];
+  const filteredCustomers = customers.filter((customer: Customer) => {
+    const search = searchTerm.toLowerCase();
+    return (
+      customer.name.toLowerCase().includes(search) ||
+      customer.customerNumber.toLowerCase().includes(search) ||
+      customer.email?.toLowerCase().includes(search) ||
+      customer.contactPerson?.toLowerCase().includes(search)
+    );
+  });
 
   return (
     <div>
@@ -139,19 +124,8 @@ export default function CustomersTab() {
               className="input w-64 pl-10"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="input"
-          >
-            <option value="all">{t('common.allStatuses')}</option>
-            <option value="ACTIVE">{t('common.active')}</option>
-            <option value="INACTIVE">{t('common.inactive')}</option>
-            <option value="ON_HOLD">{t('masterdata.onHold')}</option>
-            <option value="BLOCKED">{t('masterdata.blocked')}</option>
-          </select>
         </div>
-        <button
+        <button 
           onClick={() => setIsModalOpen(true)}
           className="btn-primary flex items-center gap-2"
         >
@@ -167,22 +141,16 @@ export default function CustomersTab() {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                  {t('masterdata.customerNumber')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('masterdata.name')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                  {t('masterdata.type')}
+                  {t('masterdata.company') || 'Company'}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('masterdata.contact')}
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                  {t('masterdata.creditLimit')}
-                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-                  {t('common.status')}
+                  {t('masterdata.vatNumber') || 'VAT Number'}
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('common.actions')}
@@ -192,34 +160,27 @@ export default function CustomersTab() {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center">
+                  <td colSpan={5} className="px-6 py-4 text-center">
                     {t('common.loading')}
                   </td>
                 </tr>
-              ) : filteredCustomers?.length === 0 ? (
+              ) : filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                     {t('masterdata.noCustomers')}
                   </td>
                 </tr>
               ) : (
-                filteredCustomers?.map((customer: Customer) => (
+                filteredCustomers.map((customer: Customer) => (
                   <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className="font-mono font-medium">{customer.customerNumber}</span>
+                      <p className="font-medium">
+                        {customer.name}
+                      </p>
+                      <p className="text-sm text-gray-500">{customer.customerNumber}</p>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <div>
-                        <p className="font-medium">{customer.name}</p>
-                        {customer.legalName && customer.legalName !== customer.name && (
-                          <p className="text-sm text-gray-500">{customer.legalName}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span className="text-sm">
-                        {t(`masterdata.customerType.${customer.type.toLowerCase()}`)}
-                      </span>
+                      {customer.contactPerson || '-'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="text-sm">
@@ -227,19 +188,8 @@ export default function CustomersTab() {
                         {customer.phone && <p className="text-gray-500">{customer.phone}</p>}
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
-                      {customer.creditLimit > 0
-                        ? formatCurrency(customer.creditLimit, customer.currency)
-                        : '-'}
-                    </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                          CUSTOMER_STATUS_COLORS[customer.status] || CUSTOMER_STATUS_COLORS.ACTIVE
-                        }`}
-                      >
-                        {t(`masterdata.status.${customer.status.toLowerCase()}`)}
-                      </span>
+                      {customer.taxId || '-'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -265,10 +215,17 @@ export default function CustomersTab() {
         </div>
       </div>
 
+      {/* Total count */}
+      {filteredCustomers.length >= 0 && (
+        <div className="mt-4 text-sm text-gray-500">
+          {t('common.total')}: {filteredCustomers.length} {t('masterdata.customers')?.toLowerCase() || 'customers'}
+        </div>
+      )}
+
       {/* Modal */}
       {isModalOpen && (
         <CustomerModal
-          customer={selectedCustomer}
+          customer={editingCustomer}
           onClose={handleModalClose}
         />
       )}
