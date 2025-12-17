@@ -1,5 +1,6 @@
 import { useI18n } from '../providers/I18nProvider';
 import { useAuthStore } from '../stores/authStore';
+import { useQuery, gql } from '@apollo/client';
 import {
   BuildingOfficeIcon,
   UsersIcon,
@@ -7,16 +8,86 @@ import {
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
 
-const stats = [
-  { labelKey: 'dashboard.totalCompanies', value: '12', icon: BuildingOfficeIcon },
-  { labelKey: 'dashboard.totalUsers', value: '156', icon: UsersIcon },
-  { labelKey: 'dashboard.revenue', value: '$45,231', icon: CurrencyDollarIcon },
-  { labelKey: 'dashboard.growth', value: '+12.5%', icon: ChartBarIcon },
-];
+const GET_TOTAL_COMPANIES = gql`
+  query GetTotalCompanies {
+    totalCompanies
+  }
+`;
+
+const GET_COMPANIES_LIST = gql`
+  query GetCompaniesList {
+    companies {
+      id
+    }
+  }
+`;
+
+const GET_TOTAL_USERS = gql`
+  query GetTotalUsers {
+    totalUsers
+  }
+`;
 
 export default function DashboardPage() {
   const { t } = useI18n();
   const user = useAuthStore((state) => state.user);
+
+  // Fetch real metrics with error handling and fallback
+  const { data: companiesData, loading: companiesLoading, error: companiesError } = useQuery(GET_TOTAL_COMPANIES, {
+    onCompleted: (data) => {
+      console.log('Companies count loaded:', data);
+    },
+    onError: (error) => {
+      console.error('Error loading companies count:', error);
+    }
+  });
+
+  // Fallback: use companies list if count query fails
+  const { data: companiesListData, loading: companiesListLoading } = useQuery(GET_COMPANIES_LIST, {
+    skip: !companiesError, // Only run if the count query fails
+    onCompleted: (data) => {
+      console.log('Companies list loaded (fallback):', data);
+    },
+    onError: (error) => {
+      console.error('Error loading companies list:', error);
+    }
+  });
+  
+  const { data: usersData, loading: usersLoading, error: usersError } = useQuery(GET_TOTAL_USERS, {
+    onCompleted: (data) => {
+      console.log('Users data loaded:', data);
+    },
+    onError: (error) => {
+      console.error('Error loading users:', error);
+    }
+  });
+
+  // Prepare stats with real data and better error handling with fallback
+  const stats = [
+    {
+      labelKey: 'dashboard.totalCompanies',
+      value: companiesLoading ? '...' : 
+             companiesError ? 
+               (companiesListLoading ? '...' : (companiesListData?.companies?.length?.toString() || t('dashboard.serviceUnavailable'))) :
+               (companiesData?.totalCompanies?.toString() || '0'),
+      icon: BuildingOfficeIcon
+    },
+    {
+      labelKey: 'dashboard.totalUsers',
+      value: usersLoading ? '...' : usersError ? t('dashboard.serviceUnavailable') : (usersData?.totalUsers?.toString() || '0'),
+      icon: UsersIcon
+    },
+    {
+      labelKey: 'dashboard.revenue',
+      value: '$45,231',
+      icon: CurrencyDollarIcon
+    },
+    {
+      labelKey: 'dashboard.growth',
+      value: '+12.5%',
+      icon: ChartBarIcon
+    },
+  ];
 
   return (
     <div>

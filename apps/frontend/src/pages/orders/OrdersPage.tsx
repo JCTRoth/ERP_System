@@ -24,9 +24,9 @@ const GET_ORDERS = gql`
           email
         }
         subtotal
-        tax
-        shippingCost
-        discount
+        taxAmount
+        shippingAmount
+        discountAmount
         total
         itemCount
         createdAt
@@ -60,9 +60,9 @@ interface Order {
     email: string;
   } | null;
   subtotal: number;
-  tax: number;
-  shippingCost: number;
-  discount: number;
+  taxAmount: number;
+  shippingAmount: number;
+  discountAmount: number;
   total: number;
   itemCount: number;
   createdAt: string;

@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { useQuery, gql } from '@apollo/client';
 import { getApolloClient } from '../lib/apollo';
 import { useAuthStore } from '../stores/authStore';
+import { useUIStore } from '../stores/uiStore';
 import { localTranslations, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type Language } from '../locales';
 
 const GET_TRANSLATIONS = gql`
@@ -115,8 +116,15 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setLocaleVersion((v) => v + 1);
   }, [translations, language]);
 
+  const showTranslationKeys = useUIStore((state) => state.showTranslationKeys);
+
   const t = useCallback((key: string, params?: Record<string, string | number> | { default?: string }): string => {
     const fallback = (params && 'default' in params) ? (params as any).default : undefined;
+
+    // If translation keys mode is enabled, return the key itself
+    if (showTranslationKeys) {
+      return key;
+    }
 
     // try direct lookup
     let value = translations.get(key) ?? undefined;
@@ -144,7 +152,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
 
     return out;
-  }, [translations]);
+  }, [translations, showTranslationKeys]);
 
   const value = useMemo(() => ({ t, language, setLanguage, isLoading: loading, localeVersion, translations }), [t, language, setLanguage, loading, localeVersion, translations]);
 

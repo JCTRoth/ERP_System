@@ -11,10 +11,13 @@ import {
   ShoppingCartIcon,
   CalculatorIcon,
   CircleStackIcon,
+  DocumentIcon,
 } from '@heroicons/react/24/outline';
 import { useUIStore } from '../stores/uiStore';
 import { useI18n } from '../providers/I18nProvider';
 import { useAuthStore } from '../stores/authStore';
+import { useUIBuilderStore } from '../stores/uiBuilderStore';
+import CustomPagesSection from './CustomPagesSection';
 
 const menuItems = [
   { path: '/', icon: HomeIcon, labelKey: 'nav.dashboard' },
@@ -72,6 +75,9 @@ export default function Sidebar() {
           ))}
         </ul>
       </nav>
+
+      {/* Custom Pages */}
+      <CustomPagesSection />
 
       {/* User Info */}
       <div className="mt-auto border-t border-gray-700 px-4 py-4">

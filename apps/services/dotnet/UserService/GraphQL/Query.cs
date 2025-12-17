@@ -38,4 +38,9 @@ public class Query
     {
         return await GetCurrentUser(userService, userId);
     }
+
+    public async Task<int> GetTotalUsers([Service] UserDbContext context)
+    {
+        return await context.Users.CountAsync();
+    }
 }

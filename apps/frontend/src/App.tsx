@@ -16,6 +16,7 @@ import OrdersPage from './pages/orders/OrdersPage';
 import AccountingPage from './pages/accounting/AccountingPage';
 import MasterdataPage from './pages/masterdata/MasterdataPage';
 import NotFoundPage from './pages/NotFoundPage';
+import CustomPageDisplay from './pages/custom-page/CustomPageDisplay';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="translations" element={<TranslationsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="ui-builder" element={<UIBuilderPage />} />
+        <Route path="custom-page/:slug" element={<CustomPageDisplay />} />
       </Route>
 
       {/* 404 */}

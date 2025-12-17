@@ -48,6 +48,8 @@ interface Product {
   stockQuantity: number;
   status: string;
   createdAt: string;
+  category: { id: string; name: string } | null;
+  brand: { id: string; name: string } | null;
 }
 
 export default function ProductsPage() {

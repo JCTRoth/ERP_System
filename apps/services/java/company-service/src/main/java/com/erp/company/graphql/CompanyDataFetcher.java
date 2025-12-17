@@ -40,6 +40,11 @@ public class CompanyDataFetcher {
         return companyService.getCompaniesByUserId(UUID.fromString(userId));
     }
 
+    @DgsQuery
+    public int totalCompanies() {
+        return companyService.getTotalCompaniesCount();
+    }
+
     @DgsMutation
     public CompanyDto createCompany(@InputArgument Map<String, Object> input) {
         CreateCompanyRequest request = CreateCompanyRequest.builder()

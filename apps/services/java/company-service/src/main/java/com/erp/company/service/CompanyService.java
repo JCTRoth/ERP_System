@@ -185,4 +185,8 @@ public class CompanyService {
                     return companyMapper.toDto(saved);
                 });
     }
+
+    public int getTotalCompaniesCount() {
+        return (int) companyRepository.count();
+    }
 }

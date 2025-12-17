@@ -90,6 +90,18 @@ public class OrderType : ObjectType<Order>
         descriptor.Field(o => o.Status).Type<NonNullType<EnumType<OrderStatus>>>();
         descriptor.Field(o => o.PaymentStatus).Type<NonNullType<EnumType<PaymentStatus>>>();
         
+        descriptor.Field(o => o.Subtotal).Type<NonNullType<DecimalType>>();
+        descriptor.Field(o => o.TaxAmount).Type<NonNullType<DecimalType>>();
+        descriptor.Field(o => o.ShippingAmount).Type<NonNullType<DecimalType>>();
+        descriptor.Field(o => o.DiscountAmount).Type<NonNullType<DecimalType>>();
+        descriptor.Field(o => o.Total).Type<NonNullType<DecimalType>>();
+        
+        descriptor.Field("itemCount")
+            .Type<NonNullType<IntType>>()
+            .Resolve(context => context.Parent<Order>().Items.Count);
+        
+        descriptor.Field(o => o.CreatedAt).Type<NonNullType<DateTimeType>>();
+        
         descriptor.Field(o => o.Customer)
             .ResolveWith<OrderResolvers>(r => r.GetCustomer(default!, default!));
 

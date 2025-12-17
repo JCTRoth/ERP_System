@@ -66,10 +66,7 @@ builder.Services
         opt.DefaultPageSize = 20;
         opt.IncludeTotalCount = true;
     })
-    .AddMaxExecutionDepthRule(15)
-    .AddMaxExecutionDepthRule(15)
-    .AddCostAnalysis()
-    .ModifyCostOptions(o => o.MaxFieldCost = 0);
+    .AddMaxExecutionDepthRule(15);
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();

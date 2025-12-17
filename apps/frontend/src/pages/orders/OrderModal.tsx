@@ -14,13 +14,13 @@ const CREATE_ORDER = gql`
 
 const GET_PRODUCTS = gql`
   query GetProductsForOrder {
-    products(first: 100, where: { isActive: { eq: true } }) {
+    products(first: 100, where: { status: { eq: "ACTIVE" } }) {
       nodes {
         id
         sku
         name
         price
-        quantity
+        stockQuantity
       }
     }
   }
@@ -28,7 +28,7 @@ const GET_PRODUCTS = gql`
 
 const GET_CUSTOMERS = gql`
   query GetCustomersForOrder {
-    customers(first: 100, where: { isActive: { eq: true } }) {
+    customers(first: 50, where: { isActive: { eq: true } }) {
       nodes {
         id
         firstName
@@ -56,9 +56,17 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState('');
 
-  const { data: productsData } = useQuery(GET_PRODUCTS);
-  const { data: customersData } = useQuery(GET_CUSTOMERS);
+  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS);
+  const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS);
   const [createOrder, { loading }] = useMutation(CREATE_ORDER);
+
+  // Debug logs
+  console.log('Products data:', productsData);
+  console.log('Products loading:', productsLoading);
+  console.log('Products error:', productsError);
+  console.log('Customers data:', customersData);
+  console.log('Customers loading:', customersLoading);
+  console.log('Customers error:', customersError);
 
   const addItem = () => {
     setItems([...items, { productId: '', productName: '', quantity: 1, unitPrice: 0 }]);
@@ -75,7 +83,7 @@ export default function OrderModal({ onClose }: OrderModalProps) {
     // If product changed, update price
     if (updates.productId) {
       const product = productsData?.products?.nodes?.find(
-        (p: { id: string; price: number; name: string }) => p.id === updates.productId
+        (p: { id: string; price: number; name: string; stockQuantity: number }) => p.id === updates.productId
       );
       if (product) {
         newItems[index].unitPrice = product.price;
@@ -206,16 +214,23 @@ export default function OrderModal({ onClose }: OrderModalProps) {
                         required
                       >
                         <option value="">{t('orders.selectProduct')}</option>
-                        {productsData?.products?.nodes?.map((product: {
-                          id: string;
-                          name: string;
-                          sku: string;
-                          price: number;
-                        }) => (
-                          <option key={product.id} value={product.id}>
-                            {product.name} ({product.sku}) - {formatCurrency(product.price)}
+                        {productsData?.products?.nodes?.length === 0 ? (
+                          <option value="" disabled>
+                            {t('orders.noProductsAvailable')}
                           </option>
-                        ))}
+                        ) : (
+                          productsData?.products?.nodes?.map((product: {
+                            id: string;
+                            name: string;
+                            sku: string;
+                            price: number;
+                            stockQuantity: number;
+                          }) => (
+                            <option key={product.id} value={product.id}>
+                              {product.name} ({product.sku}) - {formatCurrency(product.price)}
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
                     <div className="w-24">

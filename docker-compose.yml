@@ -1,5 +1,18 @@
 version: '3.8'
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-security-opts: &default-security
+  security_opt:
+    - no-new-privileges:true
+  read_only: true
+  tmpfs:
+    - /tmp:size=100M,mode=1777
+
 services:
   # ==========================================================================
   # Databases (one per service)
@@ -10,9 +23,8 @@ services:
     environment:
       POSTGRES_DB: userdb
       POSTGRES_USER: erp_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - postgres-user-data:/var/lib/postgresql/data
     healthcheck:
@@ -20,6 +32,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: postgres
+    networks:
+      - backend
+    secrets:
+      - postgres_password
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   postgres-shop:
     image: postgres:16-alpine
@@ -27,9 +63,8 @@ services:
     environment:
       POSTGRES_DB: shopdb
       POSTGRES_USER: erp_shop
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-    ports:
-      - "5433:5432"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - postgres-shop-data:/var/lib/postgresql/data
     healthcheck:
@@ -37,6 +72,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: postgres
+    networks:
+      - backend
+    secrets:
+      - postgres_password
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   postgres-accounting:
     image: postgres:16-alpine
@@ -44,9 +103,8 @@ services:
     environment:
       POSTGRES_DB: accountingdb
       POSTGRES_USER: erp_accounting
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-    ports:
-      - "5434:5432"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - postgres-accounting-data:/var/lib/postgresql/data
     healthcheck:
@@ -54,6 +112,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: postgres
+    networks:
+      - backend
+    secrets:
+      - postgres_password
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   postgres-company:
     image: postgres:16-alpine
@@ -61,9 +143,8 @@ services:
     environment:
       POSTGRES_DB: companydb
       POSTGRES_USER: erp_company
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-    ports:
-      - "5435:5432"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - postgres-company-data:/var/lib/postgresql/data
     healthcheck:
@@ -71,6 +152,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: postgres
+    networks:
+      - backend
+    secrets:
+      - postgres_password
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   postgres-translation:
     image: postgres:16-alpine
@@ -78,9 +183,8 @@ services:
     environment:
       POSTGRES_DB: translationdb
       POSTGRES_USER: erp_translation
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-    ports:
-      - "5436:5432"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - postgres-translation-data:/var/lib/postgresql/data
     healthcheck:
@@ -88,6 +192,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: postgres
+    networks:
+      - backend
+    secrets:
+      - postgres_password
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   postgres-masterdata:
     image: postgres:16-alpine
@@ -95,9 +223,8 @@ services:
     environment:
       POSTGRES_DB: masterdatadb
       POSTGRES_USER: erp_masterdata
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
-    ports:
-      - "5437:5432"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - postgres-masterdata-data:/var/lib/postgresql/data
     healthcheck:
@@ -105,6 +232,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: postgres
+    networks:
+      - backend
+    secrets:
+      - postgres_password
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   # ==========================================================================
   # Kafka
@@ -115,35 +266,81 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+      ZOOKEEPER_MAX_CLIENT_CNXNS: 60
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-logs:/var/lib/zookeeper/log
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: zookeeper
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: erp-kafka
     depends_on:
       - zookeeper
-    ports:
-      - "9092:9092"
-      - "9094:9094"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     volumes:
       - kafka-data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:29092"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: kafka
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   # ==========================================================================
   # MinIO (S3-compatible storage for logos)
@@ -152,12 +349,11 @@ services:
     image: minio/minio:latest
     container_name: erp-minio
     command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+      MINIO_BROWSER: off
     volumes:
       - minio-data:/data
     healthcheck:
@@ -165,6 +361,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: minio
+    networks:
+      - backend
+    secrets:
+      - minio_root_password
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   # ==========================================================================
   # Monitoring
@@ -172,8 +392,6 @@ services:
   prometheus:
     image: prom/prometheus:v2.47.0
     container_name: erp-prometheus
-    ports:
-      - "9090:9090"
     volumes:
       - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -181,21 +399,74 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=5GB'
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: nobody
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   grafana:
     image: grafana/grafana:10.2.0
     container_name: erp-grafana
-    ports:
-      - "3001:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD_FILE: /run/secrets/grafana_password
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_AUTH_BASIC_ENABLED: "true"
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_SECURITY_COOKIE_SAMESITE: "lax"
+      GF_SECURITY_ALLOW_EMBEDDING: "false"
+      GF_SECURITY_X_FRAME_OPTIONS: "deny"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - prometheus
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: grafana
+    networks:
+      - backend
+    secrets:
+      - grafana_password
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   # ==========================================================================
   # Nginx (reverse proxy for local development)
@@ -212,6 +483,34 @@ services:
     depends_on:
       - frontend
       - gateway
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+      - /var/cache/nginx:size=100M,mode=1777
+      - /var/run:size=10M,mode=1777
+    user: nginx
+    networks:
+      - default
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
 
   # ==========================================================================
   # Application Services (placeholders - build from source)
@@ -221,15 +520,44 @@ services:
       context: ./apps/gateway
       dockerfile: Dockerfile
     container_name: erp-gateway
-    ports:
-      - "4000:4000"
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: 4000
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      CORS_ORIGIN: https://${DOMAIN:-erp.example.com}
     depends_on:
       - kafka
     profiles:
       - app
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: node
+    networks:
+      - backend
+    secrets:
+      - jwt_secret
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
 
   frontend:
     build:
@@ -239,9 +567,38 @@ services:
     ports:
       - "3000:3000"
     environment:
-      VITE_API_URL: http://localhost:4000/graphql
+      VITE_API_URL: http://gateway:4000/graphql
+      VITE_API_WS_URL: ws://gateway:4000/graphql
     profiles:
       - app
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: nginx
+    networks:
+      - default
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+        reservations:
+          cpus: '0.5'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
 
 volumes:
   postgres-user-data:
@@ -260,3 +617,25 @@ volumes:
 networks:
   default:
     name: erp-network
+    driver: overlay
+    attachable: true
+    internal: false
+    driver_opts:
+      encrypted: "true"
+  backend:
+    name: erp-backend
+    driver: overlay
+    attachable: true
+    internal: true
+    driver_opts:
+      encrypted: "true"
+
+secrets:
+  postgres_password:
+    external: true
+  minio_root_password:
+    external: true
+  jwt_secret:
+    external: true
+  grafana_password:
+    external: true

@@ -5,6 +5,7 @@ type Query {
     companyByName(name: String!): Company
     companies: [Company!]!
     companiesByUser(userId: ID!): [Company!]!
+    totalCompanies: Int!
     
     assignment(userId: ID!, companyId: ID!): UserCompanyAssignment
     assignmentsByUser(userId: ID!): [UserCompanyAssignment!]!

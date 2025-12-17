@@ -40,9 +40,9 @@ const GET_ORDER_DETAILS = gql`
         country
       }
       subtotal
-      tax
-      shippingCost
-      discount
+      taxAmount
+      shippingAmount
+      discountAmount
       total
       notes
       createdAt
@@ -295,19 +295,19 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                   <span className="text-gray-500">{t('orders.subtotal')}</span>
                   <span>{formatCurrency(order.subtotal)}</span>
                 </div>
-                {order.discount > 0 && (
+                {order.discountAmount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">{t('orders.discount')}</span>
-                    <span className="text-green-600">-{formatCurrency(order.discount)}</span>
+                    <span className="text-green-600">-{formatCurrency(order.discountAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">{t('orders.tax')}</span>
-                  <span>{formatCurrency(order.tax)}</span>
+                  <span>{formatCurrency(order.taxAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">{t('orders.shipping')}</span>
-                  <span>{formatCurrency(order.shippingCost)}</span>
+                  <span>{formatCurrency(order.shippingAmount)}</span>
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-2 text-lg font-bold dark:border-gray-600">
                   <span>{t('orders.total')}</span>
