@@ -23,19 +23,42 @@ const authLink = setContext((_, { headers }) => {
 });
 
 const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
+  let shouldForceLogout = false;
+
   if (graphQLErrors) {
-    graphQLErrors.forEach(({ message }) => {
-      // Skip logging for unavailable services
+    graphQLErrors.forEach(({ message, extensions }) => {
       if (message.includes('translations') || message.includes('customers') || message.includes('Unknown type')) {
         return;
       }
+
+      const code = extensions?.code;
+      if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') {
+        shouldForceLogout = true;
+        return;
+      }
+
       console.error(`[GraphQL error]: ${operation.operationName}: ${message}`);
     });
   }
+
   if (networkError) {
-    // Only log actual network errors, not GraphQL 400 responses
-    if ('statusCode' in networkError && networkError.statusCode !== 400) {
+    if ('statusCode' in networkError) {
+      const statusCode = networkError.statusCode;
+      if (statusCode === 401 || statusCode === 403) {
+        shouldForceLogout = true;
+      } else if (statusCode !== 400) {
+        console.error(`[Network error]: ${networkError}`);
+      }
+    } else {
       console.error(`[Network error]: ${networkError}`);
+    }
+  }
+
+  if (shouldForceLogout) {
+    const logout = useAuthStore.getState().logout;
+    logout();
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.assign('/login');
     }
   }
 });

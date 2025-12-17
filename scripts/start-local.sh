@@ -157,38 +157,44 @@ main() {
     wait_for_db erp_system-postgres-notification-1
     wait_for_db erp_system-postgres-translation-1
 
-    # Start core services
-    print_header "Starting Core Services"
-    print_status "Starting UserService, TranslationService, Gateway, and Frontend..."
+    # Start GraphQL services required by the gateway
+    print_header "Starting GraphQL Dependencies"
+    print_status "Bringing up UserService, TranslationService, CompanyService, and ShopService..."
 
     docker compose -f "$COMPOSE_FILE" up -d \
         user-service \
         translation-service \
-        gateway \
-        frontend
+        company-service \
+        shop-service
 
-    # Wait a bit for services to start
-    print_status "Waiting for services to start..."
+    # Give services a moment to spin up
+    print_status "Waiting for dependent services..."
     sleep 10
 
-    # Check service health
     check_service_health "UserService" "5000"
     check_graphql_health "UserService" "5000"
-    
+
     check_service_health "TranslationService" "8083"
     check_graphql_health "TranslationService" "8083"
-    
-    # Start gateway and frontend
-    print_status "Starting Gateway and Frontend..."
-    docker compose -f "$COMPOSE_FILE" up -d \
-        gateway \
-        frontend
 
-    # Wait a bit more for gateway to start
-    print_status "Waiting for Gateway to start..."
+    check_service_health "CompanyService" "8081"
+    check_graphql_health "CompanyService" "8081"
+
+    check_service_health "ShopService" "5003"
+    check_graphql_health "ShopService" "5003"
+
+    # Start the gateway after dependencies are healthy
+    print_header "Starting Gateway"
+    docker compose -f "$COMPOSE_FILE" up -d gateway
+
+    print_status "Waiting for Gateway to become ready..."
     sleep 15
 
     check_service_health "Gateway" "4000"
+
+    # Start the frontend once the gateway is online
+    print_header "Starting Frontend"
+    docker compose -f "$COMPOSE_FILE" up -d frontend
 
     # Show status
     print_header "System Status"
