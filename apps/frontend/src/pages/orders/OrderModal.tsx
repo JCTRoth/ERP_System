@@ -14,7 +14,7 @@ const CREATE_ORDER = gql`
 
 const GET_PRODUCTS = gql`
   query GetProductsForOrder {
-    products(first: 100, where: { status: { eq: "ACTIVE" } }) {
+    products(first: 100) {
       nodes {
         id
         sku

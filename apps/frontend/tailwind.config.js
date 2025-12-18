@@ -34,7 +34,7 @@ export default {
         bodydark2: '#8A99AF',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Karla', 'sans-serif'],
       },
       boxShadow: {
         card: '0px 1px 3px rgba(0, 0, 0, 0.12)',

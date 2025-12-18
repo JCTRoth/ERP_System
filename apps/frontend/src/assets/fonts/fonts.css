@@ -1,0 +1,27 @@
+@font-face {
+  font-family: 'Karla';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./karla-regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Karla';
+  font-style: normal;
+  font-weight: 500;
+  src: url('./karla-medium.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Karla';
+  font-style: normal;
+  font-weight: 600;
+  src: url('./karla-semibold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Karla';
+  font-style: normal;
+  font-weight: 700;
+  src: url('./karla-bold.ttf') format('truetype');
+}
