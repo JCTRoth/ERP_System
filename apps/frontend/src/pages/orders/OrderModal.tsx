@@ -14,7 +14,7 @@ const CREATE_ORDER = gql`
 
 const GET_PRODUCTS = gql`
   query GetProductsForOrder {
-    products(first: 100) {
+    products(first: 50) {
       nodes {
         id
         sku
@@ -101,6 +101,11 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!customerId) {
+      alert(t('orders.customerRequired'));
+      return;
+    }
+    
     if (items.length === 0) {
       alert(t('orders.addItemsRequired'));
       return;
@@ -110,11 +115,10 @@ export default function OrderModal({ onClose }: OrderModalProps) {
       await createOrder({
         variables: {
           input: {
-            customerId: customerId || null,
+            customerId,
             items: items.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
-              unitPrice: item.unitPrice,
             })),
             notes: notes || null,
           },
@@ -157,8 +161,9 @@ export default function OrderModal({ onClose }: OrderModalProps) {
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
               className="input mt-1 w-full"
+              required
             >
-              <option value="">{t('orders.guestOrder')}</option>
+              <option value="">{t('orders.selectCustomer')}</option>
               {customersData?.customers?.nodes?.map((customer: {
                 id: string;
                 firstName: string;
