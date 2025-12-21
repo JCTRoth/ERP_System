@@ -1,0 +1,301 @@
+import { useState, useEffect } from 'react';
+import { useMutation, gql } from '@apollo/client';
+import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useI18n } from '../../providers/I18nProvider';
+import Tooltip from '../../components/Tooltip';
+
+const CREATE_ASSET = gql`
+  mutation CreateAsset($input: CreateAssetInput!) {
+    createAsset(input: $input) {
+      id
+      assetTag
+    }
+  }
+`;
+
+const UPDATE_ASSET = gql`
+  mutation UpdateAsset($id: UUID!, $input: UpdateAssetInput!) {
+    updateAsset(id: $id, input: $input) {
+      id
+      assetTag
+    }
+  }
+`;
+
+export interface Asset {
+  id: string;
+  assetTag: string;
+  name: string;
+  description: string | null;
+  category: string;
+  status: string;
+  purchaseDate: string | null;
+  purchasePrice: number;
+  currentValue: number;
+  location: string | null;
+  assignedTo: { id: string; firstName: string; lastName: string } | null;
+}
+
+interface AssetModalProps {
+  asset: Asset | null;
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+export default function AssetModal({ asset, onClose, onSuccess }: AssetModalProps) {
+  const { t } = useI18n();
+  const isEditing = !!asset;
+
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    category: 'IT_EQUIPMENT',
+    status: 'ACTIVE',
+    purchaseDate: new Date().toISOString().split('T')[0],
+    purchasePrice: 0,
+    currentValue: 0,
+    location: '',
+    notes: '',
+  });
+
+  const [createAsset, { loading: createLoading }] = useMutation(CREATE_ASSET, {
+    errorPolicy: 'all',
+    onCompleted: () => {
+      onSuccess?.();
+      onClose();
+    },
+  });
+
+  const [updateAsset, { loading: updateLoading }] = useMutation(UPDATE_ASSET, {
+    errorPolicy: 'all',
+    onCompleted: () => {
+      onSuccess?.();
+      onClose();
+    },
+  });
+
+  useEffect(() => {
+    if (asset) {
+      setFormData({
+        name: asset.name,
+        description: asset.description || '',
+        category: asset.category,
+        status: asset.status,
+        purchaseDate: asset.purchaseDate ? asset.purchaseDate.split('T')[0] : '',
+        purchasePrice: asset.purchasePrice,
+        currentValue: asset.currentValue,
+        location: asset.location || '',
+        notes: '',
+      });
+    }
+  }, [asset]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const input = {
+        name: formData.name,
+        description: formData.description || null,
+        category: formData.category,
+        purchaseDate: formData.purchaseDate || null,
+        purchasePrice: formData.purchasePrice,
+        currentValue: formData.currentValue,
+        location: formData.location || null,
+        notes: formData.notes || null,
+      };
+
+      if (isEditing) {
+        await updateAsset({
+          variables: { id: asset.id, input: { ...input, status: formData.status } },
+        });
+      } else {
+        await createAsset({ variables: { input } });
+      }
+    } catch (error) {
+      console.error('Error saving asset:', error);
+    }
+  };
+
+  const loading = createLoading || updateLoading;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-xl font-bold">
+            {isEditing ? t('masterdata.editAsset') : t('masterdata.addAsset')}
+          </h2>
+          <Tooltip content={t('common.close')} position="left">
+            <button
+              onClick={onClose}
+              className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </Tooltip>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('masterdata.name')} *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="input mt-1 w-full"
+              placeholder={t('masterdata.assetNamePlaceholder') || 'Enter asset name'}
+            />
+          </div>
+
+          {/* Category and Status */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('masterdata.type')} *
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="input mt-1 w-full"
+              >
+                <option value="IT_EQUIPMENT">{t('masterdata.assetType.it_equipment')}</option>
+                <option value="FURNITURE">{t('masterdata.assetType.furniture')}</option>
+                <option value="VEHICLE">{t('masterdata.assetType.vehicle')}</option>
+                <option value="MACHINERY">{t('masterdata.assetType.machinery')}</option>
+                <option value="BUILDING">{t('masterdata.assetType.building')}</option>
+                <option value="LAND">{t('masterdata.assetType.land')}</option>
+              </select>
+            </div>
+            {isEditing && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('common.status')}
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="input mt-1 w-full"
+                >
+                  <option value="ACTIVE">{t('common.active')}</option>
+                  <option value="MAINTENANCE">{t('masterdata.maintenance')}</option>
+                  <option value="DISPOSED">{t('masterdata.disposed')}</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('common.description')}
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="input mt-1 w-full"
+              rows={2}
+            />
+          </div>
+
+          {/* Purchase Date and Location */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('masterdata.purchased')}
+              </label>
+              <input
+                type="date"
+                value={formData.purchaseDate}
+                onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+                className="input mt-1 w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('masterdata.location')}
+              </label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="input mt-1 w-full"
+              />
+            </div>
+          </div>
+
+          {/* Purchase Price and Current Value */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Tooltip content={t('masterdata.purchasePriceTooltip') || 'Original purchase price'} position="top">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('masterdata.purchasePrice') || 'Purchase Price'}
+                </label>
+              </Tooltip>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.purchasePrice}
+                onChange={(e) => setFormData({ ...formData, purchasePrice: parseFloat(e.target.value) || 0 })}
+                className="input mt-1 w-full"
+              />
+            </div>
+            <div>
+              <Tooltip content={t('masterdata.currentValueTooltip') || 'Current book value after depreciation'} position="top">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('masterdata.currentValue') || 'Current Value'}
+                </label>
+              </Tooltip>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.currentValue}
+                onChange={(e) => setFormData({ ...formData, currentValue: parseFloat(e.target.value) || 0 })}
+                className="input mt-1 w-full"
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('masterdata.notes')}
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="input mt-1 w-full"
+              rows={3}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary"
+              disabled={loading}
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={loading}
+            >
+              {loading ? t('common.saving') : t('common.save')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, useMutation, gql } from '@apollo/client';
 import {
   PencilIcon,
   TrashIcon,
   MagnifyingGlassIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import SupplierModal, { type Supplier } from './SupplierModal';
+import Tooltip, { IconButtonWithTooltip } from '../../components/Tooltip';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const GET_SUPPLIERS = gql`
   query GetSuppliers($first: Int) {
@@ -32,34 +36,58 @@ const GET_SUPPLIERS = gql`
   }
 `;
 
-interface Supplier {
-  id: string;
-  name: string;
-  code: string | null;
-  contactPerson: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  city: string | null;
-  postalCode: string | null;
-  country: string | null;
-  vatNumber: string | null;
-  leadTimeDays: number;
-  currency: string;
-  isActive: boolean;
-  createdAt: string;
-}
+const DELETE_SUPPLIER = gql`
+  mutation DeleteSupplier($id: UUID!) {
+    deleteSupplier(id: $id)
+  }
+`;
 
 export default function SuppliersTab() {
   const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Supplier | null>(null);
 
-  const { data, loading, error } = useQuery(GET_SUPPLIERS, {
+  const { data, loading, error, refetch } = useQuery(GET_SUPPLIERS, {
     variables: {
       first: 20,
     },
     errorPolicy: 'all',
   });
+
+  const [deleteSupplier, { loading: deleteLoading }] = useMutation(DELETE_SUPPLIER, {
+    errorPolicy: 'all',
+    onCompleted: () => {
+      setDeleteConfirm(null);
+      refetch();
+    },
+  });
+
+  const handleAddClick = () => {
+    setEditingSupplier(null);
+    setShowModal(true);
+  };
+
+  const handleEditClick = (supplier: Supplier) => {
+    setEditingSupplier(supplier);
+    setShowModal(true);
+  };
+
+  const handleDeleteClick = (supplier: Supplier) => {
+    setDeleteConfirm(supplier);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirm) {
+      await deleteSupplier({ variables: { id: deleteConfirm.id } });
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setEditingSupplier(null);
+  };
 
   // Handle unavailable service or errors gracefully
   if (error) {
@@ -98,6 +126,15 @@ export default function SuppliersTab() {
             />
           </div>
         </div>
+        <Tooltip content={t('masterdata.addSupplierTooltip') || 'Add a new supplier'} position="left">
+          <button
+            onClick={handleAddClick}
+            className="btn-primary flex items-center gap-2"
+          >
+            <PlusIcon className="h-5 w-5" />
+            {t('masterdata.addSupplier')}
+          </button>
+        </Tooltip>
       </div>
 
       {/* Table */}
@@ -189,12 +226,19 @@ export default function SuppliersTab() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200">
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
-                        <button className="rounded p-1 text-gray-500 hover:bg-red-100 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400">
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
+                        <IconButtonWithTooltip
+                          icon={<PencilIcon className="h-5 w-5" />}
+                          tooltip={t('common.edit')}
+                          onClick={() => handleEditClick(supplier)}
+                          position="top"
+                        />
+                        <IconButtonWithTooltip
+                          icon={<TrashIcon className="h-5 w-5" />}
+                          tooltip={t('common.delete')}
+                          onClick={() => handleDeleteClick(supplier)}
+                          position="top"
+                          className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -210,6 +254,29 @@ export default function SuppliersTab() {
         <div className="mt-4 text-sm text-gray-500">
           {t('common.total')}: {data.suppliers.totalCount} {t('masterdata.suppliers')?.toLowerCase() || 'suppliers'}
         </div>
+      )}
+
+      {/* Supplier Modal */}
+      {showModal && (
+        <SupplierModal
+          supplier={editingSupplier}
+          onClose={handleModalClose}
+          onSuccess={() => refetch()}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <ConfirmDialog
+          title={t('masterdata.deleteSupplier')}
+          message={t('masterdata.deleteSupplierConfirm', { name: deleteConfirm.name }) || `Are you sure you want to delete "${deleteConfirm.name}"? This action cannot be undone.`}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteConfirm(null)}
+          isLoading={deleteLoading}
+          variant="danger"
+        />
       )}
     </div>
   );

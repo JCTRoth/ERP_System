@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, useMutation, gql } from '@apollo/client';
 import {
   PlusIcon,
   PencilIcon,
   EyeIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import InvoiceModal from './InvoiceModal';
@@ -29,6 +30,12 @@ const GET_INVOICES = gql`
       }
       totalCount
     }
+  }
+`;
+
+const DELETE_INVOICE = gql`
+  mutation DeleteInvoice($id: UUID!) {
+    deleteInvoice(id: $id)
   }
 `;
 
@@ -78,6 +85,13 @@ export default function InvoicesTab() {
     errorPolicy: 'all',
   });
 
+  const [deleteInvoice] = useMutation(DELETE_INVOICE, {
+    errorPolicy: 'all',
+    onCompleted: () => {
+      refetch();
+    },
+  });
+
   // Handle unavailable service
   if (error) {
     return (
@@ -95,6 +109,16 @@ export default function InvoicesTab() {
   const handleEdit = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setIsModalOpen(true);
+  };
+
+  const handleDelete = async (invoice: Invoice) => {
+    if (window.confirm(t('accounting.confirmDeleteInvoice') || 'Are you sure you want to delete this invoice?')) {
+      try {
+        await deleteInvoice({ variables: { id: invoice.id } });
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+      }
+    }
   };
 
   const handleModalClose = () => {
@@ -268,6 +292,15 @@ export default function InvoicesTab() {
                             title={t('common.edit')}
                           >
                             <PencilIcon className="h-5 w-5" />
+                          </button>
+                        )}
+                        {invoice.status === 'DRAFT' && (
+                          <button
+                            onClick={() => handleDelete(invoice)}
+                            className="rounded p-1 text-red-500 hover:bg-red-100 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
+                            title={t('common.delete')}
+                          >
+                            <TrashIcon className="h-5 w-5" />
                           </button>
                         )}
                       </div>

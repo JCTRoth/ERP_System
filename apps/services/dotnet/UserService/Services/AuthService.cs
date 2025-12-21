@@ -143,6 +143,7 @@ public class AuthService : IAuthService
         user.FullName,
         user.IsActive,
         user.EmailVerified,
+        user.Role,
         user.PreferredLanguage,
         user.CreatedAt,
         user.LastLoginAt

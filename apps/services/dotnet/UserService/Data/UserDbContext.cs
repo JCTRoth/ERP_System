@@ -60,6 +60,7 @@ public class UserDbContext : DbContext
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
             FirstName = "Super",
             LastName = "Admin",
+            Role = "admin",
             IsActive = true,
             EmailVerified = true,
             PreferredLanguage = "en",

@@ -91,6 +91,26 @@ public class Mutation
         return invoice;
     }
 
+    [GraphQLDescription("Delete an invoice")]
+    public async Task<bool> DeleteInvoice(
+        Guid id,
+        [Service] IInvoiceService invoiceService,
+        [Service] ITopicEventSender eventSender)
+    {
+        var invoice = await invoiceService.GetByIdAsync(id);
+        if (invoice == null)
+        {
+            return false;
+        }
+
+        var result = await invoiceService.DeleteAsync(id);
+        if (result)
+        {
+            await eventSender.SendAsync(nameof(Subscription.OnInvoiceDeleted), invoice);
+        }
+        return result;
+    }
+
     // Journal Entry Mutations
     [GraphQLDescription("Create a new journal entry")]
     public async Task<JournalEntry> CreateJournalEntry(

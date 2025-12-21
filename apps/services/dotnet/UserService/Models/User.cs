@@ -27,6 +27,9 @@ public class User
 
     public bool EmailVerified { get; set; } = false;
 
+    [MaxLength(20)]
+    public string Role { get; set; } = "user";
+
     [MaxLength(10)]
     public string? PreferredLanguage { get; set; } = "en";
 

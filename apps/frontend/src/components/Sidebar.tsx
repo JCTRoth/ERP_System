@@ -16,18 +16,19 @@ import { useUIStore } from '../stores/uiStore';
 import { useI18n } from '../providers/I18nProvider';
 import { useAuthStore } from '../stores/authStore';
 import CustomPagesSection from './CustomPagesSection';
+import Tooltip from './Tooltip';
 
 const menuItems = [
-  { path: '/', icon: HomeIcon, labelKey: 'nav.dashboard' },
-  { path: '/companies', icon: BuildingOfficeIcon, labelKey: 'nav.companies' },
-  { path: '/users', icon: UsersIcon, labelKey: 'nav.users' },
-  { path: '/products', icon: CubeIcon, labelKey: 'nav.products' },
-  { path: '/orders', icon: ShoppingCartIcon, labelKey: 'nav.orders' },
-  { path: '/accounting', icon: CalculatorIcon, labelKey: 'nav.accounting' },
-  { path: '/masterdata', icon: CircleStackIcon, labelKey: 'nav.masterdata' },
-  { path: '/translations', icon: LanguageIcon, labelKey: 'nav.translations' },
-  { path: '/ui-builder', icon: RectangleStackIcon, labelKey: 'nav.uiBuilder' },
-  { path: '/settings', icon: Cog6ToothIcon, labelKey: 'nav.settings' },
+  { path: '/', icon: HomeIcon, labelKey: 'nav.dashboard', tooltipKey: 'nav.dashboardTooltip' },
+  { path: '/companies', icon: BuildingOfficeIcon, labelKey: 'nav.companies', tooltipKey: 'nav.companiesTooltip' },
+  { path: '/users', icon: UsersIcon, labelKey: 'nav.users', tooltipKey: 'nav.usersTooltip' },
+  { path: '/products', icon: CubeIcon, labelKey: 'nav.products', tooltipKey: 'nav.productsTooltip' },
+  { path: '/orders', icon: ShoppingCartIcon, labelKey: 'nav.orders', tooltipKey: 'nav.ordersTooltip' },
+  { path: '/accounting', icon: CalculatorIcon, labelKey: 'nav.accounting', tooltipKey: 'nav.accountingTooltip' },
+  { path: '/masterdata', icon: CircleStackIcon, labelKey: 'nav.masterdata', tooltipKey: 'nav.masterdataTooltip' },
+  { path: '/translations', icon: LanguageIcon, labelKey: 'nav.translations', tooltipKey: 'nav.translationsTooltip' },
+  { path: '/ui-builder', icon: RectangleStackIcon, labelKey: 'nav.uiBuilder', tooltipKey: 'nav.uiBuilderTooltip' },
+  { path: '/settings', icon: Cog6ToothIcon, labelKey: 'nav.settings', tooltipKey: 'nav.settingsTooltip' },
 ];
 
 export default function Sidebar() {
@@ -60,15 +61,21 @@ export default function Sidebar() {
         <ul className="flex flex-col gap-1">
           {menuItems.map((item) => (
             <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  isActive ? 'sidebar-link-active' : 'sidebar-link'
-                }
+              <Tooltip 
+                content={t(item.tooltipKey) || t(item.labelKey)} 
+                position="right"
+                delay={500}
               >
-                <item.icon className="h-5 w-5" />
-                <span>{t(item.labelKey)}</span>
-              </NavLink>
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    isActive ? 'sidebar-link-active' : 'sidebar-link'
+                  }
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{t(item.labelKey)}</span>
+                </NavLink>
+              </Tooltip>
             </li>
           ))}
         </ul>
@@ -79,18 +86,23 @@ export default function Sidebar() {
 
       {/* User Info */}
       <div className="mt-auto border-t border-gray-700 px-4 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-white">
-            {user?.firstName?.[0]}
-            {user?.lastName?.[0]}
+        <Tooltip 
+          content={`${user?.firstName} ${user?.lastName} (${user?.email})`} 
+          position="right"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-white">
+              {user?.firstName?.[0]}
+              {user?.lastName?.[0]}
+            </div>
+            <div className="text-sm">
+              <p className="font-medium text-white">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-bodydark">{user?.email}</p>
+            </div>
           </div>
-          <div className="text-sm">
-            <p className="font-medium text-white">
-              {user?.firstName} {user?.lastName}
-            </p>
-            <p className="text-bodydark">{user?.email}</p>
-          </div>
-        </div>
+        </Tooltip>
       </div>
     </aside>
   );

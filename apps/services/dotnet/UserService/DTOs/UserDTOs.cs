@@ -27,6 +27,7 @@ public record UserDto(
     string FullName,
     bool IsActive,
     bool EmailVerified,
+    string Role,
     string? PreferredLanguage,
     DateTime CreatedAt,
     DateTime? LastLoginAt

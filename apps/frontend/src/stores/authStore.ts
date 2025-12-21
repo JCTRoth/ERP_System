@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type UserRole = 'admin' | 'user' | 'viewer';
+
 interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   preferredLanguage: string;
+  role: UserRole;
 }
 
 interface AuthState {
@@ -16,6 +19,7 @@ interface AuthState {
   currentCompanyId: string | null;
   isAuthenticated: boolean;
   
+  isAdmin: () => boolean;
   setAuth: (user: User, accessToken: string, refreshToken: string) => void;
   setCurrentCompany: (companyId: string) => void;
   updateUser: (user: Partial<User>) => void;
@@ -30,6 +34,8 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       currentCompanyId: null,
       isAuthenticated: false,
+
+      isAdmin: () => get().user?.role === 'admin',
 
       setAuth: (user, accessToken, refreshToken) => {
         set({

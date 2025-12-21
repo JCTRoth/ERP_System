@@ -3,18 +3,21 @@ import {
   DocumentTextIcon,
   BanknotesIcon,
   ReceiptPercentIcon,
+  CreditCardIcon,
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import InvoicesTab from './InvoicesTab';
+import PaymentsTab from './PaymentsTab';
 import AccountsTab from './AccountsTab';
 import JournalEntriesTab from './JournalEntriesTab';
 import ReportsTab from './ReportsTab';
 
-type Tab = 'invoices' | 'accounts' | 'journal' | 'reports';
+type Tab = 'invoices' | 'payments' | 'accounts' | 'journal' | 'reports';
 
 const TABS: { key: Tab; labelKey: string; icon: typeof DocumentTextIcon }[] = [
   { key: 'invoices', labelKey: 'accounting.invoices', icon: DocumentTextIcon },
+  { key: 'payments', labelKey: 'accounting.payments', icon: CreditCardIcon },
   { key: 'accounts', labelKey: 'accounting.chartOfAccounts', icon: BanknotesIcon },
   { key: 'journal', labelKey: 'accounting.journalEntries', icon: ReceiptPercentIcon },
   { key: 'reports', labelKey: 'accounting.reports', icon: ChartBarIcon },
@@ -57,6 +60,7 @@ export default function AccountingPage() {
       {/* Tab Content */}
       <div>
         {activeTab === 'invoices' && <InvoicesTab />}
+        {activeTab === 'payments' && <PaymentsTab />}
         {activeTab === 'accounts' && <AccountsTab />}
         {activeTab === 'journal' && <JournalEntriesTab />}
         {activeTab === 'reports' && <ReportsTab />}

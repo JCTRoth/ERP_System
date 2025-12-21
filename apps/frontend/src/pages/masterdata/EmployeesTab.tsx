@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, useMutation, gql } from '@apollo/client';
 import {
   PlusIcon,
   PencilIcon,
+  TrashIcon,
   MagnifyingGlassIcon,
   BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import EmployeeModal, { type Employee } from './EmployeeModal';
+import Tooltip, { IconButtonWithTooltip } from '../../components/Tooltip';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const GET_EMPLOYEES = gql`
   query GetEmployees($first: Int, $where: EmployeeFilterInput) {
@@ -54,20 +58,11 @@ const GET_DEPARTMENTS = gql`
   }
 `;
 
-interface Employee {
-  id: string;
-  employeeNumber: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  jobTitle: string;
-  employmentType: string;
-  status: string;
-  hireDate: string;
-  department: { id: string; name: string } | null;
-  manager: { id: string; firstName: string; lastName: string } | null;
-}
+const DELETE_EMPLOYEE = gql`
+  mutation DeleteEmployee($id: UUID!) {
+    deleteEmployee(id: $id)
+  }
+`;
 
 interface Department {
   id: string;
@@ -90,8 +85,11 @@ export default function EmployeesTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showModal, setShowModal] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Employee | null>(null);
 
-  const { data: employeesData, loading: employeesLoading, error: employeesError } = useQuery(GET_EMPLOYEES, {
+  const { data: employeesData, loading: employeesLoading, error: employeesError, refetch } = useQuery(GET_EMPLOYEES, {
     variables: {
       first: 100,
       where: {
@@ -105,6 +103,39 @@ export default function EmployeesTab() {
   const { data: departmentsData, loading: departmentsLoading, error: departmentsError } = useQuery(GET_DEPARTMENTS, {
     errorPolicy: 'all',
   });
+
+  const [deleteEmployee, { loading: deleteLoading }] = useMutation(DELETE_EMPLOYEE, {
+    errorPolicy: 'all',
+    onCompleted: () => {
+      setDeleteConfirm(null);
+      refetch();
+    },
+  });
+
+  const handleAddClick = () => {
+    setEditingEmployee(null);
+    setShowModal(true);
+  };
+
+  const handleEditClick = (employee: Employee) => {
+    setEditingEmployee(employee);
+    setShowModal(true);
+  };
+
+  const handleDeleteClick = (employee: Employee) => {
+    setDeleteConfirm(employee);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirm) {
+      await deleteEmployee({ variables: { id: deleteConfirm.id } });
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setEditingEmployee(null);
+  };
 
   // Handle unavailable service
   if (employeesError || departmentsError) {
@@ -160,10 +191,12 @@ export default function EmployeesTab() {
             {t('masterdata.departments')}
           </button>
         </div>
-        <button className="btn-primary flex items-center gap-2">
-          <PlusIcon className="h-5 w-5" />
-          {view === 'employees' ? t('masterdata.addEmployee') : t('masterdata.addDepartment')}
-        </button>
+        <Tooltip content={view === 'employees' ? t('masterdata.addEmployeeTooltip') || 'Add a new employee' : t('masterdata.addDepartmentTooltip') || 'Add a new department'} position="left">
+          <button onClick={handleAddClick} className="btn-primary flex items-center gap-2">
+            <PlusIcon className="h-5 w-5" />
+            {view === 'employees' ? t('masterdata.addEmployee') : t('masterdata.addDepartment')}
+          </button>
+        </Tooltip>
       </div>
 
       {view === 'employees' ? (
@@ -291,9 +324,21 @@ export default function EmployeesTab() {
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right">
-                          <button className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200">
-                            <PencilIcon className="h-5 w-5" />
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <IconButtonWithTooltip
+                              icon={<PencilIcon className="h-5 w-5" />}
+                              tooltip={t('common.edit')}
+                              onClick={() => handleEditClick(employee)}
+                              position="top"
+                            />
+                            <IconButtonWithTooltip
+                              icon={<TrashIcon className="h-5 w-5" />}
+                              tooltip={t('common.delete')}
+                              onClick={() => handleDeleteClick(employee)}
+                              position="top"
+                              className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -347,6 +392,29 @@ export default function EmployeesTab() {
             ))
           )}
         </div>
+      )}
+
+      {/* Employee Modal */}
+      {showModal && view === 'employees' && (
+        <EmployeeModal
+          employee={editingEmployee}
+          onClose={handleModalClose}
+          onSuccess={() => refetch()}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <ConfirmDialog
+          title={t('masterdata.deleteEmployee') || 'Delete Employee'}
+          message={t('masterdata.deleteEmployeeConfirm', { name: `${deleteConfirm.firstName} ${deleteConfirm.lastName}` }) || `Are you sure you want to delete "${deleteConfirm.firstName} ${deleteConfirm.lastName}"? This action cannot be undone.`}
+          confirmLabel={t('common.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteConfirm(null)}
+          isLoading={deleteLoading}
+          variant="danger"
+        />
       )}
     </div>
   );

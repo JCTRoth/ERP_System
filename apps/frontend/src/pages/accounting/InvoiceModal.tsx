@@ -12,6 +12,21 @@ const CREATE_INVOICE = gql`
   }
 `;
 
+const UPDATE_INVOICE = gql`
+  mutation UpdateInvoice($id: UUID!, $input: UpdateInvoiceInput!) {
+    updateInvoice(id: $id, input: $input) {
+      id
+      invoiceNumber
+    }
+  }
+`;
+
+const DELETE_INVOICE = gql`
+  mutation DeleteInvoice($id: UUID!) {
+    deleteInvoice(id: $id)
+  }
+`;
+
 const GET_ACCOUNTS = gql`
   query GetAccountsForInvoice {
     accounts(where: { isActive: { eq: true } }) {
@@ -64,7 +79,11 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
   ]);
 
   const { data: accountsData } = useQuery(GET_ACCOUNTS);
-  const [createInvoice, { loading }] = useMutation(CREATE_INVOICE);
+  const [createInvoice, { loading: createLoading }] = useMutation(CREATE_INVOICE);
+  const [updateInvoice, { loading: updateLoading }] = useMutation(UPDATE_INVOICE);
+  const [deleteInvoice, { loading: deleteLoading }] = useMutation(DELETE_INVOICE);
+
+  const loading = createLoading || updateLoading || deleteLoading;
 
   const addLineItem = () => {
     setLineItems([
@@ -95,33 +114,72 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
   );
   const total = subtotal + taxAmount;
 
+  const handleDelete = async () => {
+    if (!invoice) return;
+
+    if (window.confirm(t('accounting.confirmDeleteInvoice') || 'Are you sure you want to delete this invoice?')) {
+      try {
+        await deleteInvoice({
+          variables: { id: invoice.id },
+        });
+        onClose();
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      await createInvoice({
-        variables: {
-          input: {
-            type: formData.type,
-            customerId: formData.customerId || null,
-            customerName: formData.customerName,
-            invoiceDate: formData.invoiceDate,
-            dueDate: formData.dueDate,
-            currency: formData.currency,
-            notes: formData.notes || null,
-            lineItems: lineItems.map((item) => ({
-              description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              accountId: item.accountId || null,
-              taxRate: item.taxRate,
-            })),
+      if (isEditing && invoice) {
+        await updateInvoice({
+          variables: {
+            id: invoice.id,
+            input: {
+              type: formData.type,
+              customerId: formData.customerId || null,
+              customerName: formData.customerName,
+              invoiceDate: formData.invoiceDate,
+              dueDate: formData.dueDate,
+              currency: formData.currency,
+              notes: formData.notes || null,
+              lineItems: lineItems.map((item) => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                accountId: item.accountId || null,
+                taxRate: item.taxRate,
+              })),
+            },
           },
-        },
-      });
+        });
+      } else {
+        await createInvoice({
+          variables: {
+            input: {
+              type: formData.type,
+              customerId: formData.customerId || null,
+              customerName: formData.customerName,
+              invoiceDate: formData.invoiceDate,
+              dueDate: formData.dueDate,
+              currency: formData.currency,
+              notes: formData.notes || null,
+              lineItems: lineItems.map((item) => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                accountId: item.accountId || null,
+                taxRate: item.taxRate,
+              })),
+            },
+          },
+        });
+      }
       onClose();
     } catch (error) {
-      console.error('Error creating invoice:', error);
+      console.error('Error saving invoice:', error);
     }
   };
 
@@ -359,6 +417,16 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
+            {isEditing && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="btn-danger"
+                disabled={loading}
+              >
+                {deleteLoading ? t('common.deleting') : t('common.delete')}
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
