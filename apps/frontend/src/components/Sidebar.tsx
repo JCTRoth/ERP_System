@@ -11,12 +11,10 @@ import {
   ShoppingCartIcon,
   CalculatorIcon,
   CircleStackIcon,
-  DocumentIcon,
 } from '@heroicons/react/24/outline';
 import { useUIStore } from '../stores/uiStore';
 import { useI18n } from '../providers/I18nProvider';
 import { useAuthStore } from '../stores/authStore';
-import { useUIBuilderStore } from '../stores/uiBuilderStore';
 import CustomPagesSection from './CustomPagesSection';
 
 const menuItems = [
