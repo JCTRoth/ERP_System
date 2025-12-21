@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, gql } from '@apollo/client';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../../providers/I18nProvider';
 
 const CREATE_TRANSLATION_KEY = gql`
@@ -135,8 +135,13 @@ export default function TranslationModal({ translationKey, onClose }: Props) {
               />
             </div>
             <div>
-              <label htmlFor="namespace" className="label mb-1">
+              <label htmlFor="namespace" className="label mb-1 flex items-center gap-1">
                 {t('translations.namespace')} *
+                <InformationCircleIcon
+                  className="h-4 w-4 text-gray-400"
+                  aria-hidden="true"
+                />
+                <span className="sr-only">{t('translations.namespaceTooltip')}</span>
               </label>
               <input
                 id="namespace"

@@ -320,6 +320,7 @@
   "translations.key": "Key",
   "translations.missingTranslations": "Missing translations",
   "translations.namespace": "Namespace",
+  "translations.namespaceTooltip": "Groups related translation keys together for better organization",
   "translations.noTranslations": "No translations found",
   "translations.russian": "Russian",
   "translations.subtitle": "Manage application translations and localization",
