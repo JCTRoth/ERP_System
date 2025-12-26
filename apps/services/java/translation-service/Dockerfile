@@ -24,12 +24,12 @@ RUN set -- build/libs/*.jar; \
             mkdir -p build/libs; printf "placeholder" > build/libs/app.jar; \
         fi
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup -g 1001 appgroup && \
-        adduser -u 1001 -G appgroup -s /bin/sh -D appuser
+RUN groupadd -g 1001 appgroup && \
+        useradd -u 1001 -g appgroup -s /bin/bash -m appuser
 
 # Copy JAR file
 COPY --from=build /app/build/libs/*.jar app.jar
