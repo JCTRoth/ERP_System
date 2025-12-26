@@ -10,6 +10,7 @@ public interface IEmployeeService
     Task<Employee?> GetByIdAsync(Guid id);
     Task<Employee?> GetByNumberAsync(string employeeNumber);
     Task<IEnumerable<Employee>> GetAllAsync(int skip = 0, int take = 50);
+    Task<IEnumerable<Employee>> GetAllAsync();
     Task<IEnumerable<Employee>> GetByDepartmentAsync(Guid departmentId);
     Task<IEnumerable<Employee>> GetByManagerAsync(Guid managerId);
     Task<IEnumerable<Employee>> SearchAsync(string query);
@@ -59,6 +60,16 @@ public class EmployeeService : IEmployeeService
             .ThenBy(e => e.FirstName)
             .Skip(skip)
             .Take(take)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Employee>> GetAllAsync()
+    {
+        return await _context.Employees
+            .Include(e => e.Department)
+            .Where(e => e.Status == EmployeeStatus.Active)
+            .OrderBy(e => e.LastName)
+            .ThenBy(e => e.FirstName)
             .ToListAsync();
     }
 

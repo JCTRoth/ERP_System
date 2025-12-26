@@ -16,6 +16,9 @@ public class Customer
     [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
     
+    [MaxLength(200)]
+    public string? LegalName { get; set; }
+    
     public CustomerType Type { get; set; } = CustomerType.Individual;
     
     [MaxLength(100)]

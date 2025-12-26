@@ -10,6 +10,7 @@ public interface ISupplierService
     Task<Supplier?> GetByIdAsync(Guid id);
     Task<Supplier?> GetByNumberAsync(string supplierNumber);
     Task<IEnumerable<Supplier>> GetAllAsync(int skip = 0, int take = 50);
+    Task<IEnumerable<Supplier>> GetAllAsync();
     Task<IEnumerable<Supplier>> SearchAsync(string query);
     Task<IEnumerable<Supplier>> GetByRatingAsync(SupplierRating rating);
     Task<Supplier> CreateAsync(CreateSupplierInput input);
@@ -60,6 +61,14 @@ public class SupplierService : ISupplierService
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Supplier>> GetAllAsync()
+    {
+        return await _context.Suppliers
+            .Include(s => s.Addresses.Where(a => a.IsDefault))
+            .OrderBy(s => s.Name)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Supplier>> SearchAsync(string query)
     {
         return await _context.Suppliers
@@ -81,21 +90,35 @@ public class SupplierService : ISupplierService
 
     public async Task<Supplier> CreateAsync(CreateSupplierInput input)
     {
-        var supplierNumber = await GenerateSupplierNumberAsync();
+        // Use provided code if available, otherwise generate a supplier number
+        var supplierNumber = string.IsNullOrWhiteSpace(input.Code)
+            ? await GenerateSupplierNumberAsync()
+            : input.Code.Trim();
+
+        // Handle currency lookup by code if provided
+        Guid? currencyId = input.DefaultCurrencyId;
+        if (!string.IsNullOrEmpty(input.Currency) && currencyId == null)
+        {
+            var currency = await _context.Currencies
+                .FirstOrDefaultAsync(c => c.Code == input.Currency && c.IsActive);
+            currencyId = currency?.Id;
+        }
 
         var supplier = new Supplier
         {
             Id = Guid.NewGuid(),
             SupplierNumber = supplierNumber,
             Name = input.Name,
-            Type = Enum.Parse<SupplierType>(input.Type),
+            Type = string.IsNullOrWhiteSpace(input.Type)
+                ? SupplierType.Vendor
+                : Enum.Parse<SupplierType>(input.Type, true),
             ContactPerson = input.ContactPerson,
             Email = input.Email,
             Phone = input.Phone,
             Fax = input.Fax,
             Website = input.Website,
-            TaxId = input.TaxId,
-            DefaultCurrencyId = input.DefaultCurrencyId,
+            TaxId = input.TaxId ?? input.VatNumber,
+            DefaultCurrencyId = currencyId,
             DefaultPaymentTermId = input.DefaultPaymentTermId,
             LeadTimeDays = input.LeadTimeDays ?? 0,
             MinimumOrderValue = input.MinimumOrderValue ?? 0,
@@ -104,6 +127,25 @@ public class SupplierService : ISupplierService
             Notes = input.Notes,
             CreatedAt = DateTime.UtcNow
         };
+
+        // Add primary address from flattened fields
+        if (!string.IsNullOrEmpty(input.Address) ||
+            !string.IsNullOrEmpty(input.City) ||
+            !string.IsNullOrEmpty(input.PostalCode) ||
+            !string.IsNullOrEmpty(input.Country))
+        {
+            supplier.Addresses.Add(new Address
+            {
+                Id = Guid.NewGuid(),
+                Type = AddressType.Primary,
+                AddressLine1 = input.Address,
+                City = input.City,
+                PostalCode = input.PostalCode,
+                Country = input.Country,
+                IsDefault = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
 
         // Add addresses
         if (input.Addresses != null)
@@ -165,6 +207,9 @@ public class SupplierService : ISupplierService
         if (!string.IsNullOrEmpty(input.Name))
             supplier.Name = input.Name;
 
+        if (!string.IsNullOrEmpty(input.Code))
+            supplier.SupplierNumber = input.Code;
+
         if (!string.IsNullOrEmpty(input.Type))
             supplier.Type = Enum.Parse<SupplierType>(input.Type);
 
@@ -203,6 +248,48 @@ public class SupplierService : ISupplierService
 
         if (!string.IsNullOrEmpty(input.Rating))
             supplier.Rating = Enum.Parse<SupplierRating>(input.Rating);
+
+        if (input.IsActive.HasValue)
+            supplier.Status = input.IsActive.Value ? SupplierStatus.Active : SupplierStatus.Inactive;
+
+        if (!string.IsNullOrEmpty(input.Currency))
+        {
+            var currency = await _context.Currencies
+                .FirstOrDefaultAsync(c => c.Code == input.Currency && c.IsActive);
+            if (currency != null)
+            {
+                supplier.DefaultCurrencyId = currency.Id;
+            }
+        }
+
+        // Update or create primary address from flattened fields
+        if (input.Address != null || input.City != null || input.PostalCode != null || input.Country != null)
+        {
+            var address = await _context.Addresses
+                .Where(a => a.SupplierId == supplier.Id)
+                .OrderByDescending(a => a.IsDefault)
+                .ThenBy(a => a.Type)
+                .FirstOrDefaultAsync();
+
+            if (address == null)
+            {
+                address = new Address
+                {
+                    Id = Guid.NewGuid(),
+                    SupplierId = supplier.Id,
+                    Type = AddressType.Primary,
+                    IsDefault = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Addresses.Add(address);
+            }
+
+            if (input.Address != null) address.AddressLine1 = input.Address;
+            if (input.City != null) address.City = input.City;
+            if (input.PostalCode != null) address.PostalCode = input.PostalCode;
+            if (input.Country != null) address.Country = input.Country;
+            address.UpdatedAt = DateTime.UtcNow;
+        }
 
         if (input.Notes != null)
             supplier.Notes = input.Notes;

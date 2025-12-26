@@ -65,8 +65,9 @@ builder.Services
     .AddAuthorization()
     .ModifyCostOptions(options =>
     {
-        options.MaxTypeCost = 10000;
-        options.MaxFieldCost = 1000;
+        // Relax cost limits for development to allow richer queries
+        options.MaxTypeCost = 500000;
+        options.MaxFieldCost = 500000;
     })
     .ModifyPagingOptions(options =>
     {

@@ -205,5 +205,24 @@ public class MasterdataDbContext : DbContext
             new TaxCode { Id = Guid.NewGuid(), Code = "ZERO", Name = "Zero Rate", Description = "Zero-rated", Rate = 0m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
             new TaxCode { Id = Guid.NewGuid(), Code = "EXEMPT", Name = "Exempt", Description = "Tax exempt", Rate = 0m, Type = TaxType.Exempt, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow }
         );
+
+        // Seed sample customers for development
+        modelBuilder.Entity<Customer>().HasData(
+            new Customer
+            {
+                Id = Guid.NewGuid(),
+                CustomerNumber = "CUST-000001",
+                Name = "Jonas Roth",
+                LegalName = "Mailbase.info",
+                ContactPerson = "Jonas Roth",
+                Email = "jonas.roth@mailbase.info",
+                Phone = "+1-555-0101",
+                Website = "https://www.mailbase.info",
+                TaxId = "DE123456789",
+                CreditLimit = 50000m,
+                Status = CustomerStatus.Active,
+                CreatedAt = DateTime.UtcNow
+            }
+        );
     }
 }

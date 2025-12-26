@@ -10,6 +10,7 @@ public interface IAssetService
     Task<Asset?> GetByIdAsync(Guid id);
     Task<Asset?> GetByNumberAsync(string assetNumber);
     Task<IEnumerable<Asset>> GetAllAsync(int skip = 0, int take = 50);
+    Task<IEnumerable<Asset>> GetAllAsync();
     Task<IEnumerable<Asset>> GetByCategoryAsync(Guid categoryId);
     Task<IEnumerable<Asset>> GetByStatusAsync(AssetStatus status);
     Task<IEnumerable<Asset>> GetByAssigneeAsync(Guid employeeId);
@@ -63,6 +64,16 @@ public class AssetService : IAssetService
             .OrderBy(a => a.AssetNumber)
             .Skip(skip)
             .Take(take)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Asset>> GetAllAsync()
+    {
+        return await _context.Assets
+            .Include(a => a.Category)
+            .Include(a => a.Location)
+            .Where(a => a.Status != AssetStatus.Disposed)
+            .OrderBy(a => a.AssetNumber)
             .ToListAsync();
     }
 

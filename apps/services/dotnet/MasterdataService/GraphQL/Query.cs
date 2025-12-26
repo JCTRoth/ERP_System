@@ -68,12 +68,10 @@ public class Query
     [UsePaging(IncludeTotalCount = true)]
     [UseFiltering]
     [UseSorting]
-    public static async Task<IEnumerable<Supplier>> GetSuppliers(
-        int skip,
-        int take,
+    public async Task<IEnumerable<Supplier>> GetSuppliers(
         [Service] ISupplierService supplierService)
     {
-        return await supplierService.GetAllAsync(skip, take);
+        return await supplierService.GetAllAsync();
     }
 
     [GraphQLDescription("Get preferred suppliers")]
@@ -104,12 +102,10 @@ public class Query
     [UsePaging(IncludeTotalCount = true)]
     [UseFiltering]
     [UseSorting]
-    public static async Task<IEnumerable<Employee>> GetEmployees(
-        int skip,
-        int take,
+    public async Task<IEnumerable<Employee>> GetEmployees(
         [Service] IEmployeeService employeeService)
     {
-        return await employeeService.GetAllAsync(skip, take);
+        return await employeeService.GetAllAsync();
     }
 
     [GraphQLDescription("Get employees by department")]
@@ -204,12 +200,10 @@ public class Query
     [UsePaging(IncludeTotalCount = true)]
     [UseFiltering]
     [UseSorting]
-    public static async Task<IEnumerable<Asset>> GetAssets(
-        int skip,
-        int take,
+    public async Task<IEnumerable<Asset>> GetAssets(
         [Service] IAssetService assetService)
     {
-        return await assetService.GetAllAsync(skip, take);
+        return await assetService.GetAllAsync();
     }
 
     [GraphQLDescription("Get assets by assignee")]

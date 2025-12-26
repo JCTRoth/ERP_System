@@ -12,6 +12,7 @@ public class CustomerObjectType : ObjectType<Customer>
         descriptor.Field(c => c.Id).Type<NonNullType<IdType>>();
         descriptor.Field(c => c.CustomerNumber).Type<NonNullType<StringType>>();
         descriptor.Field(c => c.Name).Type<NonNullType<StringType>>();
+        descriptor.Field(c => c.LegalName).Type<StringType>();
         descriptor.Field(c => c.Type).Type<NonNullType<EnumType<CustomerType>>>();
         descriptor.Field(c => c.ContactPerson).Type<StringType>();
         descriptor.Field(c => c.Email).Type<StringType>();
@@ -104,6 +105,96 @@ public class SupplierType
             .Where(c => c.SupplierId == supplier.Id)
             .OrderByDescending(c => c.IsPrimary)
             .ToListAsync();
+    }
+
+    [GraphQLName("code")]
+    [GraphQLDescription("Supplier code (maps to supplier number)")]
+    public string GetCode([Parent] Supplier supplier) => supplier.SupplierNumber;
+
+    [GraphQLName("vatNumber")]
+    [GraphQLDescription("VAT number (maps to tax ID)")]
+    public string? GetVatNumber([Parent] Supplier supplier) => supplier.TaxId;
+
+    [GraphQLName("currency")]
+    [GraphQLDescription("Default currency code for the supplier")]
+    public async Task<string?> GetCurrency(
+        [Parent] Supplier supplier,
+        [Service] MasterdataDbContext context)
+    {
+        if (supplier.DefaultCurrencyId == null)
+        {
+            return null;
+        }
+
+        var currency = await context.Currencies
+            .FirstOrDefaultAsync(c => c.Id == supplier.DefaultCurrencyId);
+
+        return currency?.Code;
+    }
+
+    [GraphQLName("address")]
+    [GraphQLDescription("Primary address line for the supplier")]
+    public async Task<string?> GetAddress(
+        [Parent] Supplier supplier,
+        [Service] MasterdataDbContext context)
+    {
+        var addr = await GetPrimaryAddressInternal(supplier, context);
+        if (addr == null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrEmpty(addr.AddressLine2))
+        {
+            return $"{addr.AddressLine1}, {addr.AddressLine2}";
+        }
+
+        return addr.AddressLine1;
+    }
+
+    [GraphQLName("city")]
+    public async Task<string?> GetCity(
+        [Parent] Supplier supplier,
+        [Service] MasterdataDbContext context)
+    {
+        var addr = await GetPrimaryAddressInternal(supplier, context);
+        return addr?.City;
+    }
+
+    [GraphQLName("postalCode")]
+    public async Task<string?> GetPostalCode(
+        [Parent] Supplier supplier,
+        [Service] MasterdataDbContext context)
+    {
+        var addr = await GetPrimaryAddressInternal(supplier, context);
+        return addr?.PostalCode;
+    }
+
+    [GraphQLName("country")]
+    public async Task<string?> GetCountry(
+        [Parent] Supplier supplier,
+        [Service] MasterdataDbContext context)
+    {
+        var addr = await GetPrimaryAddressInternal(supplier, context);
+        return addr?.Country;
+    }
+
+    [GraphQLName("isActive")]
+    [GraphQLDescription("Indicates whether the supplier is active")]
+    public bool GetIsActive([Parent] Supplier supplier)
+    {
+        return supplier.Status == SupplierStatus.Active || supplier.Status == SupplierStatus.Preferred;
+    }
+
+    private static async Task<Address?> GetPrimaryAddressInternal(
+        Supplier supplier,
+        MasterdataDbContext context)
+    {
+        return await context.Addresses
+            .Where(a => a.SupplierId == supplier.Id)
+            .OrderByDescending(a => a.IsDefault)
+            .ThenBy(a => a.Type)
+            .FirstOrDefaultAsync();
     }
 }
 

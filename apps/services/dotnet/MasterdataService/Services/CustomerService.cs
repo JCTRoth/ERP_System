@@ -30,6 +30,46 @@ public class CustomerService : ICustomerService
         _logger = logger;
     }
 
+    private static CustomerType ParseCustomerType(string type)
+    {
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return CustomerType.Individual;
+        }
+
+        var normalized = type.Trim().ToUpperInvariant();
+
+        return normalized switch
+        {
+            "COMPANY" => CustomerType.Business,
+            "BUSINESS" => CustomerType.Business,
+            "INDIVIDUAL" => CustomerType.Individual,
+            "GOVERNMENT" => CustomerType.Government,
+            "NON_PROFIT" => CustomerType.NonProfit,
+            _ => Enum.Parse<CustomerType>(type, true)
+        };
+    }
+
+    private static CustomerStatus ParseCustomerStatus(string status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return CustomerStatus.Active;
+        }
+
+        var normalized = status.Trim().ToUpperInvariant();
+
+        return normalized switch
+        {
+            "ACTIVE" => CustomerStatus.Active,
+            "INACTIVE" => CustomerStatus.Inactive,
+            "SUSPENDED" => CustomerStatus.Suspended,
+            "ON_HOLD" => CustomerStatus.Suspended,
+            "BLOCKED" => CustomerStatus.Blocked,
+            _ => Enum.Parse<CustomerStatus>(status, true)
+        };
+    }
+
     public async Task<Customer?> GetByIdAsync(Guid id)
     {
         return await _context.Customers
@@ -66,20 +106,39 @@ public class CustomerService : ICustomerService
     {
         var customerNumber = await GenerateCustomerNumberAsync();
 
+        // Handle currency lookup by code if provided
+        Guid? currencyId = input.DefaultCurrencyId;
+        if (!string.IsNullOrEmpty(input.Currency) && currencyId == null)
+        {
+            var currency = await _context.Currencies
+                .FirstOrDefaultAsync(c => c.Code == input.Currency && c.IsActive);
+            currencyId = currency?.Id;
+        }
+
+        // Handle payment term lookup by days if provided
+        Guid? paymentTermId = input.DefaultPaymentTermId;
+        if (input.PaymentTermDays.HasValue && paymentTermId == null)
+        {
+            var paymentTerm = await _context.PaymentTerms
+                .FirstOrDefaultAsync(pt => pt.DueDays == input.PaymentTermDays.Value && pt.IsActive);
+            paymentTermId = paymentTerm?.Id;
+        }
+
         var customer = new Customer
         {
             Id = Guid.NewGuid(),
             CustomerNumber = customerNumber,
             Name = input.Name,
-            Type = Enum.Parse<CustomerType>(input.Type, true),
+            LegalName = input.LegalName,
+            Type = ParseCustomerType(input.Type),
             ContactPerson = input.ContactPerson,
             Email = input.Email,
             Phone = input.Phone,
             Fax = input.Fax,
             Website = input.Website,
             TaxId = input.TaxId,
-            DefaultCurrencyId = input.DefaultCurrencyId,
-            DefaultPaymentTermId = input.DefaultPaymentTermId,
+            DefaultCurrencyId = currencyId,
+            DefaultPaymentTermId = paymentTermId,
             CreditLimit = input.CreditLimit ?? 0,
             CurrentBalance = 0,
             Status = CustomerStatus.Active,
@@ -148,7 +207,7 @@ public class CustomerService : ICustomerService
             customer.Name = input.Name;
 
         if (!string.IsNullOrEmpty(input.Type))
-            customer.Type = Enum.Parse<CustomerType>(input.Type);
+            customer.Type = ParseCustomerType(input.Type);
 
         if (input.ContactPerson != null)
             customer.ContactPerson = input.ContactPerson;
@@ -178,7 +237,7 @@ public class CustomerService : ICustomerService
             customer.CreditLimit = input.CreditLimit.Value;
 
         if (!string.IsNullOrEmpty(input.Status))
-            customer.Status = Enum.Parse<CustomerStatus>(input.Status);
+            customer.Status = ParseCustomerStatus(input.Status);
 
         if (input.Notes != null)
             customer.Notes = input.Notes;
