@@ -13,7 +13,7 @@ services:
     volumes:
       - ./apps/frontend:/app
     environment:
-      - VITE_GATEWAY_URL=http://localhost:4000
+      - VITE_GATEWAY_URL=http://gateway:4000
     depends_on:
       - gateway
 
