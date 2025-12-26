@@ -112,6 +112,8 @@ services:
       - "8081:8080"
     volumes:
       - ./apps/services/java/company-service:/app
+      - /app/.gradle
+      - /app/build
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-company:5432/companydb

@@ -24,12 +24,15 @@ RUN addgroup -g 1001 appgroup && \
         adduser -u 1001 -G appgroup -s /bin/sh -D appuser
 
 # Copy JAR file
-COPY --from=build /app/build/libs/*.jar app.jar
+COPY --from=build /app/build/libs/*.jar /opt/app.jar
 
 # Copy Gradle wrapper for development mode
 COPY gradlew gradlew
 COPY gradle gradle
 RUN chmod +x gradlew
+
+# Create .gradle directory and set ownership
+RUN mkdir -p .gradle && chown -R appuser:appgroup .gradle
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
@@ -44,4 +47,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 
 # Check if we're in development mode (source code mounted)
 # If src directory exists and contains source files, run in dev mode with hot reload
-ENTRYPOINT ["sh", "-c", "if [ -d src ] && [ -f build.gradle ]; then chmod +x gradlew && ./gradlew bootRun --no-daemon; else java -jar app.jar; fi"]
+ENTRYPOINT ["sh", "-c", "java -jar /opt/app.jar"]
