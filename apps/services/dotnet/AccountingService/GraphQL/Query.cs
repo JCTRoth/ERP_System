@@ -1,6 +1,8 @@
 using AccountingService.Models;
 using AccountingService.Services;
 using AccountingService.DTOs;
+using AccountingService.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace AccountingService.GraphQL;
 
@@ -28,11 +30,9 @@ public class Query
     [UseFiltering]
     [UseSorting]
     public async Task<IEnumerable<Account>> GetAccounts(
-        int skip,
-        int take,
         [Service] IAccountService accountService)
     {
-        return await accountService.GetAllAsync(skip, take);
+        return await accountService.GetAllAsync();
     }
 
     [GraphQLDescription("Get accounts by type")]
@@ -72,11 +72,9 @@ public class Query
     [UseFiltering]
     [UseSorting]
     public async Task<IEnumerable<Invoice>> GetInvoices(
-        int skip,
-        int take,
         [Service] IInvoiceService invoiceService)
     {
-        return await invoiceService.GetAllAsync(skip, take);
+        return await invoiceService.GetAllAsync();
     }
 
     [GraphQLDescription("Get invoices by customer")]
@@ -124,11 +122,9 @@ public class Query
     [UseFiltering]
     [UseSorting]
     public async Task<IEnumerable<JournalEntry>> GetJournalEntries(
-        int skip,
-        int take,
         [Service] IJournalEntryService journalEntryService)
     {
-        return await journalEntryService.GetAllAsync(skip, take);
+        return await journalEntryService.GetAllAsync();
     }
 
     [GraphQLDescription("Get journal entries by date range")]
@@ -144,136 +140,141 @@ public class Query
     [GraphQLDescription("Get a payment record by ID")]
     public async Task<PaymentRecord?> GetPaymentRecord(
         Guid id,
-        [Service] IPaymentRecordService paymentRecordService)
+        [Service] AccountingDbContext context)
     {
-        return await paymentRecordService.GetByIdAsync(id);
-    }
-
-    [GraphQLDescription("Get a payment record by number")]
-    public async Task<PaymentRecord?> GetPaymentRecordByNumber(
-        string paymentNumber,
-        [Service] IPaymentRecordService paymentRecordService)
-    {
-        return await paymentRecordService.GetByNumberAsync(paymentNumber);
+        return await context.PaymentRecords
+            .Include(p => p.Invoice)
+            .Include(p => p.BankAccount)
+            .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     [GraphQLDescription("Get all payment records with pagination")]
     [UsePaging(IncludeTotalCount = true)]
     [UseFiltering]
     [UseSorting]
-    public async Task<IEnumerable<PaymentRecord>> GetPaymentRecords(
-        int skip,
-        int take,
-        [Service] IPaymentRecordService paymentRecordService)
+    public async Task<IQueryable<PaymentRecord>> GetPaymentRecords(
+        [Service] AccountingDbContext context)
     {
-        return await paymentRecordService.GetAllAsync(skip, take);
-    }
-
-    [GraphQLDescription("Get payments by invoice")]
-    public async Task<IEnumerable<PaymentRecord>> GetPaymentsByInvoice(
-        Guid invoiceId,
-        [Service] IPaymentRecordService paymentRecordService)
-    {
-        return await paymentRecordService.GetByInvoiceAsync(invoiceId);
+        return context.PaymentRecords
+            .Include(p => p.Invoice)
+            .Include(p => p.BankAccount);
     }
 
     // Bank Account Queries
     [GraphQLDescription("Get a bank account by ID")]
     public async Task<BankAccount?> GetBankAccount(
         Guid id,
-        [Service] IBankAccountService bankAccountService)
+        [Service] AccountingDbContext context)
     {
-        return await bankAccountService.GetByIdAsync(id);
+        return await context.BankAccounts
+            .FirstOrDefaultAsync(b => b.Id == id);
     }
 
     [GraphQLDescription("Get all bank accounts with pagination")]
     [UsePaging(IncludeTotalCount = true)]
     [UseFiltering]
     [UseSorting]
-    public async Task<IEnumerable<BankAccount>> GetBankAccounts(
-        int skip,
-        int take,
-        [Service] IBankAccountService bankAccountService)
+    public async Task<IQueryable<BankAccount>> GetBankAccounts(
+        [Service] AccountingDbContext context)
     {
-        return await bankAccountService.GetAllAsync(skip, take);
-    }
-
-    [GraphQLDescription("Get active bank accounts")]
-    public async Task<IEnumerable<BankAccount>> GetActiveBankAccounts(
-        [Service] IBankAccountService bankAccountService)
-    {
-        return await bankAccountService.GetActiveAsync();
-    }
-
-    [GraphQLDescription("Get bank account transactions")]
-    public async Task<IEnumerable<BankTransaction>> GetBankTransactions(
-        Guid bankAccountId,
-        int skip,
-        int take,
-        [Service] IBankAccountService bankAccountService)
-    {
-        return await bankAccountService.GetTransactionsAsync(bankAccountId, skip, take);
+        return context.BankAccounts;
     }
 
     // Reporting Queries
     [GraphQLDescription("Get balance sheet as of a specific date")]
-    public async Task<BalanceSheetDto> GetBalanceSheet(
+    public async Task<BalanceSheet> GetBalanceSheet(
         DateTime asOfDate,
-        [Service] IReportingService reportingService)
+        [Service] AccountingDbContext context)
     {
-        return await reportingService.GetBalanceSheetAsync(asOfDate);
-    }
+        // Get accounts with balances
+        var accounts = await context.Accounts
+            .Where(a => a.IsActive)
+            .ToListAsync();
 
-    [GraphQLDescription("Get income statement for a date range")]
-    public async Task<IncomeStatementDto> GetIncomeStatement(
-        DateTime from,
-        DateTime to,
-        [Service] IReportingService reportingService)
-    {
-        return await reportingService.GetIncomeStatementAsync(from, to);
-    }
+        var currentAssetCategories = new[] { AccountCategory.Cash, AccountCategory.BankAccount, AccountCategory.AccountsReceivable, AccountCategory.Inventory };
+        var currentAssets = accounts
+            .Where(a => a.Type == Models.AccountType.Asset && currentAssetCategories.Contains(a.Category))
+            .Select(a => new BalanceSheetLine
+            {
+                AccountId = a.Id,
+                AccountNumber = a.AccountNumber,
+                AccountName = a.Name,
+                Balance = a.Balance
+            })
+            .ToList();
 
-    [GraphQLDescription("Get trial balance as of a specific date")]
-    public async Task<TrialBalanceDto> GetTrialBalance(
-        DateTime asOfDate,
-        [Service] IReportingService reportingService)
-    {
-        return await reportingService.GetTrialBalanceAsync(asOfDate);
-    }
+        var nonCurrentAssets = accounts
+            .Where(a => a.Type == Models.AccountType.Asset && !currentAssetCategories.Contains(a.Category))
+            .Select(a => new BalanceSheetLine
+            {
+                AccountId = a.Id,
+                AccountNumber = a.AccountNumber,
+                AccountName = a.Name,
+                Balance = a.Balance
+            })
+            .ToList();
 
-    [GraphQLDescription("Get cash flow statement for a date range")]
-    public async Task<CashFlowStatementDto> GetCashFlowStatement(
-        DateTime from,
-        DateTime to,
-        [Service] IReportingService reportingService)
-    {
-        return await reportingService.GetCashFlowStatementAsync(from, to);
-    }
+        var currentLiabilityCategories = new[] { AccountCategory.AccountsPayable, AccountCategory.ShortTermDebt, AccountCategory.TaxLiabilities };
+        var currentLiabilities = accounts
+            .Where(a => a.Type == Models.AccountType.Liability && currentLiabilityCategories.Contains(a.Category))
+            .Select(a => new BalanceSheetLine
+            {
+                AccountId = a.Id,
+                AccountNumber = a.AccountNumber,
+                AccountName = a.Name,
+                Balance = a.Balance
+            })
+            .ToList();
 
-    [GraphQLDescription("Get account statement for a date range")]
-    public async Task<AccountStatementDto> GetAccountStatement(
-        Guid accountId,
-        DateTime from,
-        DateTime to,
-        [Service] IReportingService reportingService)
-    {
-        return await reportingService.GetAccountStatementAsync(accountId, from, to);
-    }
+        var nonCurrentLiabilities = accounts
+            .Where(a => a.Type == Models.AccountType.Liability && !currentLiabilityCategories.Contains(a.Category))
+            .Select(a => new BalanceSheetLine
+            {
+                AccountId = a.Id,
+                AccountNumber = a.AccountNumber,
+                AccountName = a.Name,
+                Balance = a.Balance
+            })
+            .ToList();
 
-    [GraphQLDescription("Get accounts receivable aging report")]
-    public async Task<AgingReportDto> GetReceivablesAging(
-        DateTime asOfDate,
-        [Service] IReportingService reportingService)
-    {
-        return await reportingService.GetReceivablesAgingAsync(asOfDate);
-    }
+        var equityAccounts = accounts
+            .Where(a => a.Type == Models.AccountType.Equity)
+            .Select(a => new BalanceSheetLine
+            {
+                AccountId = a.Id,
+                AccountNumber = a.AccountNumber,
+                AccountName = a.Name,
+                Balance = a.Balance
+            })
+            .ToList();
 
-    [GraphQLDescription("Get accounts payable aging report")]
-    public async Task<AgingReportDto> GetPayablesAging(
-        DateTime asOfDate,
-        [Service] IReportingService reportingService)
-    {
-        return await reportingService.GetPayablesAgingAsync(asOfDate);
+        return new BalanceSheet
+        {
+            AsOfDate = asOfDate,
+            Assets = new AssetsSection
+            {
+                Current = currentAssets,
+                NonCurrent = nonCurrentAssets,
+                TotalCurrent = currentAssets.Sum(a => a.Balance),
+                TotalNonCurrent = nonCurrentAssets.Sum(a => a.Balance),
+                Total = currentAssets.Sum(a => a.Balance) + nonCurrentAssets.Sum(a => a.Balance)
+            },
+            Liabilities = new LiabilitiesSection
+            {
+                Current = currentLiabilities,
+                NonCurrent = nonCurrentLiabilities,
+                TotalCurrent = currentLiabilities.Sum(l => l.Balance),
+                TotalNonCurrent = nonCurrentLiabilities.Sum(l => l.Balance),
+                Total = currentLiabilities.Sum(l => l.Balance) + nonCurrentLiabilities.Sum(l => l.Balance)
+            },
+            Equity = new EquitySection
+            {
+                Items = equityAccounts,
+                RetainedEarnings = equityAccounts.FirstOrDefault(e => e.AccountName.Contains("Retained"))?.Balance ?? 0,
+                Total = equityAccounts.Sum(e => e.Balance)
+            },
+            TotalLiabilitiesAndEquity = currentLiabilities.Sum(l => l.Balance) + nonCurrentLiabilities.Sum(l => l.Balance) + equityAccounts.Sum(e => e.Balance)
+        };
     }
 
     // Tax Rate Queries

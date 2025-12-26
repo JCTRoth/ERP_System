@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import {
   PlusIcon,
@@ -64,13 +64,19 @@ export default function ProductsPage() {
       first: 20,
     },
     errorPolicy: 'all',
-    onCompleted: (data) => {
-      console.log('Products query completed:', data);
-    },
-    onError: (error) => {
-      console.error('Products query error:', error);
-    },
   });
+
+  useEffect(() => {
+    if (data) {
+      console.log('Products query completed:', data);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (error) {
+      console.error('Products query error:', error);
+    }
+  }, [error]);
 
   const [deleteProduct] = useMutation(DELETE_PRODUCT, {
     onCompleted: () => refetch(),

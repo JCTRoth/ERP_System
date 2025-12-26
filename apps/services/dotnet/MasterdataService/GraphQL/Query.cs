@@ -126,22 +126,25 @@ public class Query
 
     // Department Queries
     [GraphQLDescription("Get a department by ID")]
-    public static async Task<Department?> GetDepartment(
+    public async Task<Department?> GetDepartment(
         Guid id,
         [Service] IDepartmentService departmentService)
     {
         return await departmentService.GetByIdAsync(id);
     }
 
-    [GraphQLDescription("Get all departments")]
-    public static async Task<IEnumerable<Department>> GetDepartments(
+    [GraphQLDescription("Get all departments with pagination")]
+    [UsePaging(IncludeTotalCount = true)]
+    [UseFiltering]
+    [UseSorting]
+    public async Task<IEnumerable<Department>> GetDepartments(
         [Service] IDepartmentService departmentService)
     {
         return await departmentService.GetAllAsync();
     }
 
     [GraphQLDescription("Get department hierarchy")]
-    public static async Task<IEnumerable<Department>> GetDepartmentHierarchy(
+    public async Task<IEnumerable<Department>> GetDepartmentHierarchy(
         [Service] IDepartmentService departmentService)
     {
         return await departmentService.GetHierarchyAsync();
@@ -222,15 +225,18 @@ public class Query
     }
 
     // Reference Data Queries
-    [GraphQLDescription("Get all currencies")]
-    public static async Task<IEnumerable<Currency>> GetCurrencies(
+    [GraphQLDescription("Get all currencies with pagination")]
+    [UsePaging(IncludeTotalCount = true)]
+    [UseFiltering]
+    [UseSorting]
+    public async Task<IEnumerable<Currency>> GetCurrencies(
         [Service] IReferenceDataService referenceDataService)
     {
         return await referenceDataService.GetCurrenciesAsync();
     }
 
     [GraphQLDescription("Get currency by code")]
-    public static async Task<Currency?> GetCurrency(
+    public async Task<Currency?> GetCurrency(
         string code,
         [Service] IReferenceDataService referenceDataService)
     {
@@ -238,28 +244,28 @@ public class Query
     }
 
     [GraphQLDescription("Get all payment terms")]
-    public static async Task<IEnumerable<PaymentTerm>> GetPaymentTerms(
+    public async Task<IEnumerable<PaymentTerm>> GetPaymentTerms(
         [Service] IReferenceDataService referenceDataService)
     {
         return await referenceDataService.GetPaymentTermsAsync();
     }
 
     [GraphQLDescription("Get all units of measure")]
-    public static async Task<IEnumerable<UnitOfMeasure>> GetUnitsOfMeasure(
+    public async Task<IEnumerable<UnitOfMeasure>> GetUnitsOfMeasure(
         [Service] IReferenceDataService referenceDataService)
     {
         return await referenceDataService.GetUnitsOfMeasureAsync();
     }
 
     [GraphQLDescription("Get all tax codes")]
-    public static async Task<IEnumerable<TaxCode>> GetTaxCodes(
+    public async Task<IEnumerable<TaxCode>> GetTaxCodes(
         [Service] IReferenceDataService referenceDataService)
     {
         return await referenceDataService.GetTaxCodesAsync();
     }
 
     [GraphQLDescription("Convert units")]
-    public static async Task<decimal> ConvertUnits(
+    public async Task<decimal> ConvertUnits(
         decimal amount,
         Guid fromUnitId,
         Guid toUnitId,

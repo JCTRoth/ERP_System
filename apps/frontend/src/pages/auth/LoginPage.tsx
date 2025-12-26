@@ -7,8 +7,8 @@ export default function LoginPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@erp-system.local');
+  const [password, setPassword] = useState('Admin123!');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,7 +36,7 @@ export default function LoginPage() {
           {t('auth.auth.signIn', { default: 'Sign In' })}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-          {t('auth.auth.demoCredentials', { default: 'Demo credentials' })}
+          {t('auth.auth.demoCredentials', { default: 'Demo credentials: admin@erp-system.local / Admin123!' })}
         </p>
       </div>
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-              placeholder="admin@example.com"
+              placeholder="admin@erp-system.local"
             />
           </div>
         </div>
@@ -80,7 +80,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-              placeholder="password"
+              placeholder="Admin123!"
             />
           </div>
         </div>

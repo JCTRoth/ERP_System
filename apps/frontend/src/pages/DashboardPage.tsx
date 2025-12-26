@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useI18n } from '../providers/I18nProvider';
 import { useAuthStore } from '../stores/authStore';
 import { useQuery, gql } from '@apollo/client';
@@ -33,34 +34,50 @@ export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
 
   // Fetch real metrics with error handling and fallback
-  const { data: companiesData, loading: companiesLoading, error: companiesError } = useQuery(GET_TOTAL_COMPANIES, {
-    onCompleted: (data) => {
-      console.log('Companies count loaded:', data);
-    },
-    onError: (error) => {
-      console.error('Error loading companies count:', error);
+  const { data: companiesData, loading: companiesLoading, error: companiesError } = useQuery(GET_TOTAL_COMPANIES);
+
+  useEffect(() => {
+    if (companiesData) {
+      console.log('Companies count loaded:', companiesData);
     }
-  });
+  }, [companiesData]);
+
+  useEffect(() => {
+    if (companiesError) {
+      console.error('Error loading companies count:', companiesError);
+    }
+  }, [companiesError]);
 
   // Fallback: use companies list if count query fails
-  const { data: companiesListData, loading: companiesListLoading } = useQuery(GET_COMPANIES_LIST, {
+  const { data: companiesListData, loading: companiesListLoading, error: companiesListError } = useQuery(GET_COMPANIES_LIST, {
     skip: !companiesError, // Only run if the count query fails
-    onCompleted: (data) => {
-      console.log('Companies list loaded (fallback):', data);
-    },
-    onError: (error) => {
-      console.error('Error loading companies list:', error);
-    }
   });
+
+  useEffect(() => {
+    if (companiesListData) {
+      console.log('Companies list loaded (fallback):', companiesListData);
+    }
+  }, [companiesListData]);
+
+  useEffect(() => {
+    if (companiesListError) {
+      console.error('Error loading companies list:', companiesListError);
+    }
+  }, [companiesListError]);
   
-  const { data: usersData, loading: usersLoading, error: usersError } = useQuery(GET_TOTAL_USERS, {
-    onCompleted: (data) => {
-      console.log('Users data loaded:', data);
-    },
-    onError: (error) => {
-      console.error('Error loading users:', error);
+  const { data: usersData, loading: usersLoading, error: usersError } = useQuery(GET_TOTAL_USERS);
+
+  useEffect(() => {
+    if (usersData) {
+      console.log('Users data loaded:', usersData);
     }
-  });
+  }, [usersData]);
+
+  useEffect(() => {
+    if (usersError) {
+      console.error('Error loading users:', usersError);
+    }
+  }, [usersError]);
 
   // Prepare stats with real data and better error handling with fallback
   const stats = [

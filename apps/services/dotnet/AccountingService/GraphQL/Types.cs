@@ -1,6 +1,7 @@
 using AccountingService.Models;
 using AccountingService.Services;
 using AccountingService.Data;
+using AccountingService.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingService.GraphQL;
@@ -43,9 +44,11 @@ public class InvoiceType
     [GraphQLDescription("Get payments for this invoice")]
     public async Task<IEnumerable<PaymentRecord>> GetPayments(
         [Parent] Invoice invoice,
-        [Service] IPaymentRecordService paymentRecordService)
+        [Service] AccountingDbContext context)
     {
-        return await paymentRecordService.GetByInvoiceAsync(invoice.Id);
+        return await context.PaymentRecords
+            .Where(p => p.InvoiceId == invoice.Id)
+            .ToListAsync();
     }
 
     [GraphQLDescription("Get balance due")]
@@ -64,14 +67,14 @@ public class InvoiceType
             return false;
         }
 
-        var dueDate = invoice.DueDate ?? invoice.InvoiceDate.AddDays(30);
+        var dueDate = invoice.DueDate;
         return DateTime.UtcNow > dueDate;
     }
 
     [GraphQLDescription("Get days overdue")]
     public int GetDaysOverdue([Parent] Invoice invoice)
     {
-        var dueDate = invoice.DueDate ?? invoice.InvoiceDate.AddDays(30);
+        var dueDate = invoice.DueDate;
         if (DateTime.UtcNow <= dueDate) return 0;
         return (DateTime.UtcNow - dueDate).Days;
     }
@@ -102,6 +105,10 @@ public class JournalEntryType
 [ExtendObjectType(typeof(PaymentRecord))]
 public class PaymentRecordType
 {
+    [GraphQLDescription("Payment method as string")] 
+    public string PaymentMethod([Parent] PaymentRecord payment)
+        => payment.Method.ToString();
+
     [GraphQLDescription("Get the invoice this payment applies to")]
     public async Task<Invoice?> GetInvoice(
         [Parent] PaymentRecord payment,
@@ -114,34 +121,17 @@ public class PaymentRecordType
     [GraphQLDescription("Get the bank account for this payment")]
     public async Task<BankAccount?> GetBankAccount(
         [Parent] PaymentRecord payment,
-        [Service] IBankAccountService bankAccountService)
+        [Service] AccountingDbContext context)
     {
         if (payment.BankAccountId == null) return null;
-        return await bankAccountService.GetByIdAsync(payment.BankAccountId.Value);
-    }
-
-    [GraphQLDescription("Get the original payment if this is a refund")]
-    public async Task<PaymentRecord?> GetOriginalPayment(
-        [Parent] PaymentRecord payment,
-        [Service] IPaymentRecordService paymentRecordService)
-    {
-        if (payment.OriginalPaymentId == null) return null;
-        return await paymentRecordService.GetByIdAsync(payment.OriginalPaymentId.Value);
+        return await context.BankAccounts
+            .FirstOrDefaultAsync(b => b.Id == payment.BankAccountId.Value);
     }
 }
 
 [ExtendObjectType(typeof(BankAccount))]
 public class BankAccountType
 {
-    [GraphQLDescription("Get recent transactions")]
-    public async Task<IEnumerable<BankTransaction>> GetRecentTransactions(
-        [Parent] BankAccount bankAccount,
-        [Service] IBankAccountService bankAccountService,
-        int take = 10)
-    {
-        return await bankAccountService.GetTransactionsAsync(bankAccount.Id, 0, take);
-    }
-
     [GraphQLDescription("Get the GL account linked to this bank account")]
     public async Task<Account?> GetGlAccount(
         [Parent] BankAccount bankAccount,
@@ -150,4 +140,24 @@ public class BankAccountType
         if (bankAccount.GlAccountId == null) return null;
         return await accountService.GetByIdAsync(bankAccount.GlAccountId.Value);
     }
+}
+
+[ExtendObjectType(typeof(JournalEntryLine))]
+public class JournalEntryLineType
+{
+    [GraphQLDescription("Account number for this journal entry line")]
+    public string AccountNumber([Parent] JournalEntryLine line)
+        => line.Account?.AccountNumber ?? string.Empty;
+
+    [GraphQLDescription("Account name for this journal entry line")]
+    public string AccountName([Parent] JournalEntryLine line)
+        => line.Account?.Name ?? string.Empty;
+
+    [GraphQLDescription("Debit amount for this journal entry line")]
+    public decimal Debit([Parent] JournalEntryLine line)
+        => line.DebitAmount;
+
+    [GraphQLDescription("Credit amount for this journal entry line")]
+    public decimal Credit([Parent] JournalEntryLine line)
+        => line.CreditAmount;
 }

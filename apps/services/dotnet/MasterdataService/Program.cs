@@ -52,6 +52,7 @@ builder.Services
     .AddType<CustomerObjectType>()
     .AddType<AddressObjectType>()
     .AddType<ContactObjectType>()
+    .AddType<CurrencyObjectType>()
     .AddTypeExtension<SupplierType>()
     .AddTypeExtension<EmployeeType>()
     .AddTypeExtension<DepartmentType>()
@@ -73,6 +74,7 @@ builder.Services
     {
         options.MaxPageSize = 5000;
         options.DefaultPageSize = 50;
+        options.RequirePagingBoundaries = false;
     });
 
 // Add Health Checks

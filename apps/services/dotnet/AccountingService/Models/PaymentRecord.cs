@@ -31,7 +31,9 @@ public class PaymentRecord
 
     public PaymentMethod Method { get; set; }
 
-    public string PaymentMethod => Method.ToString(); // Alias
+    [NotMapped]
+    [GraphQLIgnore]
+    public string PaymentMethod => Method.ToString(); // Alias for serialization, not mapped to DB/GraphQL
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal Amount { get; set; }

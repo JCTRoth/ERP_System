@@ -136,6 +136,7 @@ public class EmployeeService : IEmployeeService
                 : SalaryType.Monthly,
             Currency = input.Currency ?? "USD",
             UserId = input.UserId,
+            Notes = input.Notes,
             CreatedAt = DateTime.UtcNow
         };
 

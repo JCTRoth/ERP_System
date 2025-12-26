@@ -159,13 +159,15 @@ main() {
 
     # Start GraphQL services required by the gateway
     print_header "Starting GraphQL Dependencies"
-    print_status "Bringing up UserService, TranslationService, CompanyService, and ShopService..."
+    print_status "Bringing up UserService, TranslationService, CompanyService, ShopService, MasterdataService, and AccountingService..."
 
     docker compose -f "$COMPOSE_FILE" up -d \
         user-service \
         translation-service \
         company-service \
-        shop-service
+        shop-service \
+        masterdata-service \
+        accounting-service
 
     # Give services a moment to spin up
     print_status "Waiting for dependent services..."
@@ -183,6 +185,12 @@ main() {
     check_service_health "ShopService" "5003"
     check_graphql_health "ShopService" "5003"
 
+    check_service_health "MasterdataService" "5002"
+    check_graphql_health "MasterdataService" "5002"
+
+    check_service_health "AccountingService" "5001"
+    check_graphql_health "AccountingService" "5001"
+
     # Start the gateway after dependencies are healthy
     print_header "Starting Gateway"
     docker compose -f "$COMPOSE_FILE" up -d gateway
@@ -199,7 +207,7 @@ main() {
     # Show status
     print_header "System Status"
     echo ""
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(gateway|user-service|frontend|postgres|redis)"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(gateway|user-service|masterdata-service|accounting-service|frontend|postgres|redis)"
 
     # Show access information
     print_header "Access Information"

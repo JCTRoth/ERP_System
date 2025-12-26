@@ -1,5 +1,5 @@
 using AccountingService.Data;
-//using AccountingService.GraphQL;
+using AccountingService.GraphQL;
 using AccountingService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +11,21 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddDbContext<AccountingDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableDetailedErrors();
+        options.EnableSensitiveDataLogging();
+    }
+});
 
 // Register application services
-//builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
-//builder.Services.AddScoped<IPaymentRecordService, PaymentRecordService>();
-//builder.Services.AddScoped<IBankAccountService, BankAccountService>();
-//builder.Services.AddScoped<IReportingService, ReportingService>();
+// BankAccountService, PaymentRecordService, and ReportingService temporarily disabled due to model mismatches
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -41,12 +47,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // Configure GraphQL
-/*
 builder.Services
     .AddGraphQLServer()
     .AddQueryType<Query>()
-    .AddMutationType<Mutation>()
-    .AddSubscriptionType<Subscription>()
     .AddTypeExtension<AccountType>()
     .AddTypeExtension<InvoiceType>()
     .AddTypeExtension<JournalEntryType>()
@@ -57,8 +60,18 @@ builder.Services
     .AddProjections()
     .AddInMemorySubscriptions()
     .AddApolloFederation()
+    .ModifyCostOptions(options =>
+    {
+        options.MaxFieldCost = 250000;
+        options.MaxTypeCost = 250000;
+    })
+    .ModifyPagingOptions(options =>
+    {
+        options.DefaultPageSize = 50;
+        options.MaxPageSize = 5000;
+        options.RequirePagingBoundaries = false;
+    })
     .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = builder.Environment.IsDevelopment());
-*/
 
 // Add health checks
 builder.Services.AddHealthChecks()
@@ -79,10 +92,6 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
-
-// Add services
-builder.Services.AddScoped<IInvoiceService, InvoiceService>();
-builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
 
 var app = builder.Build();
 
@@ -105,11 +114,11 @@ app.UseAuthorization();
 
 app.UseWebSockets();
 
-//app.MapGraphQL();
+app.MapGraphQL("/graphql");
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-// Apply migrations on startup
+// Apply migrations or create database on startup
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AccountingDbContext>();
@@ -117,12 +126,20 @@ using (var scope = app.Services.CreateScope())
     {
         try
         {
-            dbContext.Database.Migrate();
+            // If migrations are defined, apply them; otherwise ensure the schema is created
+            if (dbContext.Database.GetMigrations().Any())
+            {
+                dbContext.Database.Migrate();
+            }
+            else
+            {
+                dbContext.Database.EnsureCreated();
+            }
         }
         catch (Exception ex)
         {
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning(ex, "Migration failed, database may already exist or connection unavailable");
+            logger.LogWarning(ex, "Database initialization failed, database may already exist or connection unavailable");
         }
     }
 }

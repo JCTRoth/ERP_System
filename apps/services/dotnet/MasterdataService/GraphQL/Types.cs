@@ -366,3 +366,19 @@ public class ContactObjectType : ObjectType<Contact>
         descriptor.Field(c => c.IsPrimary).Type<NonNullType<BooleanType>>();
     }
 }
+
+public class CurrencyObjectType : ObjectType<Currency>
+{
+    protected override void Configure(IObjectTypeDescriptor<Currency> descriptor)
+    {
+        descriptor.Field(c => c.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(c => c.Code).Type<NonNullType<StringType>>();
+        descriptor.Field(c => c.Name).Type<NonNullType<StringType>>();
+        descriptor.Field(c => c.Symbol).Type<StringType>();
+        descriptor.Field(c => c.DecimalPlaces).Type<NonNullType<IntType>>();
+        descriptor.Field(c => c.ExchangeRate).Type<NonNullType<DecimalType>>();
+        descriptor.Field(c => c.IsBaseCurrency).Name("isDefault").Type<NonNullType<BooleanType>>();
+        descriptor.Field(c => c.IsActive).Type<NonNullType<BooleanType>>();
+        descriptor.Field(c => c.CreatedAt).Type<NonNullType<DateTimeType>>();
+    }
+}

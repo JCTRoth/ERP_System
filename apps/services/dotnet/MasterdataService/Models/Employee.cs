@@ -85,6 +85,9 @@ public class Employee
     public ICollection<Address> Addresses { get; set; } = new List<Address>();
     public ICollection<Employee> DirectReports { get; set; } = new List<Employee>();
     
+    [MaxLength(1000)]
+    public string? Notes { get; set; }
+    
     // User link
     public Guid? UserId { get; set; }
     

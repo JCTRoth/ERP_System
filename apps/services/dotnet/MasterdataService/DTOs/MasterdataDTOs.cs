@@ -170,7 +170,8 @@ public record CreateEmployeeInput(
     decimal? Salary,
     string? SalaryType,
     string? Currency,
-    Guid? UserId
+    Guid? UserId,
+    string? Notes
 );
 
 public record UpdateEmployeeInput(
