@@ -62,7 +62,17 @@ builder.Services
     .AddProjections()
     .AddInMemorySubscriptions()
     .AddApolloFederation()
-    .AddAuthorization();
+    .AddAuthorization()
+    .ModifyCostOptions(options =>
+    {
+        options.MaxTypeCost = 10000;
+        options.MaxFieldCost = 1000;
+    })
+    .ModifyPagingOptions(options =>
+    {
+        options.MaxPageSize = 5000;
+        options.DefaultPageSize = 50;
+    });
 
 // Add Health Checks
 builder.Services.AddHealthChecks()
