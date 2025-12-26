@@ -5,8 +5,40 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MasterdataService.GraphQL;
 
-[ExtendObjectType(typeof(Customer))]
-public class CustomerType
+public class CustomerObjectType : ObjectType<Customer>
+{
+    protected override void Configure(IObjectTypeDescriptor<Customer> descriptor)
+    {
+        descriptor.Field(c => c.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(c => c.CustomerNumber).Type<NonNullType<StringType>>();
+        descriptor.Field(c => c.Name).Type<NonNullType<StringType>>();
+        descriptor.Field(c => c.Type).Type<NonNullType<EnumType<CustomerType>>>();
+        descriptor.Field(c => c.ContactPerson).Type<StringType>();
+        descriptor.Field(c => c.Email).Type<StringType>();
+        descriptor.Field(c => c.Phone).Type<StringType>();
+        descriptor.Field(c => c.Website).Type<StringType>();
+        descriptor.Field(c => c.TaxId).Type<StringType>();
+        descriptor.Field(c => c.CreditLimit).Type<NonNullType<DecimalType>>();
+        descriptor.Field(c => c.Status).Type<NonNullType<EnumType<CustomerStatus>>>();
+        descriptor.Field(c => c.CreatedAt).Type<NonNullType<DateTimeType>>();
+
+        descriptor.Field(c => c.Addresses)
+            .ResolveWith<CustomerResolvers>(r => r.GetAddresses(default!, default!));
+
+        descriptor.Field(c => c.Contacts)
+            .ResolveWith<CustomerResolvers>(r => r.GetContacts(default!, default!));
+
+        descriptor.Field("primaryContact")
+            .Type<ContactObjectType>()
+            .ResolveWith<CustomerResolvers>(r => r.GetPrimaryContact(default!, default!));
+
+        descriptor.Field("defaultAddress")
+            .Type<AddressObjectType>()
+            .ResolveWith<CustomerResolvers>(r => r.GetDefaultAddress(default!, default!));
+    }
+}
+
+public class CustomerResolvers
 {
     [GraphQLDescription("Get customer addresses")]
     public async Task<IEnumerable<Address>> GetAddresses(
@@ -211,5 +243,35 @@ public class LocationType
         [Service] IAssetService assetService)
     {
         return await assetService.GetByLocationAsync(location.Id);
+    }
+}
+
+public class AddressObjectType : ObjectType<Address>
+{
+    protected override void Configure(IObjectTypeDescriptor<Address> descriptor)
+    {
+        descriptor.Field(a => a.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(a => a.Type).Type<NonNullType<EnumType<AddressType>>>();
+        descriptor.Field(a => a.AddressLine1).Type<StringType>();
+        descriptor.Field(a => a.AddressLine2).Type<StringType>();
+        descriptor.Field(a => a.City).Type<StringType>();
+        descriptor.Field(a => a.PostalCode).Type<StringType>();
+        descriptor.Field(a => a.Country).Type<StringType>();
+        descriptor.Field(a => a.IsDefault).Type<NonNullType<BooleanType>>();
+    }
+}
+
+public class ContactObjectType : ObjectType<Contact>
+{
+    protected override void Configure(IObjectTypeDescriptor<Contact> descriptor)
+    {
+        descriptor.Field(c => c.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(c => c.FirstName).Type<NonNullType<StringType>>();
+        descriptor.Field(c => c.LastName).Type<NonNullType<StringType>>();
+        descriptor.Field(c => c.Title).Type<StringType>();
+        descriptor.Field(c => c.Email).Type<StringType>();
+        descriptor.Field(c => c.Phone).Type<StringType>();
+        descriptor.Field(c => c.Department).Type<StringType>();
+        descriptor.Field(c => c.IsPrimary).Type<NonNullType<BooleanType>>();
     }
 }

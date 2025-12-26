@@ -11,8 +11,7 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./apps/frontend/src:/app/src
-      - ./apps/frontend/public:/app/public
+      - ./apps/frontend:/app
     environment:
       - VITE_GATEWAY_URL=http://localhost:4000
     depends_on:
@@ -22,11 +21,13 @@ services:
   gateway:
     build:
       context: ./apps/gateway
-      # use default Dockerfile in apps/gateway
+      dockerfile: Dockerfile.dev
     ports:
       - "4000:4000"
     volumes:
       - ./apps/gateway/src:/app/src
+      - ./apps/gateway/supergraph-config.yaml:/app/supergraph-config.yaml
+      - ./apps/gateway/supergraph.graphql:/app/supergraph.graphql
     environment:
       - NODE_ENV=development
       - DEBUG=apollo:gateway
@@ -35,11 +36,13 @@ services:
       - COMPANY_SERVICE_URL=http://company-service:8080/graphql
       - SHOP_SERVICE_URL=http://shop-service:5003/graphql
       - ACCOUNTING_SERVICE_URL=http://accounting-service:5001/graphql
+      - MASTERDATA_SERVICE_URL=http://masterdata-service:5002/graphql
     depends_on:
       - user-service
       - company-service
       - shop-service
       - translation-service
+      - masterdata-service
 
   # .NET Services
   user-service:
@@ -88,6 +91,7 @@ services:
   masterdata-service:
     build:
       context: ./apps/services/dotnet/MasterdataService
+      target: development
       # use default Dockerfile in MasterdataService
     ports:
       - "5002:5002"
@@ -107,7 +111,7 @@ services:
     ports:
       - "8081:8080"
     volumes:
-      - ./apps/services/java/company-service/src:/app/src
+      - ./apps/services/java/company-service:/app
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-company:5432/companydb
@@ -126,7 +130,7 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - ./apps/services/java/notification-service/src:/app/src
+      - ./apps/services/java/notification-service:/app
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-notification:5432/notificationdb
@@ -145,7 +149,7 @@ services:
     ports:
       - "8083:8081"
     volumes:
-      - ./apps/services/java/translation-service/src:/app/src
+      - ./apps/services/java/translation-service:/app
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-translation:5432/translationdb
@@ -164,7 +168,7 @@ services:
     ports:
       - "8084:8084"
     volumes:
-      - ./apps/services/java/scripting-service/src:/app/src
+      - ./apps/services/java/scripting-service:/app
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - DB_HOST=postgres-company
@@ -182,7 +186,7 @@ services:
     ports:
       - "8085:8085"
     volumes:
-      - ./apps/services/java/edifact-service/src:/app/src
+      - ./apps/services/java/edifact-service:/app
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - DB_HOST=postgres-company

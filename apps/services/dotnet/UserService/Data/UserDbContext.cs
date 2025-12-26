@@ -9,6 +9,7 @@ public class UserDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +27,7 @@ public class UserDbContext : DbContext
             entity.Property(e => e.LastName).HasColumnName("last_name");
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.EmailVerified).HasColumnName("email_verified");
+            entity.Property(e => e.Role).HasColumnName("role");
             entity.Property(e => e.PreferredLanguage).HasColumnName("preferred_language");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.LastLoginAt).HasColumnName("last_login_at");
@@ -46,6 +48,25 @@ public class UserDbContext : DbContext
 
             entity.HasOne(e => e.User)
                   .WithMany(u => u.RefreshTokens)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PasswordResetToken configuration
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("password_reset_tokens");
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Token).HasColumnName("token");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.IsUsed).HasColumnName("is_used");
+            entity.Property(e => e.UsedAt).HasColumnName("used_at");
+
+            entity.HasOne(e => e.User)
+                  .WithMany()
                   .HasForeignKey(e => e.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
         });

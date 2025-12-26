@@ -1,0 +1,27 @@
+# Gateway Development Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 appgroup && \
+    adduser -u 1001 -G appgroup -s /bin/sh -D appuser
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including dev dependencies for development)
+RUN npm ci
+
+# Copy source files
+COPY . .
+
+# Change ownership
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 4000
+
+# Use development command with hot reload
+CMD ["npm", "run", "dev"]

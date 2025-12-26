@@ -34,10 +34,14 @@ RUN addgroup -g 1001 appgroup && \
 # Copy JAR file
 COPY --from=build /app/build/libs/*.jar app.jar
 
+# Copy Gradle from build stage for development mode
+COPY --from=build /opt/gradle /opt/gradle
+RUN ln -s /opt/gradle/bin/gradle /usr/bin/gradle
+
 # Set ownership
 RUN chown -R appuser:appgroup /app
 
-USER appuser
+# USER appuser
 
 EXPOSE 8081
 
@@ -45,4 +49,6 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
         CMD wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Check if we're in development mode (source code mounted)
+# If src directory exists and contains source files, run in dev mode with hot reload
+ENTRYPOINT ["sh", "-c", "if [ -d src ] && [ -f build.gradle ]; then gradle bootRun --no-daemon; else java -jar app.jar; fi"]

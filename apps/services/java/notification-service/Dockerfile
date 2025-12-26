@@ -20,4 +20,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
 EXPOSE 8082
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+# Check if we're in development mode (source code mounted)
+# If src directory exists and contains source files, run in dev mode with hot reload
+ENTRYPOINT ["sh", "-c", "if [ -d src ] && [ -f build.gradle ]; then ./gradlew bootRun --no-daemon; else java -jar app.jar; fi"]

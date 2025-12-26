@@ -33,26 +33,18 @@ public class CustomerService : ICustomerService
     public async Task<Customer?> GetByIdAsync(Guid id)
     {
         return await _context.Customers
-            .Include(c => c.Addresses)
-            .Include(c => c.Contacts)
-            .Include(c => c.BankDetails)
-            .Include(c => c.DefaultCurrency)
-            .Include(c => c.DefaultPaymentTerm)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task<Customer?> GetByNumberAsync(string customerNumber)
     {
         return await _context.Customers
-            .Include(c => c.Addresses)
-            .Include(c => c.Contacts)
             .FirstOrDefaultAsync(c => c.CustomerNumber == customerNumber);
     }
 
     public async Task<IEnumerable<Customer>> GetAllAsync(int skip = 0, int take = 50)
     {
         return await _context.Customers
-            .Include(c => c.Addresses.Where(a => a.IsDefault))
             .OrderBy(c => c.Name)
             .Skip(skip)
             .Take(take)

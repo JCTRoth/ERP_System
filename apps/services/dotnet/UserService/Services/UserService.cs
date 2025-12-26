@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using BCrypt.Net;
 using UserService.Data;
 using UserService.DTOs;
 using UserService.Models;

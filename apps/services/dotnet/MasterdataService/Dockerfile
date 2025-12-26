@@ -1,3 +1,23 @@
+# Development stage - uses SDK for dotnet watch
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS development
+WORKDIR /app
+
+# Copy everything for development
+COPY . .
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:5002
+ENV ASPNETCORE_ENVIRONMENT=Development
+
+# Expose port
+EXPOSE 5002
+
+# For development, run with dotnet watch for hot reload
+ENTRYPOINT ["dotnet", "watch", "run", "--urls", "http://0.0.0.0:5002"]
+
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
@@ -37,5 +57,5 @@ EXPOSE 5002
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5002/health || exit 1
 
-# Set entrypoint
+# For production, run the published app
 ENTRYPOINT ["dotnet", "MasterdataService.dll"]

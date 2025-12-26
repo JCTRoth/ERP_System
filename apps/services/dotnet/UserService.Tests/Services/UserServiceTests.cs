@@ -10,17 +10,17 @@ namespace UserService.Tests.Services;
 
 public class UserServiceTests : IDisposable
 {
-    private readonly ApplicationDbContext _context;
-    private readonly UserService.Services.UserService _userService;
+    private readonly UserDbContext _context;
+    private readonly IUserService _userService;
 
     public UserServiceTests()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+        var options = new DbContextOptionsBuilder<UserDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options);
-        _userService = new UserService.Services.UserService(_context);
+        _context = new UserDbContext(options);
+        _userService = new UserServiceImpl(_context, null); // Logger can be null for tests
     }
 
     public void Dispose()

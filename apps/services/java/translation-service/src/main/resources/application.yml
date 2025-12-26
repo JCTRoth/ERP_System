@@ -45,7 +45,7 @@ app:
       flag: 🇫🇷
     - code: ru
       name: Русский
-      flag: 🇷🇺
+      flag: RU
   
   fallback-language: en
 

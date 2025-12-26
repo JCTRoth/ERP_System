@@ -353,7 +353,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
       MINIO_PROMETHEUS_AUTH_TYPE: public
-      MINIO_BROWSER: off
+      MINIO_BROWSER: "off"
     volumes:
       - minio-data:/data
     healthcheck:

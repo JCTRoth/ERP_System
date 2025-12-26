@@ -11,11 +11,13 @@ COPY package*.json ./
 # to `npm install` so Docker builds don't fail when a lockfile isn't present.
 RUN npm ci || npm install --prefer-offline --no-audit --no-fund
 
-# Copy source files
-COPY . .
+# Don't copy source files - they will be mounted via volume in docker-compose
+# This allows for hot reload during development
 
 # Expose Vite dev server port
 EXPOSE 5173
 
+# USER node
+
 # Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0"]

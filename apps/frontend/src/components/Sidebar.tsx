@@ -16,7 +16,6 @@ import { useUIStore } from '../stores/uiStore';
 import { useI18n } from '../providers/I18nProvider';
 import { useAuthStore } from '../stores/authStore';
 import CustomPagesSection from './CustomPagesSection';
-import Tooltip from './Tooltip';
 
 const menuItems = [
   { path: '/', icon: HomeIcon, labelKey: 'nav.dashboard', tooltipKey: 'nav.dashboardTooltip' },
@@ -61,21 +60,15 @@ export default function Sidebar() {
         <ul className="flex flex-col gap-1">
           {menuItems.map((item) => (
             <li key={item.path}>
-              <Tooltip 
-                content={t(item.tooltipKey) || t(item.labelKey)} 
-                position="right"
-                delay={500}
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  isActive ? 'sidebar-link-active' : 'sidebar-link'
+                }
               >
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    isActive ? 'sidebar-link-active' : 'sidebar-link'
-                  }
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{t(item.labelKey)}</span>
-                </NavLink>
-              </Tooltip>
+                <item.icon className="h-5 w-5" />
+                <span>{t(item.labelKey)}</span>
+              </NavLink>
             </li>
           ))}
         </ul>
@@ -86,23 +79,18 @@ export default function Sidebar() {
 
       {/* User Info */}
       <div className="mt-auto border-t border-gray-700 px-4 py-4">
-        <Tooltip 
-          content={`${user?.firstName} ${user?.lastName} (${user?.email})`} 
-          position="right"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-white">
-              {user?.firstName?.[0]}
-              {user?.lastName?.[0]}
-            </div>
-            <div className="text-sm">
-              <p className="font-medium text-white">
-                {user?.firstName} {user?.lastName}
-              </p>
-              <p className="text-bodydark">{user?.email}</p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-white">
+            {user?.firstName?.[0]}
+            {user?.lastName?.[0]}
           </div>
-        </Tooltip>
+          <div className="text-sm">
+            <p className="font-medium text-white">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="text-bodydark">{user?.email}</p>
+          </div>
+        </div>
       </div>
     </aside>
   );

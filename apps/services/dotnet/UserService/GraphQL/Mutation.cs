@@ -75,4 +75,26 @@ public class Mutation
     {
         return await userService.ActivateAsync(id);
     }
+
+    public async Task<bool> RequestPasswordReset(
+        [Service] IAuthService authService,
+        string email)
+    {
+        return await authService.RequestPasswordResetAsync(new RequestPasswordResetRequest(email));
+    }
+
+    public async Task<bool> ResetPassword(
+        [Service] IAuthService authService,
+        string token,
+        string newPassword)
+    {
+        return await authService.ResetPasswordAsync(new ResetPasswordRequest(token, newPassword));
+    }
+
+    public async Task<bool> VerifyEmail(
+        [Service] IAuthService authService,
+        string token)
+    {
+        return await authService.VerifyEmailAsync(token);
+    }
 }

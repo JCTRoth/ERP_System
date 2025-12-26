@@ -11,18 +11,21 @@ import CustomerModal from './CustomerModal';
 
 const GET_CUSTOMERS = gql`
   query GetCustomers {
-    customers {
-      id
-      customerNumber
-      name
-      contactPerson
-      email
-      phone
-      website
-      taxId
-      creditLimit
-      status
-      createdAt
+    customers(first: 1000) {
+      nodes {
+        id
+        customerNumber
+        name
+        contactPerson
+        email
+        phone
+        website
+        taxId
+        creditLimit
+        status
+        createdAt
+      }
+      totalCount
     }
   }
 `;
@@ -98,7 +101,7 @@ export default function CustomersTab() {
     }
   };
 
-  const customers = data?.customers || [];
+  const customers = data?.customers?.nodes || [];
   const filteredCustomers = customers.filter((customer: Customer) => {
     const search = searchTerm.toLowerCase();
     return (

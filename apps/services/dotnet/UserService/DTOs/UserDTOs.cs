@@ -43,3 +43,12 @@ public record ChangePasswordRequest(
     string CurrentPassword,
     string NewPassword
 );
+
+public record RequestPasswordResetRequest(string Email);
+
+public record ResetPasswordRequest(
+    string Token,
+    string NewPassword
+);
+
+public record VerifyEmailRequest(string Token);

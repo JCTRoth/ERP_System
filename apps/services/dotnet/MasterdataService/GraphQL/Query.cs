@@ -1,5 +1,6 @@
 using MasterdataService.Models;
 using MasterdataService.Services;
+using HotChocolate;
 
 namespace MasterdataService.GraphQL;
 
@@ -7,11 +8,16 @@ public class Query
 {
     // Customer Queries
     [GraphQLDescription("Get a customer by ID")]
+    [Query]
     public async Task<Customer?> GetCustomer(
-        Guid id,
+        string id,
         [Service] ICustomerService customerService)
     {
-        return await customerService.GetByIdAsync(id);
+        if (Guid.TryParse(id, out var guid))
+        {
+            return await customerService.GetByIdAsync(guid);
+        }
+        return null;
     }
 
     [GraphQLDescription("Get a customer by number")]
@@ -27,15 +33,14 @@ public class Query
     [UseFiltering]
     [UseSorting]
     public async Task<IEnumerable<Customer>> GetCustomers(
-        int skip,
-        int take,
         [Service] ICustomerService customerService)
     {
-        return await customerService.GetAllAsync(skip, take);
+        return await customerService.GetAllAsync();
     }
 
     [GraphQLDescription("Search customers")]
-    public async Task<IEnumerable<Customer>> SearchCustomers(
+    [Query]
+    public static async Task<IEnumerable<Customer>> SearchCustomers(
         string query,
         [Service] ICustomerService customerService)
     {
@@ -44,7 +49,7 @@ public class Query
 
     // Supplier Queries
     [GraphQLDescription("Get a supplier by ID")]
-    public async Task<Supplier?> GetSupplier(
+    public static async Task<Supplier?> GetSupplier(
         Guid id,
         [Service] ISupplierService supplierService)
     {
@@ -52,7 +57,7 @@ public class Query
     }
 
     [GraphQLDescription("Get a supplier by number")]
-    public async Task<Supplier?> GetSupplierByNumber(
+    public static async Task<Supplier?> GetSupplierByNumber(
         string supplierNumber,
         [Service] ISupplierService supplierService)
     {
@@ -63,7 +68,7 @@ public class Query
     [UsePaging(IncludeTotalCount = true)]
     [UseFiltering]
     [UseSorting]
-    public async Task<IEnumerable<Supplier>> GetSuppliers(
+    public static async Task<IEnumerable<Supplier>> GetSuppliers(
         int skip,
         int take,
         [Service] ISupplierService supplierService)
@@ -72,7 +77,7 @@ public class Query
     }
 
     [GraphQLDescription("Get preferred suppliers")]
-    public async Task<IEnumerable<Supplier>> GetPreferredSuppliers(
+    public static async Task<IEnumerable<Supplier>> GetPreferredSuppliers(
         [Service] ISupplierService supplierService)
     {
         return await supplierService.GetByRatingAsync(SupplierRating.Preferred);
@@ -80,7 +85,7 @@ public class Query
 
     // Employee Queries
     [GraphQLDescription("Get an employee by ID")]
-    public async Task<Employee?> GetEmployee(
+    public static async Task<Employee?> GetEmployee(
         Guid id,
         [Service] IEmployeeService employeeService)
     {
@@ -88,7 +93,7 @@ public class Query
     }
 
     [GraphQLDescription("Get an employee by number")]
-    public async Task<Employee?> GetEmployeeByNumber(
+    public static async Task<Employee?> GetEmployeeByNumber(
         string employeeNumber,
         [Service] IEmployeeService employeeService)
     {
@@ -99,7 +104,7 @@ public class Query
     [UsePaging(IncludeTotalCount = true)]
     [UseFiltering]
     [UseSorting]
-    public async Task<IEnumerable<Employee>> GetEmployees(
+    public static async Task<IEnumerable<Employee>> GetEmployees(
         int skip,
         int take,
         [Service] IEmployeeService employeeService)
@@ -108,7 +113,7 @@ public class Query
     }
 
     [GraphQLDescription("Get employees by department")]
-    public async Task<IEnumerable<Employee>> GetEmployeesByDepartment(
+    public static async Task<IEnumerable<Employee>> GetEmployeesByDepartment(
         Guid departmentId,
         [Service] IEmployeeService employeeService)
     {
@@ -116,7 +121,7 @@ public class Query
     }
 
     [GraphQLDescription("Get direct reports")]
-    public async Task<IEnumerable<Employee>> GetDirectReports(
+    public static async Task<IEnumerable<Employee>> GetDirectReports(
         Guid managerId,
         [Service] IEmployeeService employeeService)
     {
@@ -125,7 +130,7 @@ public class Query
 
     // Department Queries
     [GraphQLDescription("Get a department by ID")]
-    public async Task<Department?> GetDepartment(
+    public static async Task<Department?> GetDepartment(
         Guid id,
         [Service] IDepartmentService departmentService)
     {
@@ -133,14 +138,14 @@ public class Query
     }
 
     [GraphQLDescription("Get all departments")]
-    public async Task<IEnumerable<Department>> GetDepartments(
+    public static async Task<IEnumerable<Department>> GetDepartments(
         [Service] IDepartmentService departmentService)
     {
         return await departmentService.GetAllAsync();
     }
 
     [GraphQLDescription("Get department hierarchy")]
-    public async Task<IEnumerable<Department>> GetDepartmentHierarchy(
+    public static async Task<IEnumerable<Department>> GetDepartmentHierarchy(
         [Service] IDepartmentService departmentService)
     {
         return await departmentService.GetHierarchyAsync();
@@ -148,7 +153,7 @@ public class Query
 
     // Cost Center Queries
     [GraphQLDescription("Get a cost center by ID")]
-    public async Task<CostCenter?> GetCostCenter(
+    public static async Task<CostCenter?> GetCostCenter(
         Guid id,
         [Service] ICostCenterService costCenterService)
     {
@@ -156,7 +161,7 @@ public class Query
     }
 
     [GraphQLDescription("Get all cost centers")]
-    public async Task<IEnumerable<CostCenter>> GetCostCenters(
+    public static async Task<IEnumerable<CostCenter>> GetCostCenters(
         [Service] ICostCenterService costCenterService)
     {
         return await costCenterService.GetAllAsync();
@@ -164,7 +169,7 @@ public class Query
 
     // Location Queries
     [GraphQLDescription("Get a location by ID")]
-    public async Task<BusinessLocation?> GetLocation(
+    public static async Task<BusinessLocation?> GetLocation(
         Guid id,
         [Service] ILocationService locationService)
     {
@@ -172,7 +177,7 @@ public class Query
     }
 
     [GraphQLDescription("Get all locations")]
-    public async Task<IEnumerable<BusinessLocation>> GetLocations(
+    public static async Task<IEnumerable<BusinessLocation>> GetLocations(
         [Service] ILocationService locationService)
     {
         return await locationService.GetAllAsync();
@@ -180,7 +185,7 @@ public class Query
 
     // Asset Queries
     [GraphQLDescription("Get an asset by ID")]
-    public async Task<Asset?> GetAsset(
+    public static async Task<Asset?> GetAsset(
         Guid id,
         [Service] IAssetService assetService)
     {
@@ -188,7 +193,7 @@ public class Query
     }
 
     [GraphQLDescription("Get an asset by number")]
-    public async Task<Asset?> GetAssetByNumber(
+    public static async Task<Asset?> GetAssetByNumber(
         string assetNumber,
         [Service] IAssetService assetService)
     {
@@ -199,7 +204,7 @@ public class Query
     [UsePaging(IncludeTotalCount = true)]
     [UseFiltering]
     [UseSorting]
-    public async Task<IEnumerable<Asset>> GetAssets(
+    public static async Task<IEnumerable<Asset>> GetAssets(
         int skip,
         int take,
         [Service] IAssetService assetService)
@@ -208,7 +213,7 @@ public class Query
     }
 
     [GraphQLDescription("Get assets by assignee")]
-    public async Task<IEnumerable<Asset>> GetAssetsByAssignee(
+    public static async Task<IEnumerable<Asset>> GetAssetsByAssignee(
         Guid employeeId,
         [Service] IAssetService assetService)
     {
@@ -216,7 +221,7 @@ public class Query
     }
 
     [GraphQLDescription("Get asset categories")]
-    public async Task<IEnumerable<AssetCategory>> GetAssetCategories(
+    public static async Task<IEnumerable<AssetCategory>> GetAssetCategories(
         [Service] IAssetCategoryService assetCategoryService)
     {
         return await assetCategoryService.GetAllAsync();
@@ -224,14 +229,14 @@ public class Query
 
     // Reference Data Queries
     [GraphQLDescription("Get all currencies")]
-    public async Task<IEnumerable<Currency>> GetCurrencies(
+    public static async Task<IEnumerable<Currency>> GetCurrencies(
         [Service] IReferenceDataService referenceDataService)
     {
         return await referenceDataService.GetCurrenciesAsync();
     }
 
     [GraphQLDescription("Get currency by code")]
-    public async Task<Currency?> GetCurrency(
+    public static async Task<Currency?> GetCurrency(
         string code,
         [Service] IReferenceDataService referenceDataService)
     {
@@ -239,28 +244,28 @@ public class Query
     }
 
     [GraphQLDescription("Get all payment terms")]
-    public async Task<IEnumerable<PaymentTerm>> GetPaymentTerms(
+    public static async Task<IEnumerable<PaymentTerm>> GetPaymentTerms(
         [Service] IReferenceDataService referenceDataService)
     {
         return await referenceDataService.GetPaymentTermsAsync();
     }
 
     [GraphQLDescription("Get all units of measure")]
-    public async Task<IEnumerable<UnitOfMeasure>> GetUnitsOfMeasure(
+    public static async Task<IEnumerable<UnitOfMeasure>> GetUnitsOfMeasure(
         [Service] IReferenceDataService referenceDataService)
     {
         return await referenceDataService.GetUnitsOfMeasureAsync();
     }
 
     [GraphQLDescription("Get all tax codes")]
-    public async Task<IEnumerable<TaxCode>> GetTaxCodes(
+    public static async Task<IEnumerable<TaxCode>> GetTaxCodes(
         [Service] IReferenceDataService referenceDataService)
     {
         return await referenceDataService.GetTaxCodesAsync();
     }
 
     [GraphQLDescription("Convert units")]
-    public async Task<decimal> ConvertUnits(
+    public static async Task<decimal> ConvertUnits(
         decimal amount,
         Guid fromUnitId,
         Guid toUnitId,

@@ -108,7 +108,7 @@ export default function SettingsPage() {
                       }`}
                     >
                       <span className="block text-2xl mb-1">
-                        {lang === 'en' ? '🇬🇧' : lang === 'de' ? '🇩🇪' : lang === 'fr' ? '🇫🇷' : '🇷🇺'}
+                        {lang === 'en' ? '🇬🇧' : lang === 'de' ? '🇩🇪' : lang === 'fr' ? '🇫🇷' : 'RU'}
                       </span>
                       {LANGUAGE_NAMES[lang]}
                     </button>

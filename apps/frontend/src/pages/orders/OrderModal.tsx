@@ -28,11 +28,11 @@ const GET_PRODUCTS = gql`
 
 const GET_CUSTOMERS = gql`
   query GetCustomersForOrder {
-    customers(first: 50, where: { isActive: { eq: true } }) {
+    customers(first: 50, where: { status: { eq: ACTIVE } }) {
       nodes {
         id
-        firstName
-        lastName
+        name
+        contactPerson
         email
       }
     }
@@ -166,12 +166,12 @@ export default function OrderModal({ onClose }: OrderModalProps) {
               <option value="">{t('orders.selectCustomer')}</option>
               {customersData?.customers?.nodes?.map((customer: {
                 id: string;
-                firstName: string;
-                lastName: string;
+                name: string;
+                contactPerson: string;
                 email: string;
               }) => (
                 <option key={customer.id} value={customer.id}>
-                  {customer.firstName} {customer.lastName} ({customer.email})
+                  {customer.name}{customer.contactPerson ? ` (${customer.contactPerson})` : ''} ({customer.email})
                 </option>
               ))}
             </select>

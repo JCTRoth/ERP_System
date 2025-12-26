@@ -40,6 +40,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // GraphQL
 builder.Services
@@ -48,6 +49,7 @@ builder.Services
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
     .AddType<UserType>()
+    .AddType<UserDtoType>()
     .AddFiltering()
     .AddSorting()
     .AddProjections()

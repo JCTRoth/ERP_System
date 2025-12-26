@@ -13,7 +13,7 @@ COPY . .
 
 RUN chown -R appuser:appgroup /app
 
-USER appuser
+# USER appuser
 
 EXPOSE 4000
 

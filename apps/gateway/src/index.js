@@ -56,7 +56,8 @@ const subgraphs = [
   { name: 'user-service', url: process.env.USER_SERVICE_URL || 'http://user-service:5000/graphql' },
   { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL || 'http://translation-service:8081/graphql' },
   { name: 'company-service', url: process.env.COMPANY_SERVICE_URL || 'http://company-service:8080/graphql' },
-  { name: 'shop-service', url: process.env.SHOP_SERVICE_URL || 'http://shop-service:5003/graphql' },
+  // { name: 'shop-service', url: process.env.SHOP_SERVICE_URL || 'http://shop-service:5003/graphql' },
+  { name: 'masterdata-service', url: process.env.MASTERDATA_SERVICE_URL || 'http://masterdata-service:5002/graphql' },
 ];
 
 // Create gateway

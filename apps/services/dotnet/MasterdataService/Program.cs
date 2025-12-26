@@ -49,7 +49,9 @@ builder.Services
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
     .AddSubscriptionType<Subscription>()
-    .AddTypeExtension<CustomerType>()
+    .AddType<CustomerObjectType>()
+    .AddType<AddressObjectType>()
+    .AddType<ContactObjectType>()
     .AddTypeExtension<SupplierType>()
     .AddTypeExtension<EmployeeType>()
     .AddTypeExtension<DepartmentType>()
@@ -90,7 +92,8 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<MasterdataDbContext>();
     if (dbContext.Database.IsRelational())
     {
-        dbContext.Database.Migrate();
+        // For development, ensure the database is created
+        dbContext.Database.EnsureCreated();
     }
 }
 
