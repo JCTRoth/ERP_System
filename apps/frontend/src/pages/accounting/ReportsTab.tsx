@@ -15,12 +15,16 @@ const GET_BALANCE_SHEET = gql`
           accountId
           accountNumber
           accountName
+          category
+          isSystemAccount
           balance
         }
         nonCurrent {
           accountId
           accountNumber
           accountName
+          category
+          isSystemAccount
           balance
         }
         totalCurrent
@@ -32,12 +36,16 @@ const GET_BALANCE_SHEET = gql`
           accountId
           accountNumber
           accountName
+          category
+          isSystemAccount
           balance
         }
         nonCurrent {
           accountId
           accountNumber
           accountName
+          category
+          isSystemAccount
           balance
         }
         totalCurrent
@@ -49,6 +57,8 @@ const GET_BALANCE_SHEET = gql`
           accountId
           accountNumber
           accountName
+          category
+          isSystemAccount
           balance
         }
         retainedEarnings
@@ -69,6 +79,8 @@ const GET_INCOME_STATEMENT = gql`
           accountId
           accountNumber
           accountName
+          category
+          isSystemAccount
           balance
         }
         total
@@ -78,6 +90,8 @@ const GET_INCOME_STATEMENT = gql`
           accountId
           accountNumber
           accountName
+          category
+          isSystemAccount
           balance
         }
         total
@@ -114,6 +128,31 @@ export default function ReportsTab() {
     skip: selectedReport !== 'income-statement',
     errorPolicy: 'all',
   });
+
+  const getAccountDisplayName = (item: { accountName: string; category: string; isSystemAccount: boolean }): string => {
+    if (item.isSystemAccount) {
+      // For system accounts, use translated names based on category
+      switch (item.category) {
+        case 'CASH':
+          return t('accounting.accountName.cash');
+        case 'BANK_ACCOUNT':
+          return t('accounting.accountName.bankAccount');
+        case 'ACCOUNTS_RECEIVABLE':
+          return t('accounting.accountName.accountsReceivable');
+        case 'ACCOUNTS_PAYABLE':
+          return t('accounting.accountName.accountsPayable');
+        case 'SALES':
+          return t('accounting.accountName.salesRevenue');
+        case 'COST_OF_GOODS_SOLD':
+          return t('accounting.accountName.costOfGoodsSold');
+        case 'OPERATING_EXPENSES':
+          return t('accounting.accountName.operatingExpenses');
+        default:
+          return item.accountName;
+      }
+    }
+    return item.accountName;
+  };
 
   // Handle unavailable service
   if (bsError || isError) {
@@ -229,10 +268,12 @@ export default function ReportsTab() {
                         accountId: string;
                         accountNumber: string;
                         accountName: string;
+                        category: string;
+                        isSystemAccount: boolean;
                         balance: number;
                       }) => (
                         <div key={item.accountId} className="flex justify-between text-sm">
-                          <span>{item.accountName}</span>
+                          <span>{getAccountDisplayName(item)}</span>
                           <span>{formatCurrency(item.balance)}</span>
                         </div>
                       ))}
@@ -253,10 +294,12 @@ export default function ReportsTab() {
                         accountId: string;
                         accountNumber: string;
                         accountName: string;
+                        category: string;
+                        isSystemAccount: boolean;
                         balance: number;
                       }) => (
                         <div key={item.accountId} className="flex justify-between text-sm">
-                          <span>{item.accountName}</span>
+                          <span>{getAccountDisplayName(item)}</span>
                           <span>{formatCurrency(item.balance)}</span>
                         </div>
                       ))}
@@ -291,10 +334,12 @@ export default function ReportsTab() {
                         accountId: string;
                         accountNumber: string;
                         accountName: string;
+                        category: string;
+                        isSystemAccount: boolean;
                         balance: number;
                       }) => (
                         <div key={item.accountId} className="flex justify-between text-sm">
-                          <span>{item.accountName}</span>
+                          <span>{getAccountDisplayName(item)}</span>
                           <span>{formatCurrency(item.balance)}</span>
                         </div>
                       ))}
@@ -315,10 +360,12 @@ export default function ReportsTab() {
                         accountId: string;
                         accountNumber: string;
                         accountName: string;
+                        category: string;
+                        isSystemAccount: boolean;
                         balance: number;
                       }) => (
                         <div key={item.accountId} className="flex justify-between text-sm">
-                          <span>{item.accountName}</span>
+                          <span>{getAccountDisplayName(item)}</span>
                           <span>{formatCurrency(item.balance)}</span>
                         </div>
                       ))}
@@ -358,10 +405,12 @@ export default function ReportsTab() {
                       accountId: string;
                       accountNumber: string;
                       accountName: string;
+                      category: string;
+                      isSystemAccount: boolean;
                       balance: number;
                     }) => (
                       <div key={item.accountId} className="flex justify-between text-sm">
-                        <span className="pl-4">{item.accountName}</span>
+                        <span className="pl-4">{getAccountDisplayName(item)}</span>
                         <span>{formatCurrency(item.balance)}</span>
                       </div>
                     ))}
@@ -382,10 +431,12 @@ export default function ReportsTab() {
                       accountId: string;
                       accountNumber: string;
                       accountName: string;
+                      category: string;
+                      isSystemAccount: boolean;
                       balance: number;
                     }) => (
                       <div key={item.accountId} className="flex justify-between text-sm">
-                        <span className="pl-4">{item.accountName}</span>
+                        <span className="pl-4">{getAccountDisplayName(item)}</span>
                         <span>{formatCurrency(item.balance)}</span>
                       </div>
                     ))}

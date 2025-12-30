@@ -20,6 +20,7 @@ const GET_ACCOUNTS = gql`
         parentAccountId
         balance
         isActive
+        isSystemAccount
         description
       }
       totalCount
@@ -36,6 +37,7 @@ interface Account {
   parentAccountId: string | null;
   balance: number;
   isActive: boolean;
+  isSystemAccount: boolean;
   description: string;
 }
 
@@ -55,6 +57,31 @@ export default function AccountsTab() {
   const { data, loading, error } = useQuery(GET_ACCOUNTS, {
     errorPolicy: 'all',
   });
+
+  const getAccountDisplayName = (account: Account): string => {
+    if (account.isSystemAccount) {
+      // For system accounts, use translated names based on category
+      switch (account.category) {
+        case 'CASH':
+          return t('accounting.accountName.cash');
+        case 'BANK_ACCOUNT':
+          return t('accounting.accountName.bankAccount');
+        case 'ACCOUNTS_RECEIVABLE':
+          return t('accounting.accountName.accountsReceivable');
+        case 'ACCOUNTS_PAYABLE':
+          return t('accounting.accountName.accountsPayable');
+        case 'SALES':
+          return t('accounting.accountName.salesRevenue');
+        case 'COST_OF_GOODS_SOLD':
+          return t('accounting.accountName.costOfGoodsSold');
+        case 'OPERATING_EXPENSES':
+          return t('accounting.accountName.operatingExpenses');
+        default:
+          return account.name;
+      }
+    }
+    return account.name;
+  };
 
   // Handle unavailable service
   if (error) {
@@ -184,7 +211,7 @@ export default function AccountsTab() {
                             {account.accountNumber}
                           </span>
                           <div>
-                            <p className="font-medium">{account.name}</p>
+                            <p className="font-medium">{getAccountDisplayName(account)}</p>
                             {account.description && (
                               <p className="text-sm text-gray-500">{account.description}</p>
                             )}

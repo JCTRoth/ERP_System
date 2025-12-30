@@ -199,6 +199,8 @@ public class Query
                 AccountId = a.Id,
                 AccountNumber = a.AccountNumber,
                 AccountName = a.Name,
+                Category = a.Category.ToString(),
+                IsSystemAccount = a.IsSystemAccount,
                 Balance = a.Balance
             })
             .ToList();
@@ -210,6 +212,8 @@ public class Query
                 AccountId = a.Id,
                 AccountNumber = a.AccountNumber,
                 AccountName = a.Name,
+                Category = a.Category.ToString(),
+                IsSystemAccount = a.IsSystemAccount,
                 Balance = a.Balance
             })
             .ToList();
@@ -222,6 +226,8 @@ public class Query
                 AccountId = a.Id,
                 AccountNumber = a.AccountNumber,
                 AccountName = a.Name,
+                Category = a.Category.ToString(),
+                IsSystemAccount = a.IsSystemAccount,
                 Balance = a.Balance
             })
             .ToList();
@@ -233,6 +239,8 @@ public class Query
                 AccountId = a.Id,
                 AccountNumber = a.AccountNumber,
                 AccountName = a.Name,
+                Category = a.Category.ToString(),
+                IsSystemAccount = a.IsSystemAccount,
                 Balance = a.Balance
             })
             .ToList();
@@ -244,6 +252,8 @@ public class Query
                 AccountId = a.Id,
                 AccountNumber = a.AccountNumber,
                 AccountName = a.Name,
+                Category = a.Category.ToString(),
+                IsSystemAccount = a.IsSystemAccount,
                 Balance = a.Balance
             })
             .ToList();

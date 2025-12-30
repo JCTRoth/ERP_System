@@ -5,6 +5,8 @@ public class BalanceSheetLine
     public Guid AccountId { get; set; }
     public string AccountNumber { get; set; } = string.Empty;
     public string AccountName { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public bool IsSystemAccount { get; set; }
     public decimal Balance { get; set; }
 }
 
