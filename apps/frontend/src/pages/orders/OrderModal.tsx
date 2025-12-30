@@ -29,13 +29,14 @@ const GET_PRODUCTS = gql`
 
 const GET_CUSTOMERS = gql`
   query GetCustomersForOrder {
-    customers(first: 50, where: { status: { eq: ACTIVE } }) {
+    customers(first: 50) {
       nodes {
         id
         name
         contactPerson
         email
       }
+      totalCount
     }
   }
 `;
@@ -53,6 +54,7 @@ interface OrderModalProps {
 
 export default function OrderModal({ onClose }: OrderModalProps) {
   const { t } = useI18n();
+  console.log('OrderModal rendered');
   const [customerId, setCustomerId] = useState<string>('');
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState('');
@@ -163,19 +165,32 @@ export default function OrderModal({ onClose }: OrderModalProps) {
               onChange={(e) => setCustomerId(e.target.value)}
               className="input mt-1 w-full"
               required
+              disabled={customersLoading}
             >
-              <option value="">{t('orders.selectCustomer')}</option>
-              {customersData?.shopCustomers?.nodes?.map((customer: {
+              <option value="">
+                {customersLoading
+                  ? t('common.loading')
+                  : customersError
+                  ? t('common.error')
+                  : t('orders.selectCustomer')
+                }
+              </option>
+              {!customersLoading && !customersError && customersData?.customers?.nodes?.map((customer: {
                 id: string;
-                firstName: string;
-                lastName: string;
+                name: string;
+                contactPerson: string;
                 email: string;
               }) => (
                 <option key={customer.id} value={customer.id}>
-                  {customer.firstName} {customer.lastName} ({customer.email})
+                  {customer.name} {customer.contactPerson ? `(${customer.contactPerson})` : ''} {customer.email ? `<${customer.email}>` : ''}
                 </option>
               ))}
             </select>
+            {customersError && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                {t('common.error')} {t('orders.customer').toLowerCase()}
+              </p>
+            )}
           </div>
 
           {/* Order Items */}
