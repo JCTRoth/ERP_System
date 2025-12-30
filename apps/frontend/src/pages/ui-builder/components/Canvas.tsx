@@ -64,7 +64,6 @@ function SortableComponent({ component, isSelected, onSelect, onDelete, onDuplic
             onDuplicate();
           }}
           className="rounded bg-white p-1 shadow hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600"
-          title="Duplicate"
         >
           <DocumentDuplicateIcon className="h-4 w-4" />
         </button>
@@ -74,7 +73,6 @@ function SortableComponent({ component, isSelected, onSelect, onDelete, onDuplic
             onDelete();
           }}
           className="rounded bg-white p-1 shadow hover:bg-red-100 dark:bg-gray-700 dark:hover:bg-red-900"
-          title="Delete"
         >
           <TrashIcon className="h-4 w-4 text-red-500" />
         </button>

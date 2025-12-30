@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { shopApolloClient } from '../../lib/apollo';
 
 const CREATE_ORDER = gql`
   mutation CreateOrder($input: CreateOrderInput!) {
@@ -56,9 +57,9 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState('');
 
-  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS);
+  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, { client: shopApolloClient });
   const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS);
-  const [createOrder, { loading }] = useMutation(CREATE_ORDER);
+  const [createOrder, { loading }] = useMutation(CREATE_ORDER, { client: shopApolloClient });
 
   // Debug logs
   console.log('Products data:', productsData);
@@ -164,14 +165,14 @@ export default function OrderModal({ onClose }: OrderModalProps) {
               required
             >
               <option value="">{t('orders.selectCustomer')}</option>
-              {customersData?.customers?.nodes?.map((customer: {
+              {customersData?.shopCustomers?.nodes?.map((customer: {
                 id: string;
-                name: string;
-                contactPerson: string;
+                firstName: string;
+                lastName: string;
                 email: string;
               }) => (
                 <option key={customer.id} value={customer.id}>
-                  {customer.name}{customer.contactPerson ? ` (${customer.contactPerson})` : ''} ({customer.email})
+                  {customer.firstName} {customer.lastName} ({customer.email})
                 </option>
               ))}
             </select>

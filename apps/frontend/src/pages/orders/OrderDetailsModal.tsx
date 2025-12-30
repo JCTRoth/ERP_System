@@ -1,6 +1,7 @@
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { shopApolloClient } from '../../lib/apollo';
 
 const GET_ORDER_DETAILS = gql`
   query GetOrderDetails($id: UUID!) {
@@ -88,10 +89,12 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
 
   const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, {
     variables: { id: orderId },
+    client: shopApolloClient,
   });
 
   const [updateStatus] = useMutation(UPDATE_ORDER_STATUS, {
     onCompleted: () => refetch(),
+    client: shopApolloClient,
   });
 
   const order = data?.order;
