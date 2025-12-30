@@ -135,10 +135,11 @@ public class CustomerObjectType : ObjectType<Customer>
 {
     protected override void Configure(IObjectTypeDescriptor<Customer> descriptor)
     {
+        descriptor.Name("ShopCustomer");
         
         descriptor.Field(c => c.Id).Type<NonNullType<IdType>>();
         descriptor.Field(c => c.Email).Type<NonNullType<StringType>>();
-        descriptor.Field(c => c.Type).Type<NonNullType<EnumType<ShopService.Models.CustomerType>>>();
+        descriptor.Field(c => c.Type).Type<NonNullType<EnumType<ShopService.Models.CustomerType>>>().Name("type");
         
         descriptor.Field(c => c.Orders)
             .ResolveWith<CustomerResolvers>(r => r.GetOrders(default!, default!));

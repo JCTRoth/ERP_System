@@ -37,6 +37,7 @@ public class CustomersControllerTests : IClassFixture<CustomWebApplicationFactor
         // Arrange
         var request = new CreateCustomerInput(
             Name: "Test Customer",
+            LegalName: null,
             Type: "individual",
             ContactPerson: null,
             Email: "test@example.com",
@@ -44,8 +45,10 @@ public class CustomersControllerTests : IClassFixture<CustomWebApplicationFactor
             Fax: null,
             Website: null,
             TaxId: null,
+            Currency: null,
             DefaultCurrencyId: null,
             DefaultPaymentTermId: null,
+            PaymentTermDays: null,
             CreditLimit: null,
             Notes: null,
             Addresses: null,

@@ -14,6 +14,7 @@ services:
       - ./apps/frontend:/app
     environment:
       - VITE_GATEWAY_URL=http://gateway:4000
+      - VITE_SHOP_GRAPHQL_URL=http://gateway:4000/shop/graphql
     depends_on:
       - gateway
 

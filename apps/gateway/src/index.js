@@ -58,8 +58,8 @@ const subgraphs = [
   { name: 'company-service', url: process.env.COMPANY_SERVICE_URL || 'http://company-service:8080/graphql' },
   { name: 'masterdata-service', url: process.env.MASTERDATA_SERVICE_URL || 'http://masterdata-service:5002/graphql/' },
   { name: 'accounting-service', url: process.env.ACCOUNTING_SERVICE_URL || 'http://accounting-service:8080/graphql/' },
-  // Note: shop-service disabled due to Customer/Supplier type conflicts with masterdata-service
-  // Use direct shop-service endpoint: http://shop-service:5003/graphql
+  // Note: shop-service has type conflicts with masterdata-service (Customer/Supplier types and mutations)
+  // Access shop-service via /shop/graphql endpoint
 ];
 
 // Create gateway
@@ -146,8 +146,33 @@ async function startServer() {
     }),
   }));
 
+  // Shop service proxy (separate from federated graph due to type conflicts)
+  app.use('/shop/graphql', express.json(), async (req, res) => {
+    try {
+      const shopServiceUrl = process.env.SHOP_SERVICE_URL || 'http://shop-service:5003/graphql';
+      const response = await fetch(shopServiceUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': req.headers.authorization || '',
+          'X-User-Id': req.headers['x-user-id'] || '',
+          'X-Company-Id': req.headers['x-company-id'] || '',
+          'Accept-Language': req.headers['accept-language'] || 'en',
+        },
+        body: JSON.stringify(req.body),
+      });
+      
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error) {
+      console.error('Shop service proxy error:', error);
+      res.status(500).json({ errors: [{ message: 'Shop service unavailable' }] });
+    }
+  });
+
   app.listen(PORT, () => {
     console.log(`🚀 Gateway ready at http://localhost:${PORT}/graphql`);
+    console.log(`🛒 Shop service proxy at http://localhost:${PORT}/shop/graphql`);
     console.log(`📊 Metrics available at http://localhost:${PORT}/metrics`);
     console.log(`❤️  Health check at http://localhost:${PORT}/health`);
   });

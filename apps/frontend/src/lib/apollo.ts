@@ -89,6 +89,35 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
   }
 });
 
+// Shop service client (separate endpoint due to type conflicts with masterdata-service)
+// Use full gateway URL when available, fallback to relative path for vite proxy
+const shopGraphqlUrl = import.meta.env.VITE_SHOP_GRAPHQL_URL || 
+  (import.meta.env.DEV ? 'http://localhost:4000/shop/graphql' : '/shop/graphql');
+
+const shopHttpLink = createHttpLink({
+  uri: shopGraphqlUrl,
+});
+
+export const shopApolloClient = new ApolloClient({
+  link: from([errorLink, authLink, shopHttpLink]),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          products: {
+            merge: false,
+          },
+        },
+      },
+    },
+  }),
+  defaultOptions: {
+    watchQuery: {
+      fetchPolicy: 'cache-and-network',
+    },
+  },
+});
+
 export const apolloClient = new ApolloClient({
   link: from([errorLink, authLink, httpLink]),
   cache: new InMemoryCache({
@@ -114,3 +143,4 @@ export const apolloClient = new ApolloClient({
 
 // Export a getter function for the Apollo client
 export const getApolloClient = () => apolloClient;
+export const getShopApolloClient = () => shopApolloClient;

@@ -13,7 +13,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: true,
     proxy: {
+      '/shop/graphql': {
+        target: process.env.VITE_GATEWAY_URL || 'http://localhost:4000',
+        changeOrigin: true,
+      },
       '/graphql': {
         target: process.env.VITE_GATEWAY_URL || 'http://localhost:4000',
         changeOrigin: true,

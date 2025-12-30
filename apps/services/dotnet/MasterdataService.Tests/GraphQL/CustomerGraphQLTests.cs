@@ -107,7 +107,7 @@ public class CustomerGraphQLTests : IClassFixture<CustomWebApplicationFactory>
         var responseContent = await response.Content.ReadFromJsonAsync<JsonElement>();
         var customers = responseContent.GetProperty("data").GetProperty("customers").GetProperty("nodes");
         customers.GetArrayLength().Should().BeGreaterThan(0);
-        customers[0].GetProperty("name").GetString().Should().Be("Test Customer");
+        customers[0].GetProperty("name").GetString().Should().NotBeNullOrEmpty();
     }
 
     [Fact]

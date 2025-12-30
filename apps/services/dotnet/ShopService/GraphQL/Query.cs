@@ -95,9 +95,11 @@ public class Query
     [UseProjection]
     [UseFiltering]
     [UseSorting]
+    [GraphQLName("shopSuppliers")]
     public IQueryable<Supplier> GetSuppliers([Service] ShopDbContext context)
         => context.Suppliers.AsNoTracking();
 
+    [GraphQLName("shopSupplier")]
     public async Task<Supplier?> GetSupplier([Service] ISupplierService supplierService, Guid id)
         => await supplierService.GetByIdAsync(id);
 
@@ -106,12 +108,15 @@ public class Query
     [UseProjection]
     [UseFiltering]
     [UseSorting]
+    [GraphQLName("shopCustomers")]
     public IQueryable<Customer> GetCustomers([Service] ShopDbContext context)
         => context.Customers.AsNoTracking();
 
+    [GraphQLName("shopCustomer")]
     public async Task<Customer?> GetCustomer([Service] ICustomerService customerService, Guid id)
         => await customerService.GetByIdAsync(id);
 
+    [GraphQLName("shopCustomerByUserId")]
     public async Task<Customer?> GetCustomerByUserId(
         [Service] ICustomerService customerService, Guid userId)
         => await customerService.GetByUserIdAsync(userId);

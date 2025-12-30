@@ -56,6 +56,8 @@ builder.Services
     .AddType<OrderType>()
     .AddType<CustomerObjectType>()
     .AddType<CartType>()
+    .AddType(new EnumType<ShopService.Models.CustomerType>(d => d.Name("ShopCustomerType")))
+    .AddType(new EnumType<ShopService.Models.PaymentMethod>(d => d.Name("ShopPaymentMethod")))
     .AddFiltering()
     .AddSorting()
     .AddProjections()

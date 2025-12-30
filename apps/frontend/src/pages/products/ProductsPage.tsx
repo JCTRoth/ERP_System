@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import ProductModal from './ProductModal';
+import { shopApolloClient } from '../../lib/apollo';
 
 const GET_PRODUCTS = gql`
   query GetProducts($first: Int, $after: String) {
@@ -64,6 +65,7 @@ export default function ProductsPage() {
       first: 20,
     },
     errorPolicy: 'all',
+    client: shopApolloClient,
   });
 
   useEffect(() => {
@@ -80,6 +82,7 @@ export default function ProductsPage() {
 
   const [deleteProduct] = useMutation(DELETE_PRODUCT, {
     onCompleted: () => refetch(),
+    client: shopApolloClient,
   });
 
   const handleEdit = (product: Product) => {
