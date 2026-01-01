@@ -14,8 +14,6 @@ public class Order
 
     public Guid CustomerId { get; set; }
 
-    public Customer Customer { get; set; } = null!;
-
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
     public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;

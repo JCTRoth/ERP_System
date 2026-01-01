@@ -45,7 +45,6 @@ public class OrderService : IOrderService
     public async Task<Order?> GetByIdAsync(Guid id)
     {
         return await _context.Orders
-            .Include(o => o.Customer)
             .Include(o => o.Items)
             .Include(o => o.Payments)
             .Include(o => o.ShippingMethod)
@@ -55,7 +54,6 @@ public class OrderService : IOrderService
     public async Task<Order?> GetByOrderNumberAsync(string orderNumber)
     {
         return await _context.Orders
-            .Include(o => o.Customer)
             .Include(o => o.Items)
             .Include(o => o.Payments)
             .FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
@@ -64,7 +62,6 @@ public class OrderService : IOrderService
     public async Task<IEnumerable<Order>> GetAllAsync(int skip = 0, int take = 50)
     {
         return await _context.Orders
-            .Include(o => o.Customer)
             .Include(o => o.Items)
             .OrderByDescending(o => o.CreatedAt)
             .Skip(skip)
@@ -85,7 +82,6 @@ public class OrderService : IOrderService
     public async Task<IEnumerable<Order>> GetByStatusAsync(OrderStatus status)
     {
         return await _context.Orders
-            .Include(o => o.Customer)
             .Include(o => o.Items)
             .Where(o => o.Status == status)
             .OrderByDescending(o => o.CreatedAt)
@@ -277,7 +273,6 @@ public class OrderService : IOrderService
     public async Task<IEnumerable<Order>> GetRecentAsync(int count = 10)
     {
         return await _context.Orders
-            .Include(o => o.Customer)
             .OrderByDescending(o => o.CreatedAt)
             .Take(count)
             .ToListAsync();

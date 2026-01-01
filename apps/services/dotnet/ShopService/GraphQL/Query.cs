@@ -103,31 +103,13 @@ public class Query
     public async Task<Supplier?> GetSupplier([Service] ISupplierService supplierService, Guid id)
         => await supplierService.GetByIdAsync(id);
 
-    // Customers
-    [UsePaging]
-    [UseProjection]
-    [UseFiltering]
-    [UseSorting]
-    [GraphQLName("shopCustomers")]
-    public IQueryable<Customer> GetCustomers([Service] ShopDbContext context)
-        => context.Customers.AsNoTracking();
-
-    [GraphQLName("shopCustomer")]
-    public async Task<Customer?> GetCustomer([Service] ICustomerService customerService, Guid id)
-        => await customerService.GetByIdAsync(id);
-
-    [GraphQLName("shopCustomerByUserId")]
-    public async Task<Customer?> GetCustomerByUserId(
-        [Service] ICustomerService customerService, Guid userId)
-        => await customerService.GetByUserIdAsync(userId);
-
     // Orders
     [UsePaging]
     [UseProjection]
     [UseFiltering]
     [UseSorting]
     public IQueryable<Order> GetOrders([Service] ShopDbContext context)
-        => context.Orders.Include(o => o.Customer).Include(o => o.Items).AsNoTracking();
+        => context.Orders.Include(o => o.Items).AsNoTracking();
 
     public async Task<Order?> GetOrder([Service] IOrderService orderService, Guid id)
         => await orderService.GetByIdAsync(id);

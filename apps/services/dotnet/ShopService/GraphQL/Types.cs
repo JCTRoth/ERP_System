@@ -102,9 +102,6 @@ public class OrderType : ObjectType<Order>
         
         descriptor.Field(o => o.CreatedAt).Type<NonNullType<DateTimeType>>();
         
-        descriptor.Field(o => o.Customer)
-            .ResolveWith<OrderResolvers>(r => r.GetCustomer(default!, default!));
-
         descriptor.Field(o => o.Items)
             .ResolveWith<OrderResolvers>(r => r.GetItems(default!, default!));
 
@@ -115,11 +112,6 @@ public class OrderType : ObjectType<Order>
 
 public class OrderResolvers
 {
-    public async Task<Customer?> GetCustomer([Parent] Order order, [Service] ShopDbContext context)
-    {
-        return await context.Customers.FindAsync(order.CustomerId);
-    }
-
     public IQueryable<OrderItem> GetItems([Parent] Order order, [Service] ShopDbContext context)
     {
         return context.OrderItems.Where(i => i.OrderId == order.Id);
@@ -128,31 +120,6 @@ public class OrderResolvers
     public IQueryable<Payment> GetPayments([Parent] Order order, [Service] ShopDbContext context)
     {
         return context.Payments.Where(p => p.OrderId == order.Id);
-    }
-}
-
-public class CustomerObjectType : ObjectType<Customer>
-{
-    protected override void Configure(IObjectTypeDescriptor<Customer> descriptor)
-    {
-        descriptor.Name("ShopCustomer");
-        
-        descriptor.Field(c => c.Id).Type<NonNullType<IdType>>();
-        descriptor.Field(c => c.Email).Type<NonNullType<StringType>>();
-        descriptor.Field(c => c.Type).Type<NonNullType<EnumType<ShopService.Models.CustomerType>>>().Name("type");
-        
-        descriptor.Field(c => c.Orders)
-            .ResolveWith<CustomerResolvers>(r => r.GetOrders(default!, default!));
-    }
-}
-
-public class CustomerResolvers
-{
-    public IQueryable<Order> GetOrders([Parent] Customer customer, [Service] ShopDbContext context)
-    {
-        return context.Orders
-            .Where(o => o.CustomerId == customer.Id)
-            .OrderByDescending(o => o.CreatedAt);
     }
 }
 

@@ -14,7 +14,6 @@ public class ShopDbContext : DbContext
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
-    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Cart> Carts => Set<Cart>();
@@ -190,36 +189,6 @@ public class ShopDbContext : DbContext
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
         });
 
-        // Customer configuration
-        modelBuilder.Entity<Customer>(entity =>
-        {
-            entity.ToTable("customers");
-            entity.HasIndex(e => e.Email).IsUnique();
-            entity.HasIndex(e => e.UserId);
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
-            entity.Property(e => e.Email).HasColumnName("email");
-            entity.Property(e => e.FirstName).HasColumnName("first_name");
-            entity.Property(e => e.LastName).HasColumnName("last_name");
-            entity.Property(e => e.Phone).HasColumnName("phone");
-            entity.Property(e => e.Company).HasColumnName("company");
-            entity.Property(e => e.VatNumber).HasColumnName("vat_number");
-            entity.Property(e => e.DefaultShippingAddress).HasColumnName("default_shipping_address");
-            entity.Property(e => e.DefaultShippingCity).HasColumnName("default_shipping_city");
-            entity.Property(e => e.DefaultShippingPostalCode).HasColumnName("default_shipping_postal_code");
-            entity.Property(e => e.DefaultShippingCountry).HasColumnName("default_shipping_country");
-            entity.Property(e => e.DefaultBillingAddress).HasColumnName("default_billing_address");
-            entity.Property(e => e.DefaultBillingCity).HasColumnName("default_billing_city");
-            entity.Property(e => e.DefaultBillingPostalCode).HasColumnName("default_billing_postal_code");
-            entity.Property(e => e.DefaultBillingCountry).HasColumnName("default_billing_country");
-            entity.Property(e => e.Type).HasColumnName("type");
-            entity.Property(e => e.IsActive).HasColumnName("is_active");
-            entity.Property(e => e.AcceptsMarketing).HasColumnName("accepts_marketing");
-            entity.Property(e => e.Notes).HasColumnName("notes");
-            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
-        });
-
         // Order configuration
         modelBuilder.Entity<Order>(entity =>
         {
@@ -255,11 +224,6 @@ public class ShopDbContext : DbContext
             entity.Property(e => e.DeliveredAt).HasColumnName("delivered_at");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
-
-            entity.HasOne(e => e.Customer)
-                  .WithMany(c => c.Orders)
-                  .HasForeignKey(e => e.CustomerId)
-                  .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.ShippingMethod)
                   .WithMany(s => s.Orders)
@@ -313,11 +277,6 @@ public class ShopDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
-
-            entity.HasOne(e => e.Customer)
-                  .WithMany(c => c.Carts)
-                  .HasForeignKey(e => e.CustomerId)
-                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // CartItem configuration

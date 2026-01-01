@@ -107,22 +107,6 @@ public class Mutation
         Guid id)
         => await supplierService.DeleteAsync(id);
 
-    // Customers
-    public async Task<Customer> CreateCustomer(
-        [Service] ICustomerService customerService,
-        CreateCustomerInput input)
-        => await customerService.CreateAsync(input);
-
-    public async Task<Customer?> UpdateCustomer(
-        [Service] ICustomerService customerService,
-        UpdateCustomerInput input)
-        => await customerService.UpdateAsync(input);
-
-    public async Task<bool> DeleteCustomer(
-        [Service] ICustomerService customerService,
-        Guid id)
-        => await customerService.DeleteAsync(id);
-
     // Orders
     public async Task<Order> CreateOrder(
         [Service] IOrderService orderService,

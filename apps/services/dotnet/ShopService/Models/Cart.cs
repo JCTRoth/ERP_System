@@ -10,8 +10,6 @@ public class Cart
 
     public Guid? CustomerId { get; set; }
 
-    public Customer? Customer { get; set; }
-
     // For guest carts (anonymous users)
     [MaxLength(100)]
     public string? SessionId { get; set; }

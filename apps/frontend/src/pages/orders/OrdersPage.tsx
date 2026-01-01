@@ -18,12 +18,6 @@ const GET_ORDERS = gql`
         id
         orderNumber
         status
-        customer {
-          id
-          firstName
-          lastName
-          email
-        }
         subtotal
         taxAmount
         shippingAmount

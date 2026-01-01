@@ -38,7 +38,6 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
-builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
@@ -55,9 +54,7 @@ builder.Services
     .AddSubscriptionType<Subscription>()
     .AddType<ProductType>()
     .AddType<OrderType>()
-    .AddType<CustomerObjectType>()
     .AddType<CartType>()
-    .AddType(new EnumType<ShopService.Models.CustomerType>(d => d.Name("ShopCustomerType")))
     .AddType(new EnumType<ShopService.Models.PaymentMethod>(d => d.Name("ShopPaymentMethod")))
     .AddFiltering()
     .AddSorting()
