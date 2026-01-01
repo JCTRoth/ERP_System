@@ -46,6 +46,7 @@ public class JournalEntryService : IJournalEntryService
     {
         return await _context.JournalEntries
             .Include(j => j.Lines)
+            .ThenInclude(l => l.Account)
             .FirstOrDefaultAsync(j => j.EntryNumber == entryNumber);
     }
 
@@ -53,6 +54,7 @@ public class JournalEntryService : IJournalEntryService
     {
         return await _context.JournalEntries
             .Include(j => j.Lines)
+            .ThenInclude(l => l.Account)
             .OrderByDescending(j => j.EntryDate)
             .ThenByDescending(j => j.CreatedAt)
             .Skip(skip)
@@ -64,6 +66,7 @@ public class JournalEntryService : IJournalEntryService
     {
         return await _context.JournalEntries
             .Include(j => j.Lines)
+            .ThenInclude(l => l.Account)
             .Where(j => j.EntryDate >= from && j.EntryDate <= to)
             .OrderBy(j => j.EntryDate)
             .ToListAsync();

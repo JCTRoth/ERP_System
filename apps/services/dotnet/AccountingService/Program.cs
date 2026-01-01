@@ -53,6 +53,7 @@ builder.Services
     .AddTypeExtension<AccountType>()
     .AddTypeExtension<InvoiceType>()
     .AddTypeExtension<JournalEntryType>()
+    .AddTypeExtension<JournalEntryLineType>()
     .AddTypeExtension<PaymentRecordType>()
     .AddTypeExtension<BankAccountType>()
     .AddFiltering()
