@@ -90,9 +90,8 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
 });
 
 // Shop service client (separate endpoint due to type conflicts with masterdata-service)
-// Use full gateway URL when available, fallback to relative path for vite proxy
-const shopGraphqlUrl = import.meta.env.VITE_SHOP_GRAPHQL_URL || 
-  (import.meta.env.DEV ? 'http://localhost:4000/shop/graphql' : '/shop/graphql');
+// Always use relative path - Vite proxy handles dev, nginx handles production
+const shopGraphqlUrl = '/shop/graphql';
 
 const shopHttpLink = createHttpLink({
   uri: shopGraphqlUrl,

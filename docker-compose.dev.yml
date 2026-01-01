@@ -14,7 +14,6 @@ services:
       - ./apps/frontend:/app
     environment:
       - VITE_GATEWAY_URL=http://gateway:4000
-      - VITE_SHOP_GRAPHQL_URL=http://gateway:4000/shop/graphql
     depends_on:
       - gateway
 
@@ -58,7 +57,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres-users;Database=userdb;Username=postgres;Password=postgres
-      - Jwt__Secret=your-super-secret-key-at-least-256-bits-long-for-hs256
+      - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
+      - Jwt__Issuer=ERP_System
+      - Jwt__Audience=ERP_System
     depends_on:
       - postgres-users
 
@@ -73,6 +74,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres-shop;Database=shopdb;Username=postgres;Password=postgres
+      - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
+      - Jwt__Issuer=ERP_System
+      - Jwt__Audience=ERP_System
     depends_on:
       - postgres-shop
 
@@ -84,6 +88,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres-accounting;Database=accountingdb;Username=postgres;Password=postgres
+      - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
+      - Jwt__Issuer=ERP_System
+      - Jwt__Audience=ERP_System
     depends_on:
       - postgres-accounting
 
@@ -99,6 +106,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres-masterdata;Database=masterdatadb;Username=postgres;Password=postgres
+      - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
+      - Jwt__Issuer=ERP_System
+      - Jwt__Audience=ERP_System
     depends_on:
       - postgres-masterdata
 
