@@ -44,6 +44,7 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 // GraphQL
 builder.Services
@@ -54,8 +55,12 @@ builder.Services
     .AddSubscriptionType<Subscription>()
     .AddType<ProductType>()
     .AddType<OrderType>()
+    .AddType<OrderItemType>()
     .AddType<CartType>()
-    .AddType(new EnumType<ShopService.Models.PaymentMethod>(d => d.Name("ShopPaymentMethod")))
+    .AddType<PaymentType>()
+    .AddType<AddressType>()
+    .AddType<UserType>()
+    .AddType<AuditLogType>()
     .AddFiltering()
     .AddSorting()
     .AddProjections()

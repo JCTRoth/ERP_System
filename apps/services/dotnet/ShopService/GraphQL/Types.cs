@@ -80,6 +80,70 @@ public class ProductImageType : ObjectType<ProductImage>
     }
 }
 
+public class AddressType : ObjectType<Address>
+{
+    protected override void Configure(IObjectTypeDescriptor<Address> descriptor)
+    {
+        descriptor.Field(a => a.Name).Type<StringType>();
+        descriptor.Field(a => a.Street).Type<StringType>();
+        descriptor.Field(a => a.City).Type<StringType>();
+        descriptor.Field(a => a.PostalCode).Type<StringType>();
+        descriptor.Field(a => a.Country).Type<StringType>();
+        descriptor.Field(a => a.Phone).Type<StringType>();
+    }
+}
+
+public class Address
+{
+    public string? Name { get; set; }
+    public string? Street { get; set; }
+    public string? City { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Country { get; set; }
+    public string? Phone { get; set; }
+}
+
+public class UserType : ObjectType<User>
+{
+    protected override void Configure(IObjectTypeDescriptor<User> descriptor)
+    {
+        descriptor.Field(u => u.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(u => u.FirstName).Type<StringType>();
+        descriptor.Field(u => u.LastName).Type<StringType>();
+        descriptor.Field(u => u.Email).Type<NonNullType<StringType>>();
+        descriptor.Field(u => u.Phone).Type<StringType>();
+    }
+}
+
+public class User
+{
+    public Guid Id { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+}
+
+public class OrderItemType : ObjectType<OrderItem>
+{
+    protected override void Configure(IObjectTypeDescriptor<OrderItem> descriptor)
+    {
+        descriptor.Field(i => i.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(i => i.ProductId).Type<NonNullType<IdType>>();
+        descriptor.Field(i => i.ProductName).Type<NonNullType<StringType>>();
+        descriptor.Field("productSku").Type<NonNullType<StringType>>()
+            .Resolve(context => context.Parent<OrderItem>().Sku);
+        descriptor.Field(i => i.Quantity).Type<NonNullType<IntType>>();
+        descriptor.Field(i => i.UnitPrice).Type<NonNullType<DecimalType>>();
+        descriptor.Field("discount").Type<NonNullType<DecimalType>>()
+            .Resolve(context => context.Parent<OrderItem>().DiscountAmount);
+        descriptor.Field(i => i.TaxAmount).Type<NonNullType<DecimalType>>();
+        descriptor.Field(i => i.Total).Type<NonNullType<DecimalType>>();
+        descriptor.Field(i => i.Notes).Type<StringType>();
+        descriptor.Field(i => i.CreatedAt).Type<NonNullType<DateTimeType>>();
+    }
+}
+
 public class OrderType : ObjectType<Order>
 {
     protected override void Configure(IObjectTypeDescriptor<Order> descriptor)
@@ -101,12 +165,47 @@ public class OrderType : ObjectType<Order>
             .Resolve(context => context.Parent<Order>().Items.Count);
         
         descriptor.Field(o => o.CreatedAt).Type<NonNullType<DateTimeType>>();
+        descriptor.Field(o => o.UpdatedAt).Type<DateTimeType>();
+        descriptor.Field(o => o.Notes).Type<StringType>();
+        
+        // Address objects
+        descriptor.Field("shippingAddress")
+            .Type<AddressType>()
+            .Resolve(context => {
+                var order = context.Parent<Order>();
+                return new Address {
+                    Name = order.ShippingName,
+                    Street = order.ShippingAddress,
+                    City = order.ShippingCity,
+                    PostalCode = order.ShippingPostalCode,
+                    Country = order.ShippingCountry,
+                    Phone = order.ShippingPhone
+                };
+            });
+        
+        descriptor.Field("billingAddress")
+            .Type<AddressType>()
+            .Resolve(context => {
+                var order = context.Parent<Order>();
+                return new Address {
+                    Name = order.BillingName,
+                    Street = order.BillingAddress,
+                    City = order.BillingCity,
+                    PostalCode = order.BillingPostalCode,
+                    Country = order.BillingCountry
+                };
+            });
         
         descriptor.Field(o => o.Items)
             .ResolveWith<OrderResolvers>(r => r.GetItems(default!, default!));
 
         descriptor.Field(o => o.Payments)
             .ResolveWith<OrderResolvers>(r => r.GetPayments(default!, default!));
+        
+        // TODO: Add customer resolver when federation is properly set up
+        // descriptor.Field("customer")
+        //     .Type<UserType>()
+        //     .ResolveWith<OrderResolvers>(r => r.GetCustomer(default!, default!));
     }
 }
 
@@ -120,6 +219,33 @@ public class OrderResolvers
     public IQueryable<Payment> GetPayments([Parent] Order order, [Service] ShopDbContext context)
     {
         return context.Payments.Where(p => p.OrderId == order.Id);
+    }
+    
+    // Customer resolver for federation - this would need to call UserService
+    public async Task<User?> GetCustomer([Parent] Order order)
+    {
+        // This would need to be implemented to fetch from UserService
+        // For now, return null to avoid errors
+        return null;
+    }
+}
+
+public class PaymentType : ObjectType<Payment>
+{
+    protected override void Configure(IObjectTypeDescriptor<Payment> descriptor)
+    {
+        descriptor.Field(p => p.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(p => p.OrderId).Type<NonNullType<IdType>>();
+        descriptor.Field(p => p.Amount).Type<NonNullType<DecimalType>>();
+        descriptor.Field(p => p.Currency).Type<NonNullType<StringType>>();
+        descriptor.Field(p => p.Status).Type<NonNullType<EnumType<PaymentTransactionStatus>>>();
+        descriptor.Field(p => p.TransactionId).Type<StringType>();
+        descriptor.Field(p => p.GatewayReference).Type<StringType>();
+        
+        // Expose Method as string instead of enum to avoid schema conflicts
+        descriptor.Field("method")
+            .Type<NonNullType<StringType>>()
+            .Resolve(context => context.Parent<Payment>().Method.ToString());
     }
 }
 

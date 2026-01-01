@@ -22,6 +22,7 @@ public class ShopDbContext : DbContext
     public DbSet<ShippingMethod> ShippingMethods => Set<ShippingMethod>();
     public DbSet<Coupon> Coupons => Set<Coupon>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -429,6 +430,40 @@ public class ShopDbContext : DbContext
             }
         );
 
+        // Seed brands
+        modelBuilder.Entity<Brand>().HasData(
+            new Brand
+            {
+                Id = Guid.Parse("30000000-0000-0000-0000-000000000001"),
+                Name = "TechCorp",
+                Slug = "techcorp",
+                Description = "Leading technology brand",
+                WebsiteUrl = "https://techcorp.example.com",
+                IsActive = true,
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new Brand
+            {
+                Id = Guid.Parse("30000000-0000-0000-0000-000000000002"),
+                Name = "StyleWear",
+                Slug = "stylewear",
+                Description = "Fashion and apparel brand",
+                WebsiteUrl = "https://stylewear.example.com",
+                IsActive = true,
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new Brand
+            {
+                Id = Guid.Parse("30000000-0000-0000-0000-000000000003"),
+                Name = "PageTurner",
+                Slug = "pageturner",
+                Description = "Publishing and books brand",
+                WebsiteUrl = "https://pageturner.example.com",
+                IsActive = true,
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
         // Seed shipping methods
         modelBuilder.Entity<ShippingMethod>().HasData(
             new ShippingMethod
@@ -459,5 +494,27 @@ public class ShopDbContext : DbContext
                 CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
+
+        // AuditLog configuration
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("audit_logs");
+            entity.HasIndex(e => e.EntityId);
+            entity.HasIndex(e => e.EntityType);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Timestamp);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.EntityId).HasColumnName("entity_id");
+            entity.Property(e => e.EntityType).HasColumnName("entity_type");
+            entity.Property(e => e.Action).HasColumnName("action");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.UserEmail).HasColumnName("user_email");
+            entity.Property(e => e.UserName).HasColumnName("user_name");
+            entity.Property(e => e.Timestamp).HasColumnName("timestamp");
+            entity.Property(e => e.OldValues).HasColumnName("old_values");
+            entity.Property(e => e.NewValues).HasColumnName("new_values");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.IpAddress).HasColumnName("ip_address");
+        });
     }
 }

@@ -75,6 +75,7 @@ public record CreateOrderInput(
     Guid CustomerId,
     List<CreateOrderItemInput> Items,
     string? Notes,
+    decimal? TaxRate,
     string? ShippingName,
     string? ShippingAddress,
     string? ShippingCity,

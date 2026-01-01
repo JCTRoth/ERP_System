@@ -15,6 +15,7 @@ public interface IOrderService
     Task<Order> CreateAsync(CreateOrderInput input);
     Task<Order?> UpdateStatusAsync(UpdateOrderStatusInput input);
     Task<bool> CancelAsync(Guid orderId, string? reason);
+    Task<bool> DeleteAsync(Guid orderId);
     Task<IEnumerable<Order>> GetRecentAsync(int count = 10);
     Task<decimal> GetTotalRevenueAsync(DateTime? from, DateTime? to);
     Task<int> GetOrderCountAsync(DateTime? from, DateTime? to);
@@ -27,19 +28,22 @@ public class OrderService : IOrderService
     private readonly IInventoryService _inventoryService;
     private readonly ICouponService _couponService;
     private readonly IConfiguration _configuration;
+    private readonly IAuditService _auditService;
 
     public OrderService(
         ShopDbContext context,
         ILogger<OrderService> logger,
         IInventoryService inventoryService,
         ICouponService couponService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IAuditService auditService)
     {
         _context = context;
         _logger = logger;
         _inventoryService = inventoryService;
         _couponService = couponService;
         _configuration = configuration;
+        _auditService = auditService;
     }
 
     public async Task<Order?> GetByIdAsync(Guid id)
@@ -90,7 +94,8 @@ public class OrderService : IOrderService
 
     public async Task<Order> CreateAsync(CreateOrderInput input)
     {
-        var taxRate = _configuration.GetValue<decimal>("Shop:TaxRate", 0.19m);
+        // Use provided tax rate or default from configuration
+        var taxRate = input.TaxRate ?? _configuration.GetValue<decimal>("Shop:TaxRate", 0.19m);
 
         // Generate order number
         var orderNumber = await GenerateOrderNumberAsync();
@@ -141,7 +146,6 @@ public class OrderService : IOrderService
                 Quantity = itemInput.Quantity,
                 UnitPrice = unitPrice,
                 Total = itemTotal,
-                TaxAmount = itemTotal * taxRate,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -197,6 +201,19 @@ public class OrderService : IOrderService
 
         _logger.LogInformation("Order created: {OrderNumber} - Total: {Total}", orderNumber, order.Total);
 
+        // Log audit trail
+        await _auditService.LogActionAsync(
+            order.Id,
+            "Order",
+            "Create",
+            Guid.Parse("00000000-0000-0000-0000-000000000001"), // System user ID (should come from context)
+            null,
+            "System",
+            null,
+            $"Order created with {order.Items.Count} items, Total: {order.Total}",
+            $"Order {orderNumber} created"
+        );
+
         return order;
     }
 
@@ -205,7 +222,7 @@ public class OrderService : IOrderService
         var order = await _context.Orders.FindAsync(input.OrderId);
         if (order == null) return null;
 
-        var newStatus = Enum.Parse<OrderStatus>(input.Status);
+        var newStatus = Enum.Parse<OrderStatus>(input.Status, true); // case-insensitive parsing
         var oldStatus = order.Status;
 
         order.Status = newStatus;
@@ -229,6 +246,19 @@ public class OrderService : IOrderService
         await _context.SaveChangesAsync();
         _logger.LogInformation("Order {OrderNumber} status updated: {OldStatus} -> {NewStatus}",
             order.OrderNumber, oldStatus, newStatus);
+
+        // Log audit trail
+        await _auditService.LogActionAsync(
+            order.Id,
+            "Order",
+            "StatusChange",
+            Guid.Parse("00000000-0000-0000-0000-000000000001"), // System user ID
+            null,
+            "System",
+            oldStatus.ToString(),
+            newStatus.ToString(),
+            $"Order status changed from {oldStatus} to {newStatus}"
+        );
 
         return order;
     }
@@ -266,6 +296,54 @@ public class OrderService : IOrderService
 
         await _context.SaveChangesAsync();
         _logger.LogInformation("Order {OrderNumber} cancelled: {Reason}", order.OrderNumber, reason);
+
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(Guid orderId)
+    {
+        var order = await _context.Orders
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+
+        if (order == null) return false;
+
+        // Can only delete orders that are not shipped or delivered
+        if (order.Status == OrderStatus.Shipped || order.Status == OrderStatus.Delivered)
+        {
+            _logger.LogWarning("Cannot delete order {OrderNumber} - already shipped/delivered", order.OrderNumber);
+            return false;
+        }
+
+        // Return inventory before deletion
+        foreach (var item in order.Items)
+        {
+            await _inventoryService.AdjustAsync(new InventoryAdjustmentInput(
+                item.ProductId,
+                item.VariantId,
+                item.Quantity,
+                "Return",
+                $"Order {order.OrderNumber} deleted",
+                order.OrderNumber
+            ));
+        }
+
+        _context.Orders.Remove(order);
+        await _context.SaveChangesAsync();
+        _logger.LogInformation("Order {OrderNumber} deleted", order.OrderNumber);
+
+        // Log audit trail
+        await _auditService.LogActionAsync(
+            orderId,
+            "Order",
+            "Delete",
+            Guid.Parse("00000000-0000-0000-0000-000000000001"), // System user ID
+            null,
+            "System",
+            $"Order {order.OrderNumber}",
+            null,
+            $"Order {order.OrderNumber} deleted"
+        );
 
         return true;
     }

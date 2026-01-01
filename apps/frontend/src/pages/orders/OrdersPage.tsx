@@ -5,6 +5,7 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
   ClipboardDocumentListIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import OrderModal from './OrderModal';
@@ -37,10 +38,13 @@ const GET_ORDERS = gql`
 
 const CANCEL_ORDER = gql`
   mutation CancelOrder($id: UUID!) {
-    cancelOrder(id: $id) {
-      id
-      status
-    }
+    cancelOrder(id: $id)
+  }
+`;
+
+const DELETE_ORDER = gql`
+  mutation DeleteOrder($id: UUID!) {
+    deleteOrder(id: $id)
   }
 `;
 
@@ -90,6 +94,21 @@ export default function OrdersPage() {
   });
 
   const [cancelOrder] = useMutation(CANCEL_ORDER, {
+    onCompleted: (data) => {
+      if (data.cancelOrder) {
+        refetch();
+      } else {
+        alert(t('orders.cancelFailed'));
+      }
+    },
+    onError: (error) => {
+      console.error('Cancel order error:', error);
+      alert(t('orders.cancelError'));
+    },
+    client: shopApolloClient,
+  });
+
+  const [deleteOrder] = useMutation(DELETE_ORDER, {
     onCompleted: () => refetch(),
     client: shopApolloClient,
   });
@@ -101,6 +120,12 @@ export default function OrdersPage() {
   const handleCancelOrder = async (id: string) => {
     if (window.confirm(t('orders.confirmCancel'))) {
       await cancelOrder({ variables: { id } });
+    }
+  };
+
+  const handleDeleteOrder = async (id: string) => {
+    if (window.confirm(t('orders.confirmDelete'))) {
+      await deleteOrder({ variables: { id } });
     }
   };
 
@@ -261,13 +286,24 @@ export default function OrdersPage() {
                           <ClipboardDocumentListIcon className="h-5 w-5" />
                         </button>
                         {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && order.status !== 'REFUNDED' && (
-                          <button
-                            onClick={() => handleCancelOrder(order.id)}
-                            className="rounded p-1 text-gray-500 hover:bg-red-100 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400"
-                            title={t('orders.cancel')}
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleCancelOrder(order.id)}
+                              className="rounded p-1 text-gray-500 hover:bg-yellow-100 hover:text-yellow-600 dark:text-gray-400 dark:hover:bg-yellow-900/30 dark:hover:text-yellow-400"
+                              title={t('orders.cancel')}
+                            >
+                              <XMarkIcon className="h-5 w-5" />
+                            </button>
+                            {order.status !== 'SHIPPED' && (
+                              <button
+                                onClick={() => handleDeleteOrder(order.id)}
+                                className="rounded p-1 text-gray-500 hover:bg-red-100 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                title={t('orders.delete')}
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>

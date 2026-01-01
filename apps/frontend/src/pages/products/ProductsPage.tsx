@@ -81,7 +81,17 @@ export default function ProductsPage() {
   }, [error]);
 
   const [deleteProduct] = useMutation(DELETE_PRODUCT, {
-    onCompleted: () => refetch(),
+    onCompleted: (data) => {
+      if (data.deleteProduct) {
+        refetch();
+      } else {
+        alert(t('products.deleteFailed'));
+      }
+    },
+    onError: (error) => {
+      console.error('Delete product error:', error);
+      alert(t('products.deleteError'));
+    },
     client: shopApolloClient,
   });
 

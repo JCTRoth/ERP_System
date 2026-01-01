@@ -189,4 +189,27 @@ public class Query
         Guid productId,
         int take = 50)
         => await inventoryService.GetMovementsAsync(productId, take);
+
+    // Audit Logs
+    [GraphQLDescription("Get audit logs for a specific entity")]
+    public async Task<IEnumerable<ShopService.Models.AuditLog>> GetAuditLogs(
+        [Service] IAuditService auditService,
+        Guid entityId,
+        string entityType)
+        => await auditService.GetAuditLogsAsync(entityId, entityType);
+
+    [GraphQLDescription("Get audit logs by user")]
+    public async Task<IEnumerable<ShopService.Models.AuditLog>> GetUserAuditLogs(
+        [Service] IAuditService auditService,
+        Guid userId,
+        int skip = 0,
+        int take = 50)
+        => await auditService.GetUserAuditLogsAsync(userId, skip, take);
+
+    [GraphQLDescription("Get all audit logs")]
+    public async Task<IEnumerable<ShopService.Models.AuditLog>> GetAllAuditLogs(
+        [Service] IAuditService auditService,
+        int skip = 0,
+        int take = 50)
+        => await auditService.GetAllAuditLogsAsync(skip, take);
 }

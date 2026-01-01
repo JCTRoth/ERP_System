@@ -221,6 +221,28 @@ public class ProductService : IProductService
         var product = await _context.Products.FindAsync(id);
         if (product == null) return false;
 
+        // Check if product is referenced in any active orders
+        var orderCount = await _context.OrderItems
+            .Where(oi => oi.ProductId == id)
+            .CountAsync();
+
+        if (orderCount > 0)
+        {
+            _logger.LogWarning("Cannot delete product {ProductId} - it is used in {OrderCount} orders", id, orderCount);
+            return false;
+        }
+
+        // Check if product is in any active carts
+        var cartCount = await _context.CartItems
+            .Where(ci => ci.ProductId == id)
+            .CountAsync();
+
+        if (cartCount > 0)
+        {
+            _logger.LogWarning("Cannot delete product {ProductId} - it is in {CartCount} carts", id, cartCount);
+            return false;
+        }
+
         _context.Products.Remove(product);
         await _context.SaveChangesAsync();
 

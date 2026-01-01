@@ -133,9 +133,14 @@ public class Mutation
 
     public async Task<bool> CancelOrder(
         [Service] IOrderService orderService,
-        Guid orderId,
+        Guid id,
         string? reason = null)
-        => await orderService.CancelAsync(orderId, reason);
+        => await orderService.CancelAsync(id, reason);
+
+    public async Task<bool> DeleteOrder(
+        [Service] IOrderService orderService,
+        Guid id)
+        => await orderService.DeleteAsync(id);
 
     // Cart
     public async Task<Cart> AddToCart(

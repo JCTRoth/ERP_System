@@ -9,13 +9,6 @@ const GET_ORDER_DETAILS = gql`
       id
       orderNumber
       status
-      customer {
-        id
-        firstName
-        lastName
-        email
-        phone
-      }
       items {
         id
         productId
@@ -29,14 +22,12 @@ const GET_ORDER_DETAILS = gql`
       shippingAddress {
         street
         city
-        state
         postalCode
         country
       }
       billingAddress {
         street
         city
-        state
         postalCode
         country
       }
@@ -53,8 +44,8 @@ const GET_ORDER_DETAILS = gql`
 `;
 
 const UPDATE_ORDER_STATUS = gql`
-  mutation UpdateOrderStatus($id: UUID!, $status: OrderStatus!) {
-    updateOrderStatus(id: $id, status: $status) {
+  mutation UpdateOrderStatus($input: UpdateOrderStatusInput!) {
+    updateOrderStatus(input: $input) {
       id
       status
     }
@@ -72,6 +63,9 @@ const ORDER_STATUS_OPTIONS = [
   'PROCESSING',
   'SHIPPED',
   'DELIVERED',
+  'CANCELLED',
+  'REFUNDED',
+  'ON_HOLD',
 ];
 
 const ORDER_STATUS_COLORS: Record<string, string> = {
@@ -82,6 +76,7 @@ const ORDER_STATUS_COLORS: Record<string, string> = {
   DELIVERED: 'bg-green-100 text-green-800',
   CANCELLED: 'bg-red-100 text-red-800',
   REFUNDED: 'bg-gray-100 text-gray-800',
+  ON_HOLD: 'bg-orange-100 text-orange-800',
 };
 
 export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModalProps) {
@@ -101,7 +96,12 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
 
   const handleStatusChange = async (newStatus: string) => {
     await updateStatus({
-      variables: { id: orderId, status: newStatus },
+      variables: { 
+        input: { 
+          orderId: orderId, 
+          status: newStatus 
+        } 
+      },
     });
   };
 
@@ -125,12 +125,11 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   const formatAddress = (address: {
     street: string;
     city: string;
-    state: string;
     postalCode: string;
     country: string;
   } | null) => {
     if (!address) return '-';
-    return `${address.street}, ${address.city}, ${address.state} ${address.postalCode}, ${address.country}`;
+    return `${address.street}, ${address.city} ${address.postalCode}, ${address.country}`;
   };
 
   return (

@@ -9,6 +9,14 @@ const CREATE_ORDER = gql`
     createOrder(input: $input) {
       id
       orderNumber
+      shippingAddress {
+        name
+        street
+        city
+        postalCode
+        country
+        phone
+      }
     }
   }
 `;
@@ -41,6 +49,17 @@ const GET_CUSTOMERS = gql`
   }
 `;
 
+const GET_TAX_CODES = gql`
+  query GetTaxCodes {
+    taxCodes {
+      id
+      code
+      name
+      rate
+    }
+  }
+`;
+
 interface OrderItem {
   productId: string;
   productName: string;
@@ -58,9 +77,28 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   const [customerId, setCustomerId] = useState<string>('');
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState('');
+  const [useDifferentBillingAddress, setUseDifferentBillingAddress] = useState(false);
+  const [selectedTaxCodeId, setSelectedTaxCodeId] = useState<string>('');
+  const [taxRate, setTaxRate] = useState(0.19); // Default 19%
+  
+  // Shipping Address
+  const [shippingName, setShippingName] = useState('');
+  const [shippingAddress, setShippingAddress] = useState('');
+  const [shippingCity, setShippingCity] = useState('');
+  const [shippingPostalCode, setShippingPostalCode] = useState('');
+  const [shippingCountry, setShippingCountry] = useState('');
+  const [shippingPhone, setShippingPhone] = useState('');
+  
+  // Billing Address (optional, if different from shipping)
+  const [billingName, setBillingName] = useState('');
+  const [billingAddress, setBillingAddress] = useState('');
+  const [billingCity, setBillingCity] = useState('');
+  const [billingPostalCode, setBillingPostalCode] = useState('');
+  const [billingCountry, setBillingCountry] = useState('');
 
   const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, { client: shopApolloClient });
   const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS);
+  const { data: taxCodesData, loading: taxCodesLoading, error: taxCodesError } = useQuery(GET_TAX_CODES);
   const [createOrder, { loading }] = useMutation(CREATE_ORDER, { client: shopApolloClient });
 
   // Debug logs
@@ -98,7 +136,7 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  const tax = subtotal * 0.1; // 10% tax
+  const tax = subtotal * taxRate;
   const total = subtotal + tax;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,6 +152,11 @@ export default function OrderModal({ onClose }: OrderModalProps) {
       return;
     }
 
+    if (!shippingName || !shippingAddress || !shippingCity || !shippingPostalCode || !shippingCountry) {
+      alert(t('orders.shippingAddressRequired'));
+      return;
+    }
+
     try {
       await createOrder({
         variables: {
@@ -124,6 +167,18 @@ export default function OrderModal({ onClose }: OrderModalProps) {
               quantity: item.quantity,
             })),
             notes: notes || null,
+            taxRate: taxRate,
+            shippingName,
+            shippingAddress,
+            shippingCity,
+            shippingPostalCode,
+            shippingCountry,
+            shippingPhone: shippingPhone || null,
+            billingName: useDifferentBillingAddress ? billingName || null : null,
+            billingAddress: useDifferentBillingAddress ? billingAddress || null : null,
+            billingCity: useDifferentBillingAddress ? billingCity || null : null,
+            billingPostalCode: useDifferentBillingAddress ? billingPostalCode || null : null,
+            billingCountry: useDifferentBillingAddress ? billingCountry || null : null,
           },
         },
       });
@@ -193,7 +248,46 @@ export default function OrderModal({ onClose }: OrderModalProps) {
             )}
           </div>
 
-          {/* Order Items */}
+          {/* Tax Code Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('orders.tax')}
+            </label>
+            <select
+              value={selectedTaxCodeId}
+              onChange={(e) => {
+                setSelectedTaxCodeId(e.target.value);
+                // Find the selected tax code and update the tax rate
+                const selected = taxCodesData?.taxCodes?.find(
+                  (tc: { id: string; code: string; name: string; rate: number }) => tc.id === e.target.value
+                );
+                if (selected) {
+                  setTaxRate(selected.rate / 100); // Convert percentage to decimal
+                }
+              }}
+              className="input mt-1 w-full"
+              disabled={taxCodesLoading}
+            >
+              <option value="">
+                {taxCodesLoading
+                  ? t('common.loading')
+                  : taxCodesError
+                  ? t('common.error')
+                  : 'Select tax code'
+                }
+              </option>
+              {!taxCodesLoading && !taxCodesError && taxCodesData?.taxCodes?.map((taxCode: {
+                id: string;
+                code: string;
+                name: string;
+                rate: number;
+              }) => (
+                <option key={taxCode.id} value={taxCode.id}>
+                  {taxCode.name} ({taxCode.rate}%)
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -289,7 +383,7 @@ export default function OrderModal({ onClose }: OrderModalProps) {
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">{t('orders.tax')} (10%)</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t('orders.tax')} (19%)</span>
                   <span>{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-2 text-lg font-bold dark:border-gray-600">
@@ -299,6 +393,119 @@ export default function OrderModal({ onClose }: OrderModalProps) {
               </div>
             </div>
           )}
+
+          {/* Delivery Address */}
+          <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+            <h3 className="mb-4 font-semibold text-gray-900 dark:text-white">{t('orders.shippingAddress')}</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="text"
+                placeholder={t('orders.fullName')}
+                value={shippingName}
+                onChange={(e) => setShippingName(e.target.value)}
+                className="input col-span-2"
+                required
+              />
+              <input
+                type="text"
+                placeholder={t('orders.address')}
+                value={shippingAddress}
+                onChange={(e) => setShippingAddress(e.target.value)}
+                className="input col-span-2"
+                required
+              />
+              <input
+                type="text"
+                placeholder={t('orders.city')}
+                value={shippingCity}
+                onChange={(e) => setShippingCity(e.target.value)}
+                className="input"
+                required
+              />
+              <input
+                type="text"
+                placeholder={t('orders.postalCode')}
+                value={shippingPostalCode}
+                onChange={(e) => setShippingPostalCode(e.target.value)}
+                className="input"
+                required
+              />
+              <input
+                type="text"
+                placeholder={t('orders.country')}
+                value={shippingCountry}
+                onChange={(e) => setShippingCountry(e.target.value)}
+                className="input col-span-2"
+                required
+              />
+              <input
+                type="tel"
+                placeholder={t('orders.phone')}
+                value={shippingPhone}
+                onChange={(e) => setShippingPhone(e.target.value)}
+                className="input col-span-2"
+              />
+            </div>
+
+            {/* Different Billing Address Checkbox */}
+            <div className="mt-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={useDifferentBillingAddress}
+                  onChange={(e) => setUseDifferentBillingAddress(e.target.checked)}
+                  className="rounded"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {t('orders.useDifferentBillingAddress')}
+                </span>
+              </label>
+            </div>
+
+            {/* Billing Address (conditionally shown) */}
+            {useDifferentBillingAddress && (
+              <div className="mt-4 space-y-3 border-t border-gray-200 pt-4 dark:border-gray-700">
+                <h4 className="font-medium text-gray-900 dark:text-white">{t('orders.billingAddress')}</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder={t('orders.fullName')}
+                    value={billingName}
+                    onChange={(e) => setBillingName(e.target.value)}
+                    className="input col-span-2"
+                  />
+                  <input
+                    type="text"
+                    placeholder={t('orders.address')}
+                    value={billingAddress}
+                    onChange={(e) => setBillingAddress(e.target.value)}
+                    className="input col-span-2"
+                  />
+                  <input
+                    type="text"
+                    placeholder={t('orders.city')}
+                    value={billingCity}
+                    onChange={(e) => setBillingCity(e.target.value)}
+                    className="input"
+                  />
+                  <input
+                    type="text"
+                    placeholder={t('orders.postalCode')}
+                    value={billingPostalCode}
+                    onChange={(e) => setBillingPostalCode(e.target.value)}
+                    className="input"
+                  />
+                  <input
+                    type="text"
+                    placeholder={t('orders.country')}
+                    value={billingCountry}
+                    onChange={(e) => setBillingCountry(e.target.value)}
+                    className="input col-span-2"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Notes */}
           <div>
