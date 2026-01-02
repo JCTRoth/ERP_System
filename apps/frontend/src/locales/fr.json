@@ -344,6 +344,7 @@
   "orders.discount": "Remise",
   "orders.editOrder": "Modifier la commande",
   "orders.address": "Adresse",
+  "orders.street": "Rue",
   "orders.city": "Ville",
   "orders.country": "Pays",
   "orders.fullName": "Nom complet",

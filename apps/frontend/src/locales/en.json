@@ -363,6 +363,7 @@
   "orders.discount": "Discount",
   "orders.editOrder": "Edit Order",
   "orders.address": "Street Address",
+  "orders.street": "Street",
   "orders.city": "City",
   "orders.country": "Country",
   "orders.fullName": "Full Name",

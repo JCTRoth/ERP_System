@@ -329,6 +329,7 @@
   "orders.addItem": "Добавить товар",
   "orders.addItemsRequired": "Требуется хотя бы один товар",
   "orders.address": "Адрес улицы",
+  "orders.street": "Улица",
   "orders.allStatuses": "Все статусы",
   "orders.billingAddress": "Адрес для выставления счета",
   "orders.cancel": "Отмена",

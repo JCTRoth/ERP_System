@@ -345,6 +345,7 @@
   "orders.discount": "Rabatt",
   "orders.editOrder": "Bestellung bearbeiten",
   "orders.address": "Straße/Hausnummer",
+  "orders.street": "Straße",
   "orders.city": "Stadt",
   "orders.country": "Land",
   "orders.fullName": "Vollständiger Name",

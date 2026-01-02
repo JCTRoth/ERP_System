@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { shopApolloClient } from '../../lib/apollo';
 
@@ -52,6 +53,26 @@ const UPDATE_ORDER_STATUS = gql`
   }
 `;
 
+const UPDATE_ORDER_ADDRESSES = gql`
+  mutation UpdateOrderAddresses($input: UpdateOrderAddressesInput!) {
+    updateOrderAddresses(input: $input) {
+      id
+      shippingAddress {
+        street
+        city
+        postalCode
+        country
+      }
+      billingAddress {
+        street
+        city
+        postalCode
+        country
+      }
+    }
+  }
+`;
+
 interface OrderDetailsModalProps {
   orderId: string;
   onClose: () => void;
@@ -81,14 +102,43 @@ const ORDER_STATUS_COLORS: Record<string, string> = {
 
 export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModalProps) {
   const { t } = useI18n();
+  const [editingAddresses, setEditingAddresses] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState({
+    street: '',
+    city: '',
+    postalCode: '',
+    country: '',
+  });
+  const [billingAddress, setBillingAddress] = useState({
+    street: '',
+    city: '',
+    postalCode: '',
+    country: '',
+  });
 
   const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, {
     variables: { id: orderId },
     client: shopApolloClient,
+    onCompleted: (data) => {
+      if (data?.order?.shippingAddress) {
+        setShippingAddress(data.order.shippingAddress);
+      }
+      if (data?.order?.billingAddress) {
+        setBillingAddress(data.order.billingAddress);
+      }
+    },
   });
 
   const [updateStatus] = useMutation(UPDATE_ORDER_STATUS, {
     onCompleted: () => refetch(),
+    client: shopApolloClient,
+  });
+
+  const [updateAddresses] = useMutation(UPDATE_ORDER_ADDRESSES, {
+    onCompleted: () => {
+      setEditingAddresses(false);
+      refetch();
+    },
     client: shopApolloClient,
   });
 
@@ -128,8 +178,23 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
     postalCode: string;
     country: string;
   } | null) => {
-    if (!address) return '-';
-    return `${address.street}, ${address.city} ${address.postalCode}, ${address.country}`;
+    if (!address || (!address.street && !address.city && !address.postalCode && !address.country)) {
+      return 'N/A';
+    }
+    const parts = [address.street, address.city, address.postalCode, address.country].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : 'N/A';
+  };
+
+  const handleSaveAddresses = async () => {
+    await updateAddresses({
+      variables: {
+        input: {
+          orderId,
+          shippingAddress,
+          billingAddress,
+        },
+      },
+    });
   };
 
   return (
@@ -180,9 +245,11 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                     className="input"
                   >
                     {ORDER_STATUS_OPTIONS.map((status) => (
-                      <option key={status} value={status}>
-                        {t(`orders.status.${status.toLowerCase()}`)}
-                      </option>
+                      status !== 'CANCELLED' && (
+                        <option key={status} value={status}>
+                          {t(`orders.status.${status.toLowerCase()}`)}
+                        </option>
+                      )
                     ))}
                   </select>
                 </div>
@@ -225,16 +292,108 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
             {/* Addresses */}
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <h3 className="mb-3 font-semibold">{t('orders.shippingAddress')}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {formatAddress(order.shippingAddress)}
-                </p>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="font-semibold">{t('orders.shippingAddress')}</h3>
+                  <button
+                    onClick={() => setEditingAddresses(!editingAddresses)}
+                    className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </button>
+                </div>
+                {editingAddresses ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder={t('orders.street')}
+                      value={shippingAddress.street}
+                      onChange={(e) =>
+                        setShippingAddress({ ...shippingAddress, street: e.target.value })
+                      }
+                      className="input w-full"
+                    />
+                    <input
+                      type="text"
+                      placeholder={t('orders.city')}
+                      value={shippingAddress.city}
+                      onChange={(e) =>
+                        setShippingAddress({ ...shippingAddress, city: e.target.value })
+                      }
+                      className="input w-full"
+                    />
+                    <input
+                      type="text"
+                      placeholder={t('orders.postalCode')}
+                      value={shippingAddress.postalCode}
+                      onChange={(e) =>
+                        setShippingAddress({ ...shippingAddress, postalCode: e.target.value })
+                      }
+                      className="input w-full"
+                    />
+                    <input
+                      type="text"
+                      placeholder={t('orders.country')}
+                      value={shippingAddress.country}
+                      onChange={(e) =>
+                        setShippingAddress({ ...shippingAddress, country: e.target.value })
+                      }
+                      className="input w-full"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {formatAddress(shippingAddress)}
+                  </p>
+                )}
               </div>
               <div>
-                <h3 className="mb-3 font-semibold">{t('orders.billingAddress')}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {formatAddress(order.billingAddress)}
-                </p>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="font-semibold">{t('orders.billingAddress')}</h3>
+                </div>
+                {editingAddresses ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder={t('orders.street')}
+                      value={billingAddress.street}
+                      onChange={(e) =>
+                        setBillingAddress({ ...billingAddress, street: e.target.value })
+                      }
+                      className="input w-full"
+                    />
+                    <input
+                      type="text"
+                      placeholder={t('orders.city')}
+                      value={billingAddress.city}
+                      onChange={(e) =>
+                        setBillingAddress({ ...billingAddress, city: e.target.value })
+                      }
+                      className="input w-full"
+                    />
+                    <input
+                      type="text"
+                      placeholder={t('orders.postalCode')}
+                      value={billingAddress.postalCode}
+                      onChange={(e) =>
+                        setBillingAddress({ ...billingAddress, postalCode: e.target.value })
+                      }
+                      className="input w-full"
+                    />
+                    <input
+                      type="text"
+                      placeholder={t('orders.country')}
+                      value={billingAddress.country}
+                      onChange={(e) =>
+                        setBillingAddress({ ...billingAddress, country: e.target.value })
+                      }
+                      className="input w-full"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {formatAddress(billingAddress)}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -245,6 +404,9 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
+                        #
+                      </th>
                       <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
                         {t('orders.product')}
                       </th>
@@ -270,8 +432,9 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                       quantity: number;
                       unitPrice: number;
                       total: number;
-                    }) => (
+                    }, index: number) => (
                       <tr key={item.id}>
+                        <td className="px-4 py-3 text-center font-medium text-gray-500">{index + 1}</td>
                         <td className="px-4 py-3 font-medium">{item.productName}</td>
                         <td className="px-4 py-3 font-mono text-sm text-gray-500">
                           {item.productSku}
@@ -327,6 +490,21 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                 </p>
               </div>
             )}
+
+            {/* Order Documents */}
+            <div>
+              <h3 className="mb-3 font-semibold">Order Documents</h3>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    No documents created yet for this order.
+                  </p>
+                  <button className="btn-primary text-sm">
+                    Create Invoice
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="py-8 text-center text-gray-500">
@@ -334,11 +512,29 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
           </div>
         )}
 
-        {/* Close Button */}
-        <div className="mt-6 flex justify-end">
-          <button onClick={onClose} className="btn-secondary">
-            {t('common.close')}
-          </button>
+        {/* Footer Buttons */}
+        <div className="mt-6 flex justify-end gap-2">
+          {editingAddresses && (
+            <>
+              <button
+                onClick={() => setEditingAddresses(false)}
+                className="btn-secondary"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleSaveAddresses}
+                className="btn-primary"
+              >
+                {t('common.save')}
+              </button>
+            </>
+          )}
+          {!editingAddresses && (
+            <button onClick={onClose} className="btn-secondary">
+              {t('common.close')}
+            </button>
+          )}
         </div>
       </div>
     </div>
