@@ -11,6 +11,7 @@ import {
   ShoppingCartIcon,
   CalculatorIcon,
   CircleStackIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { useUIStore } from '../stores/uiStore';
 import { useI18n } from '../providers/I18nProvider';
@@ -25,6 +26,7 @@ const menuItems = [
   { path: '/orders', icon: ShoppingCartIcon, labelKey: 'nav.orders', tooltipKey: 'nav.ordersTooltip' },
   { path: '/accounting', icon: CalculatorIcon, labelKey: 'nav.accounting', tooltipKey: 'nav.accountingTooltip' },
   { path: '/masterdata', icon: CircleStackIcon, labelKey: 'nav.masterdata', tooltipKey: 'nav.masterdataTooltip' },
+  { path: '/templates', icon: DocumentTextIcon, labelKey: 'nav.templates', tooltipKey: 'nav.templatesTooltip' },
   { path: '/translations', icon: LanguageIcon, labelKey: 'nav.translations', tooltipKey: 'nav.translationsTooltip' },
   { path: '/ui-builder', icon: RectangleStackIcon, labelKey: 'nav.uiBuilder', tooltipKey: 'nav.uiBuilderTooltip' },
   { path: '/settings', icon: Cog6ToothIcon, labelKey: 'nav.settings', tooltipKey: 'nav.settingsTooltip' },

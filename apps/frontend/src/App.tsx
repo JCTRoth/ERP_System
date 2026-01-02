@@ -15,6 +15,7 @@ import ProductsPage from './pages/products/ProductsPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import AccountingPage from './pages/accounting/AccountingPage';
 import MasterdataPage from './pages/masterdata/MasterdataPage';
+import TemplatesPage from './pages/templates/TemplatesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import CustomPageDisplay from './pages/custom-page/CustomPageDisplay';
 
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="orders" element={<OrdersPage />} />
         <Route path="accounting" element={<AccountingPage />} />
         <Route path="masterdata" element={<MasterdataPage />} />
+        <Route path="templates" element={<TemplatesPage />} />
         <Route path="translations" element={<TranslationsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="ui-builder" element={<UIBuilderPage />} />

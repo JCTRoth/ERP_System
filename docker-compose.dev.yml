@@ -209,6 +209,26 @@ services:
     depends_on:
       - postgres-company
 
+  templates-service:
+    build:
+      context: ./apps/services/java/templates-service
+    ports:
+      - "8087:8087"
+    volumes:
+      - ./apps/services/java/templates-service:/app
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-templates:5432/templatesdb
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - AWS_S3_BUCKET=templates-documents
+      - AWS_S3_REGION=eu-central-1
+      - AWS_S3_ENDPOINT=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+    depends_on:
+      - postgres-templates
+
   # PostgreSQL Databases
   postgres-users:
     image: postgres:16-alpine
@@ -288,6 +308,17 @@ services:
     volumes:
       - postgres-translation-data:/var/lib/postgresql/data
 
+  postgres-templates:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: templatesdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres-templates-data:/var/lib/postgresql/data
+
   # Observability
   prometheus:
     image: prom/prometheus:latest
@@ -323,6 +354,7 @@ volumes:
   postgres-company-data:
   postgres-notification-data:
   postgres-translation-data:
+  postgres-templates-data:
   prometheus-data:
   grafana-data:
   redis-data:
