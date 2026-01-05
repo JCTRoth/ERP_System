@@ -4,6 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import pg from 'pg';
+import { spawnSync } from 'child_process';
+import { tmpdir } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,8 +15,50 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// In-memory store
-const templates = new Map();
+// PostgreSQL connection pool
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/templatesdb',
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+});
+
+
+// Initialize database schema
+async function initializeDatabase() {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS templates (
+        id VARCHAR(36) PRIMARY KEY,
+        company_id VARCHAR(255),
+        key VARCHAR(255),
+        name VARCHAR(255),
+        content TEXT,
+        language VARCHAR(10),
+        document_type VARCHAR(50),
+        assigned_state VARCHAR(50),
+        is_active BOOLEAN DEFAULT true,
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_by VARCHAR(255),
+        last_modified_by VARCHAR(255),
+        UNIQUE(key, company_id)
+      );
+    `);
+    console.log('✓ Database schema initialized');
+  } catch (err) {
+    console.error('Error initializing database:', err);
+  } finally {
+    client.release();
+  }
+}
+
 
 // Mock available variables
 const availableVariables = {
@@ -40,76 +85,109 @@ const availableVariables = {
   },
 };
 
-// Load templates from files
-function loadTemplatesFromFiles() {
+// Load templates from files and seed database
+async function loadTemplatesFromFiles() {
   const templatesDir = path.join(__dirname, 'templates');
-  
+
   if (!fs.existsSync(templatesDir)) {
     console.log('Templates directory not found');
     return;
   }
 
-  const files = fs.readdirSync(templatesDir).filter(file => file.endsWith('.adoc'));
-  
-  files.forEach((file, index) => {
+  const files = fs.readdirSync(templatesDir).filter((file) => file.endsWith('.adoc'));
+
+  for (const file of files) {
     const filePath = path.join(templatesDir, file);
     const content = fs.readFileSync(filePath, 'utf8');
     const key = file.replace('.adoc', '');
-    
+
     // Map filename to document type
     const documentTypeMap = {
-      'invoice': 'invoice',
+      invoice: 'invoice',
       'order-confirmation': 'orderConfirmation',
       'shipping-notice': 'shippingNotice',
-      'cancellation': 'cancellation',
-      'refund': 'refund'
+      cancellation: 'cancellation',
+      refund: 'refund',
     };
-    
+
     const documentType = documentTypeMap[key] || 'invoice';
-    const name = key.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    
-    const template = {
-      id: `template-${index + 1}`,
-      companyId: '1', // Default company
-      key: key,
-      name: name,
-      content: content,
-      language: 'en',
-      documentType: documentType,
-      assignedState: null,
-      isActive: true,
-      metadata: { version: 1 },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: 'system',
-      lastModifiedBy: 'system'
-    };
-    
-    templates.set(template.id, template);
-    console.log(`Loaded template: ${template.name}`);
-  });
-}
+    const name = key.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
-// Initialize with templates from files
-loadTemplatesFromFiles();
-
-// Assign default templates to states
-function assignDefaultTemplateStates() {
-  for (const [id, tpl] of templates.entries()) {
-    if (tpl.documentType === 'invoice' || tpl.documentType === 'orderConfirmation') {
-      tpl.assignedState = 'confirmed';
-    } else if (tpl.documentType === 'shippingNotice') {
-      tpl.assignedState = 'shipped';
-    } else if (tpl.documentType === 'cancellation') {
-      tpl.assignedState = 'cancelled';
-    } else if (tpl.documentType === 'refund') {
-      tpl.assignedState = 'refunded';
+    let assignedState = null;
+    if (documentType === 'invoice' || documentType === 'orderConfirmation') {
+      assignedState = 'confirmed';
+    } else if (documentType === 'shippingNotice') {
+      assignedState = 'shipped';
+    } else if (documentType === 'cancellation') {
+      assignedState = 'cancelled';
+    } else if (documentType === 'refund') {
+      assignedState = 'refunded';
     }
-    templates.set(id, tpl);
+
+    const id = uuidv4();
+    const now = new Date();
+
+    try {
+      await pool.query(
+        `INSERT INTO templates (id, company_id, key, name, content, language, document_type, assigned_state, is_active, metadata, created_at, updated_at, created_by, last_modified_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+         ON CONFLICT (key, company_id) DO UPDATE SET content = EXCLUDED.content, updated_at = EXCLUDED.updated_at`,
+        [
+          id,
+          '1',
+          key,
+          name,
+          content,
+          'en',
+          documentType,
+          assignedState,
+          true,
+          JSON.stringify({ version: 1 }),
+          now,
+          now,
+          'system',
+          'system',
+        ]
+      );
+      console.log(`✓ Seeded template: ${name}`);
+    } catch (err) {
+      console.error(`Error seeding template ${name}:`, err);
+    }
   }
 }
 
-assignDefaultTemplateStates();
+// Initialize database and load templates
+async function initialize() {
+  try {
+    await initializeDatabase();
+    await loadTemplatesFromFiles();
+    console.log('✓ Templates service initialized');
+  } catch (err) {
+    console.error('Initialization error:', err);
+  }
+}
+
+initialize();
+
+// Helper function to format database rows to API response format
+function formatTemplate(row) {
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    key: row.key,
+    name: row.name,
+    content: row.content,
+    language: row.language,
+    documentType: row.document_type,
+    assignedState: row.assigned_state,
+    isActive: row.is_active,
+    metadata: row.metadata,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+    createdBy: row.created_by,
+    lastModifiedBy: row.last_modified_by,
+  };
+}
 
 // Provide sample context records for preview selections
 app.get('/api/templates/context-samples', (req, res) => {
@@ -154,26 +232,45 @@ app.get('/api/templates/context-samples', (req, res) => {
 });
 
 // Health check
-app.get('/actuator/health', (req, res) => {
-  res.json({ status: 'UP', components: { db: { status: 'UP' } } });
+app.get('/actuator/health', async (req, res) => {
+  try {
+    await pool.query('SELECT NOW()');
+    res.json({ status: 'UP', components: { db: { status: 'UP' } } });
+  } catch (err) {
+    res.status(503).json({ status: 'DOWN', components: { db: { status: 'DOWN' } } });
+  }
 });
 
 // Get all templates
-app.get('/api/templates', (req, res) => {
-  const { companyId, language, documentType } = req.query;
-  let result = Array.from(templates.values());
+app.get('/api/templates', async (req, res) => {
+  try {
+    const { companyId, language, documentType } = req.query;
 
-  if (companyId) {
-    result = result.filter((t) => t.companyId === companyId);
-  }
-  if (language) {
-    result = result.filter((t) => t.language === language);
-  }
-  if (documentType) {
-    result = result.filter((t) => t.documentType === documentType);
-  }
+    let query = 'SELECT * FROM templates WHERE 1=1';
+    const params = [];
+    let paramIndex = 1;
 
-  res.json(result);
+    if (companyId) {
+      query += ` AND company_id = $${paramIndex++}`;
+      params.push(companyId);
+    }
+    if (language) {
+      query += ` AND language = $${paramIndex++}`;
+      params.push(language);
+    }
+    if (documentType) {
+      query += ` AND document_type = $${paramIndex++}`;
+      params.push(documentType);
+    }
+
+    query += ' ORDER BY name';
+
+    const result = await pool.query(query, params);
+    res.json(result.rows.map(formatTemplate));
+  } catch (err) {
+    console.error('Error fetching templates:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Get available variables (must be before /:id route)
@@ -182,222 +279,322 @@ app.get('/api/templates/variables', (req, res) => {
 });
 
 // Get single template
-app.get('/api/templates/:id', (req, res) => {
-  const template = templates.get(req.params.id);
-  if (!template) {
-    return res.status(404).json({ error: 'Template not found' });
+app.get('/api/templates/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM templates WHERE id = $1', [req.params.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    res.json(formatTemplate(result.rows[0]));
+  } catch (err) {
+    console.error('Error fetching template:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-  res.json(template);
 });
 
 // Create template
-app.post('/api/templates', (req, res) => {
-  const {
-    key,
-    name,
-    content,
-    language,
-    documentType,
-    assignedState,
-    companyId,
-    createdBy,
-  } = req.body;
+app.post('/api/templates', async (req, res) => {
+  try {
+    const {
+      key,
+      name,
+      content,
+      language,
+      documentType,
+      assignedState,
+      companyId,
+      createdBy,
+    } = req.body;
 
-  const id = uuidv4();
-  const now = new Date().toISOString();
-  const template = {
-    id,
-    key,
-    name,
-    content,
-    language,
-    documentType,
-    assignedState: assignedState || null,
-    companyId,
-    createdBy,
-    isActive: true,
-    createdAt: now,
-    updatedAt: now,
-  };
+    const id = uuidv4();
+    const now = new Date();
 
-  templates.set(id, template);
-  res.status(201).json(template);
+    const result = await pool.query(
+      `INSERT INTO templates (id, company_id, key, name, content, language, document_type, assigned_state, is_active, metadata, created_at, updated_at, created_by, last_modified_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       RETURNING *`,
+      [
+        id,
+        companyId,
+        key,
+        name,
+        content,
+        language || 'en',
+        documentType,
+        assignedState || null,
+        true,
+        JSON.stringify({ version: 1 }),
+        now,
+        now,
+        createdBy,
+        createdBy,
+      ]
+    );
+
+    res.status(201).json(formatTemplate(result.rows[0]));
+  } catch (err) {
+    console.error('Error creating template:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Update template
-app.put('/api/templates/:id', (req, res) => {
-  const template = templates.get(req.params.id);
-  if (!template) {
-    return res.status(404).json({ error: 'Template not found' });
+app.put('/api/templates/:id', async (req, res) => {
+  try {
+    const { name, content, language, documentType, assignedState, lastModifiedBy } = req.body;
+    const now = new Date();
+
+    const updates = [];
+    const params = [];
+    let paramIndex = 1;
+
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      params.push(name);
+    }
+    if (content !== undefined) {
+      updates.push(`content = $${paramIndex++}`);
+      params.push(content);
+    }
+    if (language !== undefined) {
+      updates.push(`language = $${paramIndex++}`);
+      params.push(language);
+    }
+    if (documentType !== undefined) {
+      updates.push(`document_type = $${paramIndex++}`);
+      params.push(documentType);
+    }
+    if (assignedState !== undefined) {
+      updates.push(`assigned_state = $${paramIndex++}`);
+      params.push(assignedState);
+    }
+
+    updates.push(`updated_at = $${paramIndex++}`);
+    params.push(now);
+
+    if (lastModifiedBy !== undefined) {
+      updates.push(`last_modified_by = $${paramIndex++}`);
+      params.push(lastModifiedBy);
+    }
+
+    params.push(req.params.id);
+
+    const query = `UPDATE templates SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+
+    const result = await pool.query(query, params);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    res.json(formatTemplate(result.rows[0]));
+  } catch (err) {
+    console.error('Error updating template:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  const { name, content, language, documentType, assignedState } = req.body;
-  const updated = {
-    ...template,
-    ...(name && { name }),
-    ...(content && { content }),
-    ...(language && { language }),
-    ...(documentType && { documentType }),
-    ...(assignedState !== undefined && { assignedState }),
-    updatedAt: new Date().toISOString(),
-  };
-
-  templates.set(req.params.id, updated);
-  res.json(updated);
 });
 
 // Delete template
-app.delete('/api/templates/:id', (req, res) => {
-  if (!templates.has(req.params.id)) {
-    return res.status(404).json({ error: 'Template not found' });
-  }
+app.delete('/api/templates/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM templates WHERE id = $1', [req.params.id]);
 
-  templates.delete(req.params.id);
-  res.status(204).send();
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    console.error('Error deleting template:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Render template
 app.post('/api/templates/:id/render', async (req, res) => {
-  const template = templates.get(req.params.id);
-  if (!template) {
-    return res.status(404).json({ error: 'Template not found' });
-  }
-
-  const context = req.body;
-  const errors = [];
-
-  // Simple variable replacement for {path.to.value} with nested paths
-  let content = template.content.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}/g, (match, path) => {
-    const segments = path.split('.');
-    let value = context;
-    for (const segment of segments) {
-      if (value == null || typeof value !== 'object' || !(segment in value)) {
-        errors.push(`Missing variable: ${match}`);
-        return match;
-      }
-      value = value[segment];
-    }
-    return String(value);
-  });
-
-  // Try to render AsciiDoc using asciidoctor.js if installed
-  let htmlOutput;
   try {
-    const Asciidoctor = await import('asciidoctor.js')
-      .then((m) => m.default ? m.default() : m());
-    const opts = { safe: 'safe', attributes: { 'showtitle': true } };
-    htmlOutput = Asciidoctor.convert(content, opts);
-  } catch (err) {
-    // If asciidoctor.js is not available or conversion fails, fallback to preformatted HTML
-    htmlOutput = `
-      <html>
-        <head>
-          <title>${template.name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            h1 { color: #333; }
-            pre { background: #f4f4f4; padding: 10px; border-radius: 4px; }
-          </style>
-        </head>
-        <body>
-          <h1>${template.name}</h1>
-          <div>${content.replace(/</g, '&lt;')}</div>
-        </body>
-      </html>
-    `;
-  }
+    const result = await pool.query('SELECT * FROM templates WHERE id = $1', [req.params.id]);
 
-  res.json({
-    html: htmlOutput,
-    pdfUrl: `http://localhost:8087/api/templates/${template.id}/pdf?context=${encodeURIComponent(JSON.stringify(context))}`,
-    errors,
-  });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    const template = formatTemplate(result.rows[0]);
+    const context = req.body;
+    const errors = [];
+
+    // Variable replacement for {path.to.value} with nested paths
+    let content = template.content.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}/g, (match, path) => {
+      const segments = path.split('.');
+      let value = context;
+      for (const segment of segments) {
+        if (value == null || typeof value !== 'object' || !(segment in value)) {
+          errors.push(`Missing variable: ${match}`);
+          return match;
+        }
+        value = value[segment];
+      }
+      return String(value);
+    });
+
+    // Try to render AsciiDoc
+    let htmlOutput;
+    try {
+      const Asciidoctor = await import('asciidoctor.js').then((m) =>
+        m.default ? m.default() : m()
+      );
+      const opts = { safe: 'safe', attributes: { showtitle: true } };
+      htmlOutput = Asciidoctor.convert(content, opts);
+    } catch (err) {
+      htmlOutput = `
+        <html>
+          <head>
+            <title>${template.name}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 40px; }
+              h1 { color: #333; }
+              pre { background: #f4f4f4; padding: 10px; border-radius: 4px; }
+            </style>
+          </head>
+          <body>
+            <h1>${template.name}</h1>
+            <div>${content.replace(/</g, '&lt;')}</div>
+          </body>
+        </html>
+      `;
+    }
+
+    res.json({
+      html: htmlOutput,
+      pdfUrl: `http://localhost:8087/api/templates/${template.id}/pdf?context=${encodeURIComponent(
+        JSON.stringify(context)
+      )}`,
+      errors,
+    });
+  } catch (err) {
+    console.error('Error rendering template:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 const PORT = process.env.PORT || 8087;
 app.listen(PORT, () => {
-  console.log(`Templates Service running on port ${PORT}`);
+  console.log(`✓ Templates Service running on port ${PORT}`);
 });
 
-// Simple PDF endpoint for preview/download in tests
+// PDF generation endpoint
 app.get('/api/templates/:id/pdf', async (req, res) => {
-  const template = templates.get(req.params.id);
-  if (!template) return res.status(404).send('Not found');
-
-  let context = {};
-  if (req.query.context) {
-    try {
-      context = JSON.parse(decodeURIComponent(req.query.context));
-    } catch (e) {
-      console.error('Failed to parse context:', e);
-  // Replace variables in content (AsciiDoc attributes: {namespace.key})
-  let content = template.content.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)\}/g, (match, path) => {
-
-  // Replace variables in content
-  let content = template.content.replace(/\{\{([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)\}\}/g, (match, path) => {
-    const [namespace, key] = path.split('.');
-    const value = context[namespace]?.[key];
-    return value !== undefined ? String(value) : match;
-  });
-
-  // Try to render AsciiDoc using asciidoctor.js
-  let htmlOutput;
   try {
-    const Asciidoctor = await import('asciidoctor.js')
-      .then((m) => m.default ? m.default() : m());
-    const opts = { safe: 'safe', attributes: { 'showtitle': true } };
-    htmlOutput = Asciidoctor.convert(content, opts);
-  } catch (err) {
-    htmlOutput = `
-      <html>
-        <head>
-          <title>${template.name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            h1 { color: #333; }
-            pre { background: #f4f4f4; padding: 10px; border-radius: 4px; }
-          </style>
-        </head>
-        <body>
-          <h1>${template.name}</h1>
-          <div>${content.replace(/</g, '&lt;')}</div>
-        </body>
-      </html>
-    `;
-  }
+    const result = await pool.query('SELECT * FROM templates WHERE id = $1', [req.params.id]);
 
-  // Try to use asciidoctor-pdf CLI if installed on the system
-  try {
-    const { spawnSync } = await import('node:child_process');
-    const tmp = await import('node:os');
-    const tmpdir = tmp.tmpdir();
-    const pdfPath = path.join(tmpdir, `${template.key || 'document'}-${Date.now()}.pdf`);
-    const adocPath = path.join(tmpdir, `${template.key || 'document'}-${Date.now()}.adoc`);
-
-    fs.writeFileSync(adocPath, content, 'utf8');
-
-    const result = spawnSync('asciidoctor-pdf', ['-o', pdfPath, adocPath], { encoding: 'utf8' });
-    if (result.status === 0 && fs.existsSync(pdfPath)) {
-      const pdfBuffer = fs.readFileSync(pdfPath);
-      // clean up
-      try { fs.unlinkSync(pdfPath); } catch (e) {}
-      try { fs.unlinkSync(adocPath); } catch (e) {}
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${template.key || 'document'}.pdf"`);
-      res.send(pdfBuffer);
-      return;
-    } else {
-      console.warn('asciidoctor-pdf failed', result.stderr || result.stdout);
-      try { fs.unlinkSync(adocPath); } catch (e) {}
+    if (result.rows.length === 0) {
+      return res.status(404).send('Not found');
     }
-  } catch (err) {
-    console.warn('asciidoctor-pdf not available or failed', err?.message || err);
-  }
 
-  // Fallback to returning HTML
-  res.setHeader('Content-Type', 'application/octet-stream');
-  res.setHeader('Content-Disposition', `attachment; filename="${template.key || 'document'}.html"`);
-  res.send(htmlOutput);
-  return;
+    const template = formatTemplate(result.rows[0]);
+    let context = {};
+
+    if (req.query.context) {
+      try {
+        context = JSON.parse(decodeURIComponent(req.query.context));
+      } catch (e) {
+        console.error('Failed to parse context:', e);
+      }
+    }
+
+    // Variable replacement
+    let content = template.content.replace(
+      /\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}/g,
+      (match, path) => {
+        const segments = path.split('.');
+        let value = context;
+        for (const segment of segments) {
+          if (value == null || typeof value !== 'object' || !(segment in value)) {
+            return match;
+          }
+          value = value[segment];
+        }
+        return String(value);
+      }
+    );
+
+    // Try to render AsciiDoc
+    let htmlOutput;
+    try {
+      const Asciidoctor = await import('asciidoctor.js').then((m) =>
+        m.default ? m.default() : m()
+      );
+      const opts = { safe: 'safe', attributes: { showtitle: true } };
+      htmlOutput = Asciidoctor.convert(content, opts);
+    } catch (err) {
+      htmlOutput = `
+        <html>
+          <head>
+            <title>${template.name}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 40px; }
+              h1 { color: #333; }
+            </style>
+          </head>
+          <body>
+            <h1>${template.name}</h1>
+            <div>${content.replace(/</g, '&lt;')}</div>
+          </body>
+        </html>
+      `;
+    }
+
+    // Try PDF generation with asciidoctor-pdf
+    try {
+      const tmpDir = tmpdir();
+      const pdfPath = path.join(tmpDir, `${template.key || 'document'}-${Date.now()}.pdf`);
+      const adocPath = path.join(tmpDir, `${template.key || 'document'}-${Date.now()}.adoc`);
+
+      fs.writeFileSync(adocPath, content, 'utf8');
+
+      const result = spawnSync('asciidoctor-pdf', ['-o', pdfPath, adocPath], {
+        encoding: 'utf8',
+      });
+
+      if (result.status === 0 && fs.existsSync(pdfPath)) {
+        const pdfBuffer = fs.readFileSync(pdfPath);
+
+        try {
+          fs.unlinkSync(pdfPath);
+        } catch (e) {}
+        try {
+          fs.unlinkSync(adocPath);
+        } catch (e) {}
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${template.key || 'document'}.pdf"`);
+        res.send(pdfBuffer);
+        return;
+      } else {
+        console.warn('asciidoctor-pdf failed', result.stderr || result.stdout);
+        try {
+          fs.unlinkSync(adocPath);
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('asciidoctor-pdf not available or failed', err?.message || err);
+    }
+
+    // Fallback to HTML
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${template.key || 'document'}.html"`);
+    res.send(htmlOutput);
+  } catch (err) {
+    console.error('Error generating PDF:', err);
+    res.status(500).send('Internal server error');
+  }
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Shutting down gracefully...');
+  await pool.end();
+  process.exit(0);
 });
