@@ -203,7 +203,11 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
             quantity: item.quantity,
             unitPrice: item.unitPrice || 0,
             accountId: '', // Will need to be selected
-            taxRate: 0.19, // Default tax rate
+            // Use item.taxRate if provided; otherwise default to 19 (percent)
+            // Normalize taxRate: if given as fraction (0.19) convert to percent (19)
+            taxRate: (item.taxRate !== undefined && item.taxRate !== null)
+              ? (item.taxRate > 1 ? item.taxRate : item.taxRate * 100)
+              : 0,
             productId: item.productId || undefined,
           }))
         );
@@ -234,10 +238,12 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
     (sum, item) => sum + item.quantity * item.unitPrice,
     0
   );
-  const taxAmount = lineItems.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice * (item.taxRate / 100),
-    0
-  );
+  const taxAmount = lineItems.reduce((sum, item) => {
+    const rawRate = item.taxRate ?? 0;
+    // Support both fraction (0.19) and percent (19) values.
+    const rate = rawRate > 1 ? rawRate / 100 : rawRate;
+    return sum + item.quantity * item.unitPrice * rate;
+  }, 0);
   const total = subtotal + taxAmount;
 
   const handleDelete = async () => {
