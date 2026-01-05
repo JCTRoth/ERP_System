@@ -5,6 +5,17 @@ import { useI18n } from '../../providers/I18nProvider';
 import Tooltip from '../../components/Tooltip';
 import { shopApolloClient } from '../../lib/apollo';
 
+// Helper function to format UUID with dashes
+const formatUUID = (uuid: string): string => {
+  if (!uuid) return '';
+  // Remove any existing dashes
+  const cleaned = uuid.replace(/-/g, '');
+  // Check if it's a valid hex string (32 chars)
+  if (cleaned.length !== 32) return uuid;
+  // Format as standard UUID: 8-4-4-4-12
+  return `${cleaned.substring(0, 8)}-${cleaned.substring(8, 12)}-${cleaned.substring(12, 16)}-${cleaned.substring(16, 20)}-${cleaned.substring(20)}`;
+};
+
 const CREATE_INVOICE = gql`
   mutation CreateInvoice($input: CreateInvoiceInput!) {
     createInvoice(input: $input) {
@@ -117,7 +128,10 @@ interface InvoiceLineItem {
   unitPrice: number;
   accountId: string;
   taxRate: number;
+  discountPercent?: number;
   productId?: string;
+  sku?: string;
+  unit?: string;
 }
 
 interface Invoice {
@@ -139,6 +153,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
   const [formData, setFormData] = useState({
     type: 'SalesInvoice',
     orderId: '',
+    orderNumber: '',
     customerId: '',
     customerName: '',
     invoiceDate: new Date().toISOString().split('T')[0],
@@ -148,8 +163,10 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
   });
 
   const [lineItems, setLineItems] = useState<InvoiceLineItem[]>([
-    { description: '', quantity: 1, unitPrice: 0, accountId: '', taxRate: 0 },
+    { description: '', quantity: 1, unitPrice: 0, accountId: '', taxRate: 0, discountPercent: 0 },
   ]);
+
+  const [validationError, setValidationError] = useState<string>('');
 
   const { data: accountsData } = useQuery(GET_ACCOUNTS);
   const { data: ordersData } = useQuery(GET_ORDERS, { client: shopApolloClient });
@@ -189,6 +206,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
         const shouldSetCustomer = !prev.customerId;
         return {
           ...prev,
+          orderNumber: order.orderNumber || prev.orderNumber,
           customerId: shouldSetCustomer ? (order.customerId || prev.customerId) : prev.customerId,
           customerName: shouldSetCustomer ? (customer?.name || prev.customerName) : prev.customerName,
           currency: order.currency || prev.currency,
@@ -203,6 +221,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
             quantity: item.quantity,
             unitPrice: item.unitPrice || 0,
             accountId: '', // Will need to be selected
+            discountPercent: 0,
             // Use item.taxRate if provided; otherwise default to 19 (percent)
             // Normalize taxRate: if given as fraction (0.19) convert to percent (19)
             taxRate: (item.taxRate !== undefined && item.taxRate !== null)
@@ -218,7 +237,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
   const addLineItem = () => {
     setLineItems([
       ...lineItems,
-      { description: '', quantity: 1, unitPrice: 0, accountId: '', taxRate: 0 },
+      { description: '', quantity: 1, unitPrice: 0, accountId: '', taxRate: 0, discountPercent: 0 },
     ]);
   };
 
@@ -263,26 +282,80 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation: Check required fields
+    setValidationError('');
+    
+    if (!formData.customerId) {
+      setValidationError(t('accounting.errorCustomerRequired') || 'Customer is required');
+      return;
+    }
+    
+    if (lineItems.length === 0) {
+      setValidationError(t('accounting.errorLineItemsRequired') || 'At least one line item is required');
+      return;
+    }
+    
+    // Check that all line items have required fields
+    for (let i = 0; i < lineItems.length; i++) {
+      const item = lineItems[i];
+      if (!item.description) {
+        setValidationError(t('accounting.errorDescriptionRequired') || `Description required for line item ${i + 1}`);
+        return;
+      }
+      if (!item.accountId) {
+        setValidationError(t('accounting.errorAccountRequired') || `Account required for line item ${i + 1}`);
+        return;
+      }
+      if (item.quantity <= 0) {
+        setValidationError(t('accounting.errorQuantityRequired') || `Quantity must be greater than 0 for line item ${i + 1}`);
+        return;
+      }
+      if (item.unitPrice < 0) {
+        setValidationError(t('accounting.errorPriceRequired') || `Unit price cannot be negative for line item ${i + 1}`);
+        return;
+      }
+    }
 
     try {
+      console.log('Creating invoice with data:', {
+        type: formData.type,
+        customerId: formData.customerId ? formatUUID(formData.customerId) : undefined,
+        customerName: formData.customerName,
+        lineItems: lineItems.map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: parseFloat(item.unitPrice.toString()),
+          accountId: item.accountId || null,
+          taxRate: parseFloat((item.taxRate / 100).toString()),
+          discountPercent: item.discountPercent && parseFloat(item.discountPercent.toString()) > 0 ? parseFloat((item.discountPercent / 100).toString()) : undefined,
+        }))
+      });
+
       if (isEditing && invoice) {
         await updateInvoice({
           variables: {
-            id: invoice.id,
+            id: formatUUID(invoice.id),
             input: {
               type: formData.type,
-              customerId: formData.customerId || null,
-              customerName: formData.customerName,
-              invoiceDate: formData.invoiceDate,
-              dueDate: formData.dueDate,
+              customerId: formData.customerId ? formatUUID(formData.customerId) : undefined,
+              orderId: formData.orderId ? formatUUID(formData.orderId) : undefined,
+              orderNumber: formData.orderNumber || undefined,
+              customerName: formData.customerName || undefined,
+              invoiceDate: formData.invoiceDate ? new Date(formData.invoiceDate).toISOString() : undefined,
+              dueDate: new Date(formData.dueDate).toISOString(),
               currency: formData.currency,
-              notes: formData.notes || null,
+              notes: formData.notes || undefined,
               lineItems: lineItems.map((item) => ({
                 description: item.description,
+                sku: item.sku || undefined,
+                productId: item.productId ? formatUUID(item.productId) : undefined,
+                accountId: item.accountId ? formatUUID(item.accountId) : undefined,
                 quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                accountId: item.accountId || null,
-                taxRate: item.taxRate,
+                unit: item.unit || undefined,
+                unitPrice: parseFloat(item.unitPrice.toString()),
+                discountPercent: item.discountPercent && parseFloat(item.discountPercent.toString()) > 0 ? parseFloat((item.discountPercent / 100).toString()) : undefined,
+                taxRate: parseFloat((item.taxRate / 100).toString()),
               })),
             },
           },
@@ -292,18 +365,24 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
           variables: {
             input: {
               type: formData.type,
-              customerId: formData.customerId || null,
-              customerName: formData.customerName,
-              invoiceDate: formData.invoiceDate,
-              dueDate: formData.dueDate,
+              customerId: formData.customerId ? formatUUID(formData.customerId) : undefined,
+              orderId: formData.orderId ? formatUUID(formData.orderId) : undefined,
+              orderNumber: formData.orderNumber || undefined,
+              customerName: formData.customerName || undefined,
+              invoiceDate: formData.invoiceDate ? new Date(formData.invoiceDate).toISOString() : undefined,
+              dueDate: new Date(formData.dueDate).toISOString(),
               currency: formData.currency,
-              notes: formData.notes || null,
+              notes: formData.notes || undefined,
               lineItems: lineItems.map((item) => ({
                 description: item.description,
+                sku: item.sku || undefined,
+                productId: item.productId ? formatUUID(item.productId) : undefined,
+                accountId: item.accountId ? formatUUID(item.accountId) : undefined,
                 quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                accountId: item.accountId || null,
-                taxRate: item.taxRate,
+                unit: item.unit || undefined,
+                unitPrice: parseFloat(item.unitPrice.toString()),
+                discountPercent: item.discountPercent && parseFloat(item.discountPercent.toString()) > 0 ? parseFloat((item.discountPercent / 100).toString()) : undefined,
+                taxRate: parseFloat((item.taxRate / 100).toString()),
               })),
             },
           },
@@ -339,6 +418,13 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Validation Error Banner */}
+          {validationError && (
+            <div className="rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/20">
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">{validationError}</p>
+            </div>
+          )}
+
           {/* Selected Order Summary */}
           {formData.orderId && (
             <div className="rounded border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
@@ -611,9 +697,10 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                     <select
                       value={item.accountId}
                       onChange={(e) => updateLineItem(index, { accountId: e.target.value })}
-                      className="input w-full"
+                      className={`input w-full ${!item.accountId ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20' : ''}`}
+                      required
                     >
-                      <option value="">{t('accounting.selectAccount')}</option>
+                      <option value="">{t('accounting.selectAccount')} *</option>
                       {accountsData?.accounts?.nodes?.map((account: {
                         id: string;
                         accountNumber: string;

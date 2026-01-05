@@ -13,7 +13,7 @@ COPY . .
 RUN apk add --no-cache curl
 
 # Set environment variables
-ENV ASPNETCORE_URLS=http://+:5001
+ENV ASPNETCORE_HTTP_PORTS=5001
 ENV ASPNETCORE_ENVIRONMENT=Development
 
 # Expose port

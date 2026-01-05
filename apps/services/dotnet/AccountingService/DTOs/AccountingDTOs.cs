@@ -88,7 +88,7 @@ public record CreateInvoiceLineItemInput(
     int Quantity,
     string? Unit,
     decimal UnitPrice,
-    decimal DiscountPercent,
+    decimal? DiscountPercent,
     decimal TaxRate
 );
 

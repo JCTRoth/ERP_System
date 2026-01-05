@@ -132,7 +132,7 @@ public class InvoiceService : IInvoiceService
         foreach (var lineInput in input.LineItems)
         {
             var lineSubtotal = lineInput.UnitPrice * lineInput.Quantity;
-            var discount = lineSubtotal * lineInput.DiscountPercent;
+            var discount = lineSubtotal * (lineInput.DiscountPercent ?? 0);
             var taxableAmount = lineSubtotal - discount;
             var tax = taxableAmount * lineInput.TaxRate;
             var lineTotal = taxableAmount + tax;
@@ -149,7 +149,7 @@ public class InvoiceService : IInvoiceService
                 Quantity = lineInput.Quantity,
                 Unit = lineInput.Unit ?? "pcs",
                 UnitPrice = lineInput.UnitPrice,
-                DiscountPercent = lineInput.DiscountPercent,
+                DiscountPercent = lineInput.DiscountPercent ?? 0,
                 DiscountAmount = discount,
                 TaxRate = lineInput.TaxRate,
                 TaxAmount = tax,

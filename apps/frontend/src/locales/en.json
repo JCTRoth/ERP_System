@@ -145,7 +145,7 @@
   "auth.passwordTooShort": "Password must be at least 8 characters",
   "auth.passwordsDoNotMatch": "Passwords do not match",
   "auth.resetEmailSent": "Reset email sent",
-  "auth.resetEmailSentDescription": "If an account with that email exists, we've sent you a password reset link.",
+  "auth.resetEmailSentDescription": "A reset link has been sent to your email address. Please check your inbox.",
   "auth.resetError": "Failed to send reset email",
   "auth.resetPassword": "Reset Password",
   "auth.resetPasswordDescription": "Enter your new password below.",
