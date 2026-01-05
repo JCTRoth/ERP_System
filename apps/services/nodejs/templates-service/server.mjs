@@ -7,6 +7,17 @@ import { fileURLToPath } from 'url';
 import pg from 'pg';
 import { spawnSync } from 'child_process';
 import { tmpdir } from 'os';
+import { createRequire } from 'module';
+
+// Load Mustache synchronously in ESM using createRequire
+const requireCJS = createRequire(import.meta.url);
+let Mustache;
+try {
+  Mustache = requireCJS('mustache');
+} catch (err) {
+  console.error('Failed to load mustache template engine', err);
+  Mustache = null;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -168,6 +179,101 @@ async function initialize() {
 }
 
 initialize();
+
+// Helper: normalize our custom template syntax to Mustache-compatible template
+function normalizeTemplateToMustache(src) {
+  let out = src;
+
+  // Process each section {#name} ... {#end}
+  const sectionOpenRegex = /\{#([a-zA-Z0-9_.]+)\}/g;
+  let match;
+  while ((match = sectionOpenRegex.exec(out)) !== null) {
+    const name = match[1];
+    const startIndex = match.index;
+    const afterOpen = startIndex + match[0].length;
+    const endToken = '{#end}';
+    const endIndex = out.indexOf(endToken, afterOpen);
+    if (endIndex === -1) break; // no matching end
+
+    const blockContent = out.substring(afterOpen, endIndex);
+
+    // Replace {name.prop} inside block with {{prop}}
+    const innerReplaced = blockContent.replace(new RegExp('\\{' + name.replace('.', '\\.') + '\\.([a-zA-Z0-9_\\.\\-]+)\\}', 'g'), '{{$1}}');
+
+    // Replace entire block with Mustache section
+    out = out.slice(0, startIndex) + `{{#${name}}}` + innerReplaced + `{{/${name}}}` + out.slice(endIndex + endToken.length);
+
+    // Reset regex search to after replaced block to continue
+    sectionOpenRegex.lastIndex = startIndex + 1;
+  }
+
+  // Convert any remaining single-brace variables {a.b} -> {{a.b}}
+  out = out.replace(/\{([a-zA-Z_][a-zA-Z0-9_\.\-]*)\}/g, '{{$1}}');
+
+  return out;
+}
+
+// Fallback renderer when Mustache is not available: expand loops and variables
+function renderWithoutMustache(src, ctx, errorsList) {
+  let out = src;
+
+  // Handle loop blocks {#items} ... {#end}
+  const loopRegex = /\{#([a-zA-Z0-9_.]+)\}([\s\S]*?)\{#end\}/g;
+  out = out.replace(loopRegex, (m, name, block) => {
+    const arr = name.split('.').reduce((acc, k) => (acc && acc[k] ? acc[k] : null), ctx);
+    if (!Array.isArray(arr)) {
+      errorsList.push(`Missing collection: ${name}`);
+      return '';
+    }
+
+    const renderedItems = arr.map((item) => {
+      // For each item, replace occurrences of {item.prop} or {prop} inside block
+      return block.replace(/\{{1,2}\s*([a-zA-Z_][a-zA-Z0-9_\.\-]*)\s*\}{1,2}/g, (match, path) => {
+        // If path starts with item. or the loop name prefix, strip it
+        let p = path;
+        const prefix = name + '.';
+        if (p.startsWith(prefix)) p = p.slice(prefix.length);
+        if (p.startsWith('item.')) p = p.slice(5);
+
+        const segments = p.split('.');
+        let value = item;
+        for (const seg of segments) {
+          if (value == null || typeof value !== 'object' || !(seg in value)) {
+            // Try global context as fallback
+            value = ctx;
+            for (const s of segments) {
+              if (value == null || typeof value !== 'object' || !(s in value)) {
+                return match; // keep placeholder
+              }
+              value = value[s];
+            }
+            break;
+          }
+          value = value[seg];
+        }
+        return String(value);
+      });
+    });
+
+    return renderedItems.join('\n');
+  });
+
+  // Replace remaining variables {a.b} or {{a.b}}
+  out = out.replace(/\{{1,2}\s*([a-zA-Z_][a-zA-Z0-9_\.\-]*)\s*\}{1,2}/g, (match, path) => {
+    const segments = path.split('.');
+    let value = ctx;
+    for (const segment of segments) {
+      if (value == null || typeof value !== 'object' || !(segment in value)) {
+        errorsList.push(`Missing variable: ${match}`);
+        return match;
+      }
+      value = value[segment];
+    }
+    return String(value);
+  });
+
+  return out;
+}
 
 // Helper function to format database rows to API response format
 function formatTemplate(row) {
@@ -425,19 +531,64 @@ app.post('/api/templates/:id/render', async (req, res) => {
     const context = req.body;
     const errors = [];
 
-    // Variable replacement for {path.to.value} with nested paths
-    let content = template.content.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}/g, (match, path) => {
-      const segments = path.split('.');
-      let value = context;
-      for (const segment of segments) {
-        if (value == null || typeof value !== 'object' || !(segment in value)) {
-          errors.push(`Missing variable: ${match}`);
-          return match;
+    // Normalize template placeholders to Mustache-compatible syntax
+    // {var}  -> {{var}}
+    // {#items} ... {#end} -> {{#items}} ... {{/items}}
+    function normalizeTemplateToMustache(src) {
+      // Convert opening section markers {#name} -> {{#name}}
+      let out = src.replace(/\{#([a-zA-Z0-9_.]+)\}/g, '{{$1}}');
+      // The previous line is temporary; we'll do proper conversions below
+
+      // Convert {#name} to {{#name}} and {#end} to {{/name}} using a stack
+      const tokenRegex = /\{#([a-zA-Z0-9_.]+)\}|\{#end\}|\{([a-zA-Z0-9_.]+)\}|\{{2}([^{]+?)\}{2}/g;
+      const stack = [];
+      out = src.replace(/\{#([a-zA-Z0-9_.]+)\}/g, (m, name) => {
+        stack.push(name);
+        return `{{#${name}}}`;
+      });
+      out = out.replace(/\{#end\}/g, (m) => {
+        const name = stack.pop() || '';
+        return `{{/${name}}}`;
+      });
+
+      // Convert single-brace variables {a.b} to Mustache {{a.b}}
+      out = out.replace(/\{([a-zA-Z_][a-zA-Z0-9_\.\-]*)\}/g, (m, path) => `{{${path}}}`);
+
+      // Leave existing double-brace placeholders intact
+      return out;
+    }
+
+    // Apply normalization and then Mustache rendering
+    const mustacheTemplate = normalizeTemplateToMustache(template.content);
+    // Fallback simple replacer for environments where Mustache isn't available
+    function simpleReplace(src, ctx, errorsList) {
+      // Handle both {{var}} and {var} placeholders
+      return src.replace(/\{{1,2}\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s*\}{1,2}/g, (match, path) => {
+        const segments = path.split('.');
+        let value = ctx;
+        for (const segment of segments) {
+          if (value == null || typeof value !== 'object' || !(segment in value)) {
+            errorsList.push(`Missing variable: ${match}`);
+            return match;
+          }
+          value = value[segment];
         }
-        value = value[segment];
+        return String(value);
+      });
+    }
+
+    let renderedAdoc;
+    try {
+      if (Mustache && typeof Mustache.render === 'function') {
+        renderedAdoc = Mustache.render(mustacheTemplate, context);
+      } else {
+        renderedAdoc = renderWithoutMustache(mustacheTemplate, context, errors);
       }
-      return String(value);
-    });
+    } catch (err) {
+      console.error('Mustache render error:', err);
+      errors.push('Template rendering error');
+      renderedAdoc = renderWithoutMustache(mustacheTemplate, context, errors);
+    }
 
     // Try to render AsciiDoc
     let htmlOutput;
@@ -446,7 +597,7 @@ app.post('/api/templates/:id/render', async (req, res) => {
         m.default ? m.default() : m()
       );
       const opts = { safe: 'safe', attributes: { showtitle: true } };
-      htmlOutput = Asciidoctor.convert(content, opts);
+      htmlOutput = Asciidoctor.convert(renderedAdoc, opts);
     } catch (err) {
       htmlOutput = `
         <html>
@@ -460,7 +611,7 @@ app.post('/api/templates/:id/render', async (req, res) => {
           </head>
           <body>
             <h1>${template.name}</h1>
-            <div>${content.replace(/</g, '&lt;')}</div>
+            <div>${renderedAdoc.replace(/</g, '&lt;')}</div>
           </body>
         </html>
       `;
@@ -468,13 +619,85 @@ app.post('/api/templates/:id/render', async (req, res) => {
 
     res.json({
       html: htmlOutput,
-      pdfUrl: `http://localhost:8087/api/templates/${template.id}/pdf?context=${encodeURIComponent(
-        JSON.stringify(context)
-      )}`,
+      pdfUrl: `http://localhost:8087/api/templates/${template.id}/pdf`,
       errors,
     });
   } catch (err) {
     console.error('Error rendering template:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST PDF generation endpoint (accepts JSON context and returns application/pdf)
+app.post('/api/templates/:id/pdf', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM templates WHERE id = $1', [req.params.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    const template = formatTemplate(result.rows[0]);
+    const context = req.body || {};
+
+    // Normalize and render using Mustache
+    const mustacheTemplate = (function normalizeTemplateToMustache(src) {
+      const stack = [];
+      let out = src.replace(/\{#([a-zA-Z0-9_.]+)\}/g, (m, name) => {
+        stack.push(name);
+        return `{{#${name}}}`;
+      });
+      out = out.replace(/\{#end\}/g, (m) => {
+        const name = stack.pop() || '';
+        return `{{/${name}}}`;
+      });
+      out = out.replace(/\{([a-zA-Z_][a-zA-Z0-9_\.\-]*)\}/g, (m, path) => `{{${path}}}`);
+      return out;
+    })(template.content);
+
+    let renderedAdoc;
+    try {
+      if (Mustache && typeof Mustache.render === 'function') {
+        renderedAdoc = Mustache.render(mustacheTemplate, context);
+      } else {
+        // Use robust fallback when Mustache is not available
+        const errorsLocal = [];
+        renderedAdoc = renderWithoutMustache(mustacheTemplate, context, errorsLocal);
+        if (errorsLocal.length) console.warn('Template renderWithoutMustache warnings:', errorsLocal);
+      }
+    } catch (err) {
+      console.error('Mustache render error:', err);
+      return res.status(500).json({ error: 'Template rendering failed' });
+    }
+
+    // Write rendered AsciiDoc to temp file
+    const tmpDir = tmpdir();
+    const adocPath = path.join(tmpDir, `${req.params.id}.adoc`);
+    const pdfPath = path.join(tmpDir, `${req.params.id}.pdf`);
+    fs.writeFileSync(adocPath, renderedAdoc, 'utf8');
+
+    // Call asciidoctor-pdf CLI if available
+    try {
+      const spawnResult = spawnSync('asciidoctor-pdf', ['-o', pdfPath, adocPath], { encoding: 'utf8' });
+      if (spawnResult.status !== 0) {
+        console.error('asciidoctor-pdf failed:', spawnResult.stderr);
+        return res.status(500).json({ error: 'PDF generation failed' });
+      }
+
+      const pdfBuffer = fs.readFileSync(pdfPath);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${template.key}.pdf"`);
+      return res.send(pdfBuffer);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      return res.status(500).json({ error: 'PDF generation error' });
+    } finally {
+      // Cleanup temp files if they exist
+      try { if (fs.existsSync(adocPath)) fs.unlinkSync(adocPath); } catch (e) {}
+      try { if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath); } catch (e) {}
+    }
+  } catch (err) {
+    console.error('Error generating PDF:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

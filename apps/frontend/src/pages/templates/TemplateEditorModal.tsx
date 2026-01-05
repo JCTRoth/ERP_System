@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-// import Editor from '@monaco-editor/react'; // Temporarily disabled due to installation issues
 import { useI18n } from '../../providers/I18nProvider';
-import * as templatesApi from '../../lib/api/templates';
 import TemplateVariablesPanel from './TemplateVariablesPanel';
+import { useTemplateVariables } from '../../hooks/useTemplateVariables';
 
 interface Template {
   id: string;
@@ -38,38 +37,7 @@ export default function TemplateEditorModal({
   });
   const [saving, setSaving] = useState(false);
   const [showVariables, setShowVariables] = useState(false);
-  const [variables, setVariables] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(false);
-
-  // Initialize form data
-  useEffect(() => {
-    if (template) {
-      setFormData({
-        name: template.name,
-        key: template.key,
-        content: template.content,
-        language: template.language,
-        documentType: template.documentType,
-        assignedState: template.assignedState || '',
-      });
-    }
-  }, [template]);
-
-  // Load available variables
-  useEffect(() => {
-    const loadVariables = async () => {
-      try {
-        setLoading(true);
-        const vars = await templatesApi.getAvailableVariables();
-        setVariables(vars);
-      } catch (err) {
-        console.error('Failed to load variables:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadVariables();
-  }, []);
+  const { variables, loading } = useTemplateVariables();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -125,7 +93,7 @@ export default function TemplateEditorModal({
       {/* Modal */}
       <div className="fixed inset-0 z-50 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center">
-          <div className="relative h-screen w-full max-w-6xl transform rounded-lg bg-white shadow-xl dark:bg-gray-800">
+          <div className="relative w-full max-w-full sm:max-w-xl md:max-w-3xl lg:max-w-6xl h-screen max-h-screen transform rounded-none md:rounded-lg bg-white shadow-xl dark:bg-gray-800 flex flex-col overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -140,9 +108,9 @@ export default function TemplateEditorModal({
             </div>
 
             {/* Content */}
-            <div className="flex h-[calc(100%-120px)] gap-4 overflow-hidden p-6">
+            <div className="flex-1 flex flex-col gap-4 overflow-hidden p-4 md:p-6 md:flex-row h-full">
               {/* Form Panel */}
-              <div className="w-80 flex-shrink-0 space-y-4 overflow-y-auto pr-2">
+              <div className="w-full md:w-80 flex-shrink-0 space-y-4 overflow-y-auto pr-0 md:pr-2 max-h-none md:h-full">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {t('templates.name')}
@@ -252,9 +220,9 @@ export default function TemplateEditorModal({
               </div>
 
               {/* Editor Panel */}
-              <div className="flex-1 overflow-hidden rounded-lg border border-gray-300 dark:border-gray-600">
+              <div className="flex-1 overflow-auto rounded-lg border border-gray-300 dark:border-gray-600 min-h-[220px] h-full">
                 <textarea
-                  className="h-full w-full resize-none bg-gray-50 p-4 font-mono text-sm dark:bg-gray-800 dark:text-white"
+                  className="h-full w-full resize-none bg-gray-50 p-4 font-mono text-sm dark:bg-gray-800 dark:text-white min-h-[220px]"
                   value={formData.content}
                   onChange={(e) => handleEditorChange(e.target.value)}
                   placeholder="Enter your AsciiDoc template content here..."
@@ -264,17 +232,17 @@ export default function TemplateEditorModal({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+            <div className="flex-shrink-0 flex flex-col sm:flex-row items-center sm:justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-700">
               <button
                 onClick={onClose}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 w-full sm:w-auto"
               >
                 {t('common.cancel')}
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-800"
+                className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-800 w-full sm:w-auto"
               >
                 {saving && <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>}
                 {t('common.save')}

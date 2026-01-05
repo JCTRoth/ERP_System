@@ -145,6 +145,7 @@ main() {
         postgres-company \
         postgres-notification \
         postgres-translation \
+        postgres-templates \
         redis
 
     # Wait for databases to be ready
@@ -156,6 +157,7 @@ main() {
     wait_for_db erp_system-postgres-company-1
     wait_for_db erp_system-postgres-notification-1
     wait_for_db erp_system-postgres-translation-1
+    wait_for_db erp_system-postgres-templates-1
 
     # Start GraphQL services required by the gateway
     print_header "Starting GraphQL Dependencies"
@@ -167,7 +169,8 @@ main() {
         company-service \
         shop-service \
         masterdata-service \
-        accounting-service
+        accounting-service \
+        templates-service
 
     # Give services a moment to spin up
     print_status "Waiting for dependent services..."
@@ -191,6 +194,8 @@ main() {
     check_service_health "AccountingService" "5001"
     check_graphql_health "AccountingService" "5001"
 
+    check_service_health "TemplatesService" "8087"
+
     # Start the gateway after dependencies are healthy
     print_header "Starting Gateway"
     docker compose -f "$COMPOSE_FILE" up -d gateway
@@ -207,7 +212,7 @@ main() {
     # Show status
     print_header "System Status"
     echo ""
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(gateway|user-service|masterdata-service|accounting-service|frontend|postgres|redis)"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(gateway|user-service|masterdata-service|accounting-service|templates-service|frontend|postgres|redis)"
 
     # Show access information
     print_header "Access Information"
@@ -216,6 +221,7 @@ main() {
     echo -e "${GREEN}GraphQL Gateway:${NC} http://localhost:4000/graphql"
     echo -e "${GREEN}UserService:${NC}     http://localhost:5000/graphql"
     echo -e "${GREEN}TranslationService:${NC} http://localhost:8083/graphql"
+    echo -e "${GREEN}TemplatesService:${NC} http://localhost:8087/api"
     echo -e "${GREEN}MinIO (Storage):${NC} http://localhost:9001 (admin/admin)"
     echo ""
     echo -e "${YELLOW}Login Credentials:${NC}"

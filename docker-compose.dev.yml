@@ -219,6 +219,7 @@ services:
       - ./apps/services/nodejs/templates-service:/app
     environment:
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-templates:5432/templatesdb
     depends_on:
       - postgres-templates
 

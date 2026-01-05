@@ -184,6 +184,46 @@ EDI/EDIFACT document processing.
 - Message validation
 - Conversion mappings
 
+## Node.js Services
+
+### Common Patterns
+
+Node.js services follow these patterns:
+
+- **Framework**: Express.js with REST APIs
+- **Database**: PostgreSQL with pg library
+- **Authentication**: JWT Bearer tokens
+- **Documentation**: AsciiDoc processing with asciidoctor.js
+
+### TemplatesService
+
+Document template generation and PDF rendering.
+
+**Port**: 8087
+
+**Features**:
+- AsciiDoc template processing
+- PDF generation using asciidoctor-pdf
+- Variable substitution
+- Template management (CRUD)
+- REST API endpoints
+
+**Database Schema**:
+```
+Templates
+├── id (UUID, PK)
+├── company_id
+├── key (unique per company)
+├── name
+├── content (AsciiDoc)
+├── language
+├── document_type
+├── assigned_state
+├── is_active
+├── created_at
+└── updated_at
+```
+
 ## GraphQL Federation
 
 All services participate in Apollo Federation:

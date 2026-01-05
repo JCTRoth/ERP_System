@@ -112,14 +112,37 @@ public class TemplateService {
                 .backend("html5")
                 .asMap());
 
-            // Convert to PDF
-            Path pdfPath = Files.createTempFile("template_", ".pdf");
-            asciidoctor.convert(adocContent, OptionsBuilder.options()
-                .backend("pdf")
-                .toFile(pdfPath.toFile())
-                .asMap());
+            // Try to convert to PDF
+            String pdfUrl = null;
+            try {
+                Path pdfPath = Files.createTempFile("template_", ".pdf");
+                
+                // Convert AsciiDoc to PDF bytes
+                Object pdfResult = asciidoctor.convert(adocContent, OptionsBuilder.options()
+                    .backend("pdf")
+                    .asMap());
+                
+                byte[] pdfBytes;
+                if (pdfResult instanceof byte[]) {
+                    pdfBytes = (byte[]) pdfResult;
+                } else if (pdfResult instanceof String) {
+                    pdfBytes = ((String) pdfResult).getBytes();
+                } else {
+                    throw new RuntimeException("Unexpected PDF result type: " + pdfResult.getClass());
+                }
+                
+                // Write PDF bytes to file
+                Files.write(pdfPath, pdfBytes);
 
-            String pdfUrl = storageService.uploadPdf(pdfPath, template.getId(), template.getKey());
+                // Check if PDF file was actually created and has content
+                if (Files.exists(pdfPath) && Files.size(pdfPath) > 0) {
+                    pdfUrl = storageService.uploadPdf(pdfPath, template.getId(), template.getKey());
+                } else {
+                    log.warn("PDF file was not created or is empty for template: {}", template.getId());
+                }
+            } catch (Exception pdfException) {
+                log.warn("PDF generation failed for template: {}, error: {}", template.getId(), pdfException.getMessage());
+            }
 
             return RenderResult.builder()
                 .html(html)

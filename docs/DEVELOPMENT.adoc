@@ -19,6 +19,7 @@ The ERP system consists of:
   - TranslationService (Java + Spring Boot)
   - NotificationService (Java + Spring Boot)
   - ScriptingService (Java + Spring Boot)
+  - TemplatesService (Node.js + Express)
 * **Infrastructure**:
   - PostgreSQL databases (multiple instances)
   - Redis

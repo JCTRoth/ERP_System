@@ -21,12 +21,14 @@ The ERP System is built using a microservices architecture with the following co
 | TranslationService | Java Spring | 8083 | i18n translations |
 | ScriptingService | Java Spring | 8084 | Custom scripting |
 | EdifactService | Java Spring | 8085 | EDI/EDIFACT processing |
+| TemplatesService | Node.js | 8087 | Document template generation |
 
 ### Technology Stack
 
 - **Frontend**: React 18, TypeScript, Vite, TailwindCSS, Apollo Client
 - **Backend (.NET)**: .NET 8, HotChocolate GraphQL, Entity Framework Core
 - **Backend (Java)**: Spring Boot 3.2, Netflix DGS GraphQL
+- **Backend (Node.js)**: Node.js 20, Express, PostgreSQL
 - **Databases**: PostgreSQL (separate DB per service)
 - **Gateway**: Apollo Gateway (Federation)
 - **Infrastructure**: Docker, Kubernetes (Helm), Nginx
@@ -136,12 +138,15 @@ ERP_System/
 │       │   ├── ShopService/
 │       │   ├── AccountingService/
 │       │   └── MasterdataService/
-│       └── java/          # Java microservices
-│           ├── company-service/
-│           ├── notification-service/
-│           ├── translation-service/
-│           ├── scripting-service/
-│           └── edifact-service/
+│       ├── java/          # Java microservices
+│       │   ├── company-service/
+│       │   ├── notification-service/
+│       │   ├── translation-service/
+│       │   ├── scripting-service/
+│       │   ├── edifact-service/
+│       │   └── templates-service/
+│       └── nodejs/        # Node.js microservices
+│           └── templates-service/
 ├── config/                # Configuration files
 ├── infrastructure/        # Deployment configs
 │   ├── helm/             # Kubernetes Helm charts

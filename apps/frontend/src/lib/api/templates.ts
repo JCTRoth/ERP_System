@@ -140,6 +140,24 @@ export async function renderTemplate(id: string, contextJson: Record<string, any
 }
 
 /**
+ * Request a PDF for the template by POSTing JSON context. Returns a Blob (application/pdf).
+ */
+export async function getPdf(id: string, contextJson: Record<string, any>): Promise<Blob> {
+  const response = await fetch(`${API_BASE}/templates/${id}/pdf`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(contextJson),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Failed to get PDF: ${response.status} ${text}`);
+  }
+  return response.blob();
+}
+
+/**
  * Get available variables for template placeholders
  */
 export async function getAvailableVariables(): Promise<AvailableVariables> {

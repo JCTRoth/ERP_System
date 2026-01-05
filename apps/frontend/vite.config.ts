@@ -5,7 +5,7 @@ import path from 'path';
 const gatewayUrl = process.env.VITE_GATEWAY_URL || 'http://localhost:4000';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react() as any],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
