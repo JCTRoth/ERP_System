@@ -442,5 +442,118 @@ public class AccountingDbContext : DbContext
                 CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
+
+        //
+        // TEST / DEMO DATA
+        //
+
+        // Seed a comprehensive invoice with line items and a payment record for testing
+        var invoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000001");
+        var invoiceLine1 = Guid.Parse("c0000000-0000-0000-0000-000000000011");
+        var invoiceLine2 = Guid.Parse("c0000000-0000-0000-0000-000000000012");
+        var paymentId = Guid.Parse("c0000000-0000-0000-0000-000000000021");
+
+        modelBuilder.Entity<Invoice>().HasData(
+            new Invoice
+            {
+                Id = invoiceId,
+                InvoiceNumber = "INV-2026-0001",
+                Type = InvoiceType.SalesInvoice,
+                Status = InvoiceStatus.Sent,
+                CustomerId = null,
+                SupplierId = null,
+                OrderId = null,
+                OrderNumber = "ORD-1001",
+                CustomerName = "John Doe",
+                SupplierName = null,
+                BillingAddress = "123 Demo Street",
+                BillingCity = "Demo City",
+                BillingPostalCode = "12345",
+                BillingCountry = "DE",
+                VatNumber = "DE999999999",
+                IssueDate = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
+                DueDate = new DateTime(2026, 2, 4, 0, 0, 0, DateTimeKind.Utc),
+                PaidDate = null,
+                Subtotal = 200.00m,
+                TaxAmount = 38.00m,
+                TaxRate = 0.19m,
+                DiscountAmount = 0.00m,
+                Total = 238.00m,
+                AmountPaid = 100.00m,
+                Currency = "EUR",
+                Notes = "Thank you for your purchase.",
+                InternalNotes = "Seeded test invoice",
+                PaymentTerms = "Net 30",
+                JournalEntryId = null,
+                CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
+        modelBuilder.Entity<InvoiceLineItem>().HasData(
+            new InvoiceLineItem
+            {
+                Id = invoiceLine1,
+                InvoiceId = invoiceId,
+                LineNumber = 1,
+                Description = "Product A",
+                Sku = "PROD-A-001",
+                ProductId = null,
+                AccountId = Guid.Parse("a0000000-0000-0000-0000-000000000005"), // revenue
+                Quantity = 2,
+                Unit = "pcs",
+                UnitPrice = 50.00m,
+                DiscountAmount = 0.00m,
+                DiscountPercent = 0.00m,
+                TaxRate = 0.19m,
+                TaxAmount = 19.00m,
+                Total = 119.00m,
+                CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new InvoiceLineItem
+            {
+                Id = invoiceLine2,
+                InvoiceId = invoiceId,
+                LineNumber = 2,
+                Description = "Product B",
+                Sku = "PROD-B-002",
+                ProductId = null,
+                AccountId = Guid.Parse("a0000000-0000-0000-0000-000000000005"), // revenue
+                Quantity = 1,
+                Unit = "pcs",
+                UnitPrice = 100.00m,
+                DiscountAmount = 0.00m,
+                DiscountPercent = 0.00m,
+                TaxRate = 0.19m,
+                TaxAmount = 19.00m,
+                Total = 119.00m,
+                CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
+        modelBuilder.Entity<PaymentRecord>().HasData(
+            new PaymentRecord
+            {
+                Id = paymentId,
+                PaymentNumber = "PAY-2026-0001",
+                Type = PaymentRecordType.CustomerPayment,
+                Status = PaymentRecordStatus.Completed,
+                InvoiceId = invoiceId,
+                BankAccountId = null,
+                Method = PaymentMethod.BankTransfer,
+                Amount = 100.00m,
+                Currency = "EUR",
+                PaymentDate = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc),
+                ClearedDate = new DateTime(2026, 1, 11, 0, 0, 0, DateTimeKind.Utc),
+                Reference = "PAYREF123",
+                TransactionId = "TX123456",
+                Notes = "Partial payment",
+                PayerName = "John Doe",
+                PayeeName = "ACME Corp",
+                PayerIban = "DE89370400440532013000",
+                PayeeIban = "DE75512108001245126199",
+                JournalEntryId = null,
+                CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
     }
 }

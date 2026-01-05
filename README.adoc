@@ -370,7 +370,3 @@ helm install erp-system ./infrastructure/helm/erp-system
 . Commit your changes (`git commit -m 'Add amazing feature'`)
 . Push to the branch (`git push origin feature/amazing-feature`)
 . Open a Pull Request
-
-== License
-
-This project is proprietary software. All rights reserved.

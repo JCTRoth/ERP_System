@@ -676,25 +676,51 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
     const pdfPath = path.join(tmpDir, `${req.params.id}.pdf`);
     fs.writeFileSync(adocPath, renderedAdoc, 'utf8');
 
-    // Call asciidoctor-pdf CLI if available
+    // Convert AsciiDoc -> HTML and render PDF with Puppeteer
     try {
-      const spawnResult = spawnSync('asciidoctor-pdf', ['-o', pdfPath, adocPath], { encoding: 'utf8' });
-      if (spawnResult.status !== 0) {
-        console.error('asciidoctor-pdf failed:', spawnResult.stderr);
-        return res.status(500).json({ error: 'PDF generation failed' });
+      let html = '';
+      try {
+        const AsciidoctorModule = await import('@asciidoctor/core');
+        const Asciidoctor = AsciidoctorModule.default || AsciidoctorModule;
+        const opts = { safe: 'safe', attributes: { showtitle: true } };
+        html = Asciidoctor.convert(renderedAdoc, opts);
+      } catch (e) {
+        console.warn('Asciidoctor conversion failed, falling back to simple HTML:', e?.message || e);
+        html = `
+          <html>
+            <head>
+              <title>${template.name}</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                h1 { color: #333; }
+              </style>
+            </head>
+            <body>
+              <h1>${template.name}</h1>
+              <div>${renderedAdoc.replace(/</g, '&lt;')}</div>
+            </body>
+          </html>
+        `;
       }
 
-      const pdfBuffer = fs.readFileSync(pdfPath);
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${template.key}.pdf"`);
-      return res.send(pdfBuffer);
-    } catch (err) {
-      console.error('PDF generation error:', err);
-      return res.status(500).json({ error: 'PDF generation error' });
+      try {
+        const puppeteerModule = await import('puppeteer');
+        const puppeteer = puppeteerModule.default || puppeteerModule;
+        const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+        await browser.close();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${template.key}.pdf"`);
+        return res.send(pdfBuffer);
+      } catch (err) {
+        console.error('Puppeteer PDF generation failed:', err?.message || err);
+        return res.status(500).json({ error: 'PDF generation failed' });
+      }
     } finally {
-      // Cleanup temp files if they exist
       try { if (fs.existsSync(adocPath)) fs.unlinkSync(adocPath); } catch (e) {}
-      try { if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath); } catch (e) {}
     }
   } catch (err) {
     console.error('Error generating PDF:', err);
@@ -769,40 +795,53 @@ app.get('/api/templates/:id/pdf', async (req, res) => {
       `;
     }
 
-    // Try PDF generation with asciidoctor-pdf
+    // Try programmatic AsciiDoc -> HTML -> PDF via Puppeteer
     try {
-      const tmpDir = tmpdir();
-      const pdfPath = path.join(tmpDir, `${template.key || 'document'}-${Date.now()}.pdf`);
-      const adocPath = path.join(tmpDir, `${template.key || 'document'}-${Date.now()}.adoc`);
+      let htmlOutputLocal = htmlOutput;
 
-      fs.writeFileSync(adocPath, content, 'utf8');
-
-      const result = spawnSync('asciidoctor-pdf', ['-o', pdfPath, adocPath], {
-        encoding: 'utf8',
-      });
-
-      if (result.status === 0 && fs.existsSync(pdfPath)) {
-        const pdfBuffer = fs.readFileSync(pdfPath);
-
+      // If we only have raw AsciiDoc content, try converting it
+      if (!htmlOutputLocal || typeof htmlOutputLocal !== 'string') {
         try {
-          fs.unlinkSync(pdfPath);
-        } catch (e) {}
-        try {
-          fs.unlinkSync(adocPath);
-        } catch (e) {}
+          const AsciidoctorModule = await import('@asciidoctor/core');
+          const Asciidoctor = AsciidoctorModule.default || AsciidoctorModule;
+          htmlOutputLocal = Asciidoctor.convert(content, { safe: 'safe', attributes: { showtitle: true } });
+        } catch (e) {
+          htmlOutputLocal = `
+            <html>
+              <head>
+                <title>${template.name}</title>
+                <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; }
+                  h1 { color: #333; }
+                </style>
+              </head>
+              <body>
+                <h1>${template.name}</h1>
+                <div>${content.replace(/</g, '&lt;')}</div>
+              </body>
+            </html>
+          `;
+        }
+      }
+
+      try {
+        const puppeteerModule = await import('puppeteer');
+        const puppeteer = puppeteerModule.default || puppeteerModule;
+        const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.setContent(htmlOutputLocal, { waitUntil: 'networkidle0' });
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+        await browser.close();
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${template.key || 'document'}.pdf"`);
         res.send(pdfBuffer);
         return;
-      } else {
-        console.warn('asciidoctor-pdf failed', result.stderr || result.stdout);
-        try {
-          fs.unlinkSync(adocPath);
-        } catch (e) {}
+      } catch (err) {
+        console.warn('Puppeteer PDF generation failed, falling back to HTML:', err?.message || err);
       }
     } catch (err) {
-      console.warn('asciidoctor-pdf not available or failed', err?.message || err);
+      console.warn('Programmatic PDF generation failed:', err?.message || err);
     }
 
     // Fallback to HTML

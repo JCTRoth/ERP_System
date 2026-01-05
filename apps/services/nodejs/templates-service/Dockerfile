@@ -11,8 +11,14 @@ RUN addgroup -g 1001 appgroup && \
     adduser -u 1001 -G appgroup -s /bin/sh -D appuser
 
 COPY package*.json ./
-# Use npm install --production to avoid failing when package-lock.json is out of sync in the image build context
-RUN npm install --no-audit --no-fund
+# Install Node dependencies before copying source to leverage Docker layer caching.
+# Prefer `npm ci` for reproducible builds when package-lock.json is present,
+# otherwise fall back to `npm install` to remain tolerant in development.
+RUN if [ -f package-lock.json ]; then \
+            npm ci --only=production --no-audit --no-fund; \
+        else \
+            npm install --no-audit --no-fund; \
+        fi
 
 COPY . .
 
