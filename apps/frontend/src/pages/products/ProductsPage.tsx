@@ -60,13 +60,13 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, ({
+  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
     variables: {
       first: 20,
     },
     errorPolicy: 'all',
     client: shopApolloClient,
-  } as any));
+  } as any);
 
   useEffect(() => {
     if (data) {
@@ -102,7 +102,7 @@ export default function ProductsPage() {
 
   const handleDelete = async (id: string) => {
     if (window.confirm(t('products.confirmDelete'))) {
-      await deleteProduct(({ variables: { id } } as any));
+      await deleteProduct({ variables: { id } } as any);
     }
   };
 

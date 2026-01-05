@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
-import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusIcon, TrashIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import Tooltip from '../../components/Tooltip';
+import { shopApolloClient } from '../../lib/apollo';
 
 const CREATE_INVOICE = gql`
   mutation CreateInvoice($input: CreateInvoiceInput!) {
@@ -40,12 +42,76 @@ const GET_ACCOUNTS = gql`
   }
 `;
 
+const GET_ORDERS = gql`
+  query GetOrdersForInvoice {
+    orders(first: 50, where: { status: { in: [CONFIRMED, SHIPPED, DELIVERED] } }) {
+      nodes {
+        id
+        orderNumber
+        status
+        total
+        subtotal
+        taxAmount
+        customerId
+      }
+    }
+  }
+`;
+
+const GET_ORDER_DETAILS = gql`
+  query GetOrderDetailsForInvoice($id: UUID!) {
+    order(id: $id) {
+      id
+      orderNumber
+      subtotal
+      taxAmount
+      total
+      customerId
+      items {
+        id
+        productId
+        productName
+        productSku
+        quantity
+        unitPrice
+        total
+      }
+    }
+  }
+`;
+
+const GET_CUSTOMERS = gql`
+  query GetCustomersForInvoice {
+    customers(first: 50) {
+      nodes {
+        id
+        name
+        email
+      }
+    }
+  }
+`;
+
+const GET_PRODUCTS = gql`
+  query GetProductsForInvoice {
+    products(first: 50) {
+      nodes {
+        id
+        name
+        sku
+        price
+      }
+    }
+  }
+`;
+
 interface InvoiceLineItem {
   description: string;
   quantity: number;
   unitPrice: number;
   accountId: string;
   taxRate: number;
+  productId?: string;
 }
 
 interface Invoice {
@@ -65,7 +131,8 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
   const isEditing = !!invoice;
 
   const [formData, setFormData] = useState({
-    type: 'SALES',
+    type: 'SalesInvoice',
+    orderId: '',
     customerId: '',
     customerName: '',
     invoiceDate: new Date().toISOString().split('T')[0],
@@ -79,11 +146,57 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
   ]);
 
   const { data: accountsData } = useQuery(GET_ACCOUNTS);
+  const { data: ordersData } = useQuery(GET_ORDERS, { client: shopApolloClient });
+  const { data: customersData } = useQuery(GET_CUSTOMERS, { client: shopApolloClient });
+  const { data: productsData } = useQuery(GET_PRODUCTS, { client: shopApolloClient });
+  const { data: orderDetailsData } = useQuery(GET_ORDER_DETAILS, {
+    variables: { id: formData.orderId },
+    skip: !formData.orderId,
+    client: shopApolloClient,
+  });
+
   const [createInvoice, { loading: createLoading }] = useMutation(CREATE_INVOICE);
   const [updateInvoice, { loading: updateLoading }] = useMutation(UPDATE_INVOICE);
   const [deleteInvoice, { loading: deleteLoading }] = useMutation(DELETE_INVOICE);
 
   const loading = createLoading || updateLoading || deleteLoading;
+
+  // Auto-populate from order when selected
+  useEffect(() => {
+    console.log('Order details data:', orderDetailsData);
+    if (orderDetailsData?.order) {
+      const order = orderDetailsData.order;
+      // Find customer name from customersData
+      const customer = customersData?.customers?.nodes?.find(
+        (c: any) => c.id === order.customerId
+      );
+      
+      // Set customer ID and name from order only if user hasn't selected a customer yet
+      setFormData((prev) => {
+        const shouldSetCustomer = !prev.customerId;
+        return {
+          ...prev,
+          customerId: shouldSetCustomer ? (order.customerId || prev.customerId) : prev.customerId,
+          customerName: shouldSetCustomer ? (customer?.name || prev.customerName) : prev.customerName,
+          currency: order.currency || prev.currency,
+        };
+      });
+
+      // Convert order items to invoice line items
+      if (order.items && order.items.length > 0) {
+        setLineItems(
+          order.items.map((item: any) => ({
+            description: item.productName || '',
+            quantity: item.quantity,
+            unitPrice: item.unitPrice || 0,
+            accountId: '', // Will need to be selected
+            taxRate: 0.19, // Default tax rate
+            productId: item.productId || undefined,
+          }))
+        );
+      }
+    }
+  }, [orderDetailsData, customersData]);
 
   const addLineItem = () => {
     setLineItems([
@@ -192,7 +305,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+      <div className="max-h-[95vh] w-full max-w-7xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold">
@@ -207,6 +320,44 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Selected Order Summary */}
+          {formData.orderId && (
+            <div className="rounded border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+              <h3 className="text-sm font-semibold mb-2 dark:text-gray-200">{t('accounting.selectedOrder') || 'Selected Order'}</h3>
+              {orderDetailsData?.order ? (
+                <div className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+                  <div>
+                    <div className="font-medium dark:text-gray-100">{orderDetailsData.order.orderNumber}</div>
+                  </div>
+                  <div className="text-right">
+                    <div>{t('orders.total')}: <span className="font-medium dark:text-gray-100">{formatCurrency(orderDetailsData.order.total)}</span></div>
+                    <div>{t('orders.subtotal')}: <span className="dark:text-gray-200">{formatCurrency(orderDetailsData.order.subtotal)}</span></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 dark:text-gray-400">Loading order details...</div>
+              )}
+            </div>
+          )}
+          {/* Order Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('accounting.selectOrder') || 'Select Order (Optional)'}
+            </label>
+            <select
+              value={formData.orderId}
+              onChange={(e) => setFormData({ ...formData, orderId: e.target.value })}
+              className="input mt-1 w-full"
+            >
+              <option value="">{t('accounting.selectOrder') || 'No Order'}</option>
+              {ordersData?.orders?.nodes?.map((order: any) => (
+                <option key={order.id} value={order.id}>
+                  {order.orderNumber} - {order.status} - ${order.total}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Invoice Details */}
           <div className="grid grid-cols-3 gap-4">
             <div>
@@ -218,10 +369,10 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="input mt-1 w-full"
               >
-                <option value="SALES">{t('accounting.salesInvoice')}</option>
-                <option value="PURCHASE">{t('accounting.purchaseInvoice')}</option>
-                <option value="CREDIT_NOTE">{t('accounting.creditNote')}</option>
-                <option value="DEBIT_NOTE">{t('accounting.debitNote')}</option>
+                <option value="SalesInvoice">{t('accounting.salesInvoice')}</option>
+                <option value="PurchaseInvoice">{t('accounting.purchaseInvoice')}</option>
+                <option value="CreditNote">{t('accounting.creditNote')}</option>
+                <option value="DebitNote">{t('accounting.debitNote')}</option>
               </select>
             </div>
             <div>
@@ -255,13 +406,28 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('accounting.customerName')} *
               </label>
-              <input
-                type="text"
-                required
-                value={formData.customerName}
-                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+              <select
+                value={formData.customerId}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const selectedCustomer = customersData?.customers?.nodes?.find(
+                    (c: any) => c.id === selectedId
+                  );
+                  setFormData({
+                    ...formData,
+                    customerId: selectedId,
+                    customerName: selectedCustomer?.name || '',
+                  });
+                }}
                 className="input mt-1 w-full"
-              />
+              >
+                <option value="">{t('accounting.selectCustomer') || 'Select Customer'}</option>
+                {customersData?.customers?.nodes?.map((customer: any) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -296,13 +462,81 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
               </button>
             </div>
 
+            {/* Column Headers with Tooltips */}
+            <div className="mb-2 grid grid-cols-12 gap-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
+              <div className="col-span-3 flex items-center gap-1">
+                <span>{t('accounting.product') || 'Product'}</span>
+                <Tooltip content="Select a product from the catalog to auto-fill description and price" position="right">
+                  <QuestionMarkCircleIcon className="h-4 w-4 cursor-help opacity-60 hover:opacity-100" />
+                </Tooltip>
+              </div>
+              <div className="col-span-2 flex items-center gap-1">
+                <span>{t('accounting.description') || 'Description'}</span>
+                <Tooltip content="Item description that appears on the invoice. Auto-filled when selecting a product" position="right">
+                  <QuestionMarkCircleIcon className="h-4 w-4 cursor-help opacity-60 hover:opacity-100" />
+                </Tooltip>
+              </div>
+              <div className="col-span-2 flex items-center gap-1">
+                <span>{t('accounting.account') || 'Account'}</span>
+                <Tooltip content="GL account for accounting. Required for proper revenue/expense recording" position="right">
+                  <QuestionMarkCircleIcon className="h-4 w-4 cursor-help opacity-60 hover:opacity-100" />
+                </Tooltip>
+              </div>
+              <div className="col-span-1 flex items-center gap-1">
+                <span>{t('accounting.qty') || 'Qty'}</span>
+                <Tooltip content="Quantity of items being invoiced" position="right">
+                  <QuestionMarkCircleIcon className="h-4 w-4 cursor-help opacity-60 hover:opacity-100" />
+                </Tooltip>
+              </div>
+              <div className="col-span-1 flex items-center gap-1">
+                <span>{t('accounting.price') || 'Price'}</span>
+                <Tooltip content="Unit price per item" position="right">
+                  <QuestionMarkCircleIcon className="h-4 w-4 cursor-help opacity-60 hover:opacity-100" />
+                </Tooltip>
+              </div>
+              <div className="col-span-1 flex items-center gap-1">
+                <span>{t('accounting.tax') || 'Tax %'}</span>
+                <Tooltip content="Tax rate (%) applied to this line item. Common rates: 0%, 7%, 19%" position="right">
+                  <QuestionMarkCircleIcon className="h-4 w-4 cursor-help opacity-60 hover:opacity-100" />
+                </Tooltip>
+              </div>
+              <div className="col-span-1 text-right">
+                <span>{t('accounting.total') || 'Total'}</span>
+              </div>
+              <div className="col-span-1" />
+            </div>
+
             <div className="space-y-3">
               {lineItems.map((item, index) => (
                 <div
                   key={index}
                   className="grid grid-cols-12 gap-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
                 >
-                  <div className="col-span-4">
+                  <div className="col-span-3">
+                    <select
+                      value={item.productId || ''}
+                      onChange={(e) => {
+                        const selectedId = e.target.value;
+                        const selectedProduct = productsData?.products?.nodes?.find(
+                          (p: any) => p.id === selectedId
+                        );
+                        updateLineItem(index, {
+                          productId: selectedId,
+                          description: selectedProduct?.name || item.description,
+                          unitPrice: selectedProduct?.price || item.unitPrice,
+                        });
+                      }}
+                      className="input w-full"
+                    >
+                      <option value="">{t('accounting.selectProduct') || 'Select Product'}</option>
+                      {productsData?.products?.nodes?.map((product: any) => (
+                        <option key={product.id} value={product.id}>
+                          {product.name} ({product.sku})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
                     <input
                       type="text"
                       placeholder={t('accounting.description')}
@@ -341,7 +575,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                       required
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-1 flex items-center gap-2">
                     <input
                       type="number"
                       min="0"
@@ -349,27 +583,27 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                       placeholder={t('accounting.price')}
                       value={item.unitPrice}
                       onChange={(e) => updateLineItem(index, { unitPrice: parseFloat(e.target.value) })}
-                      className="input w-full"
+                      className="input flex-1 w-full"
                       required
                     />
                   </div>
                   <div className="col-span-1">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      placeholder={t('accounting.tax')}
+                    <select
                       value={item.taxRate}
                       onChange={(e) => updateLineItem(index, { taxRate: parseFloat(e.target.value) })}
                       className="input w-full"
-                    />
+                    >
+                      <option value="0">0%</option>
+                      <option value="7">7%</option>
+                      <option value="16">16%</option>
+                      <option value="19">19%</option>
+                    </select>
                   </div>
                   <div className="col-span-1 flex items-center justify-end">
                     <span className="font-medium">
                       {formatCurrency(item.quantity * item.unitPrice)}
                     </span>
                   </div>
-                  <div className="col-span-1 flex items-center justify-center">
                     <button
                       type="button"
                       onClick={() => removeLineItem(index)}
@@ -378,7 +612,6 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                     >
                       <TrashIcon className="h-5 w-5" />
                     </button>
-                  </div>
                 </div>
               ))}
             </div>

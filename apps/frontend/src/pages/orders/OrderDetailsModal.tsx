@@ -12,13 +12,15 @@ const GET_ORDER_DETAILS = gql`
       status
       items {
         id
-        productId
-        productName
-        productSku
         quantity
         unitPrice
         discount
-        total
+        totalPrice
+        product {
+          id
+          name
+          sku
+        }
       }
       shippingAddress {
         street
@@ -36,7 +38,7 @@ const GET_ORDER_DETAILS = gql`
       taxAmount
       shippingAmount
       discountAmount
-      total
+      totalAmount
       notes
       createdAt
       updatedAt
@@ -116,18 +118,21 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
     country: '',
   });
 
-  const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, ({
+  const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, {
     variables: { id: orderId },
     client: shopApolloClient,
     onCompleted: (data: any) => {
       if (data?.order?.shippingAddress) {
         setShippingAddress(data.order.shippingAddress);
       }
+      // If no billing address is set, use shipping address
       if (data?.order?.billingAddress) {
         setBillingAddress(data.order.billingAddress);
+      } else if (data?.order?.shippingAddress) {
+        setBillingAddress(data.order.shippingAddress);
       }
     },
-  } as any));
+  } as any);
 
   const [updateStatus] = useMutation(UPDATE_ORDER_STATUS, {
     onCompleted: () => refetch(),
@@ -145,14 +150,14 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   const order = data?.order;
 
   const handleStatusChange = async (newStatus: string) => {
-    await updateStatus(({
+    await updateStatus({
       variables: { 
         input: { 
           orderId: orderId, 
           status: newStatus 
         } 
       },
-    } as any));
+    } as any);
   };
 
   const formatCurrency = (amount: number) => {
@@ -186,7 +191,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   };
 
   const handleSaveAddresses = async () => {
-    await updateAddresses(({
+    await updateAddresses({
       variables: {
         input: {
           orderId,
@@ -194,7 +199,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
           billingAddress,
         },
       },
-    } as any));
+    } as any);
   };
 
   return (
@@ -427,24 +432,23 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {order.items.map((item: {
                       id: string;
-                      productName: string;
-                      productSku: string;
+                      product?: { id: string; name?: string; sku?: string };
                       quantity: number;
                       unitPrice: number;
-                      total: number;
+                      totalPrice: number;
                     }, index: number) => (
                       <tr key={item.id}>
                         <td className="px-4 py-3 text-center font-medium text-gray-500">{index + 1}</td>
-                        <td className="px-4 py-3 font-medium">{item.productName}</td>
+                        <td className="px-4 py-3 font-medium">{item.product?.name}</td>
                         <td className="px-4 py-3 font-mono text-sm text-gray-500">
-                          {item.productSku}
+                          {item.product?.sku}
                         </td>
                         <td className="px-4 py-3 text-right">{item.quantity}</td>
                         <td className="px-4 py-3 text-right">
                           {formatCurrency(item.unitPrice)}
                         </td>
                         <td className="px-4 py-3 text-right font-medium">
-                          {formatCurrency(item.total)}
+                          {formatCurrency(item.totalPrice)}
                         </td>
                       </tr>
                     ))}
@@ -476,7 +480,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-2 text-lg font-bold dark:border-gray-600">
                   <span>{t('orders.total')}</span>
-                  <span>{formatCurrency(order.total)}</span>
+                  <span>{formatCurrency(order.totalAmount)}</span>
                 </div>
               </div>
             </div>
@@ -495,13 +499,28 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
             <div>
               <h3 className="mb-3 font-semibold">Order Documents</h3>
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
-                <div className="flex items-center justify-between">
+                {/* Documents List - Will be populated from backend */}
+                <div className="space-y-2">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     No documents created yet for this order.
                   </p>
-                  <button className="btn-primary text-sm">
-                    Create Invoice
-                  </button>
+                  {/* Documents will be rendered here when available */}
+                  {/* Example structure:
+                  <div className="flex items-center justify-between rounded bg-white p-3 dark:bg-gray-800">
+                    <div>
+                      <p className="font-medium">Invoice #001</p>
+                      <p className="text-xs text-gray-500">Created on 2026-01-05</p>
+                    </div>
+                    <a
+                      href="#"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Open PDF
+                    </a>
+                  </div>
+                  */}
                 </div>
               </div>
             </div>

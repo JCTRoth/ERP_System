@@ -7,5 +7,14 @@ namespace AccountingService.GraphQL;
 
 public class Mutation
 {
-    // Mutations are temporarily disabled to fix build issues.
+    [GraphQLDescription("Create a new invoice")]
+    public async Task<Invoice> CreateInvoice(
+        CreateInvoiceInput input,
+        [Service] IInvoiceService invoiceService,
+        [Service] ITopicEventSender eventSender)
+    {
+        var invoice = await invoiceService.CreateAsync(input);
+        await eventSender.SendAsync(nameof(Subscription.OnInvoiceCreated), invoice);
+        return invoice;
+    }
 }

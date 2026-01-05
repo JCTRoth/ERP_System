@@ -50,6 +50,7 @@ builder.Services.AddAuthorization();
 builder.Services
     .AddGraphQLServer()
     .AddQueryType<Query>()
+    .AddMutationType<Mutation>()
     .AddTypeExtension<AccountType>()
     .AddTypeExtension<InvoiceType>()
     .AddTypeExtension<JournalEntryType>()

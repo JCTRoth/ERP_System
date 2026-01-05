@@ -70,7 +70,7 @@ export default function AccountsTab() {
           return t('accounting.accountName.accountsReceivable');
         case 'ACCOUNTS_PAYABLE':
           return t('accounting.accountName.accountsPayable');
-        case 'SALES':
+        case 'SalesInvoice':
           return t('accounting.accountName.salesRevenue');
         case 'COST_OF_GOODS_SOLD':
           return t('accounting.accountName.costOfGoodsSold');

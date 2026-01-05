@@ -50,11 +50,12 @@ public class InvoicesControllerTests : IClassFixture<CustomWebApplicationFactory
             BillingPostalCode: null,
             BillingCountry: null,
             VatNumber: null,
-            IssueDate: null,
+            InvoiceDate: null,
             DueDate: DateTime.UtcNow.AddDays(30),
             TaxRate: 0.19m,
             Notes: null,
             PaymentTerms: null,
+            Currency: "EUR",
             LineItems: new List<CreateInvoiceLineItemInput>
             {
                 new CreateInvoiceLineItemInput(

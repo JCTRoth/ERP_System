@@ -71,11 +71,12 @@ public record CreateInvoiceInput(
     string? BillingPostalCode,
     string? BillingCountry,
     string? VatNumber,
-    DateTime? IssueDate,
+    DateTime? InvoiceDate,
     DateTime DueDate,
-    decimal TaxRate,
+    decimal? TaxRate,
     string? Notes,
     string? PaymentTerms,
+    string Currency,
     List<CreateInvoiceLineItemInput> LineItems
 );
 

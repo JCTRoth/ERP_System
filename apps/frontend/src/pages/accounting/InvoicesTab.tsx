@@ -157,10 +157,10 @@ export default function InvoicesTab() {
             className="input"
           >
             <option value="all">{t('accounting.allTypes')}</option>
-            <option value="SALES">{t('accounting.salesInvoice')}</option>
-            <option value="PURCHASE">{t('accounting.purchaseInvoice')}</option>
-            <option value="CREDIT_NOTE">{t('accounting.creditNote')}</option>
-            <option value="DEBIT_NOTE">{t('accounting.debitNote')}</option>
+            <option value="SalesInvoice">{t('accounting.salesInvoice')}</option>
+            <option value="PurchaseInvoice">{t('accounting.purchaseInvoice')}</option>
+            <option value="CreditNote">{t('accounting.creditNote')}</option>
+            <option value="DebitNote">{t('accounting.debitNote')}</option>
           </select>
           <select
             value={statusFilter}

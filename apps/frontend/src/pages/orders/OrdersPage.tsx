@@ -84,16 +84,15 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, loading, refetch } = useQuery(GET_ORDERS, ({
+  const { data, loading, refetch } = useQuery(GET_ORDERS, {
     variables: {
       first: 20,
       where: statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined,
     },
     errorPolicy: 'all',
-    client: shopApolloClient,
-  } as any));
+  } as any);
 
-  const [cancelOrder] = useMutation(CANCEL_ORDER, ({
+  const [cancelOrder] = useMutation(CANCEL_ORDER, {
     onCompleted: (data: any) => {
       if (data.cancelOrder) {
         refetch();
@@ -105,13 +104,12 @@ export default function OrdersPage() {
       console.error('Cancel order error:', error);
       alert(t('orders.cancelError'));
     },
-    client: shopApolloClient,
-  } as any));
+    
+  } as any);
 
-  const [deleteOrder] = useMutation(DELETE_ORDER, ({
+  const [deleteOrder] = useMutation(DELETE_ORDER, {
     onCompleted: () => refetch(),
-    client: shopApolloClient,
-  } as any));
+  } as any);
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
@@ -119,13 +117,13 @@ export default function OrdersPage() {
 
   const handleCancelOrder = async (id: string) => {
     if (window.confirm(t('orders.confirmCancel'))) {
-      await cancelOrder(({ variables: { id } } as any));
+      await cancelOrder({ variables: { id } } as any);
     }
   };
 
   const handleDeleteOrder = async (id: string) => {
     if (window.confirm(t('orders.confirmDelete'))) {
-      await deleteOrder(({ variables: { id } } as any));
+      await deleteOrder({ variables: { id } } as any);
     }
   };
 

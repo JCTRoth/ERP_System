@@ -15,11 +15,14 @@ export default defineConfig({
         port: 5173,
         host: true,
         proxy: {
+            // Route shop-specific requests directly to the Shop service in dev
             '/shop/graphql': {
-                target: gatewayUrl,
+                target: process.env.VITE_SHOP_URL || 'http://localhost:5002',
                 changeOrigin: true,
                 secure: false,
+                rewrite: (path) => path.replace(/^\/shop\/graphql/, '/graphql'),
             },
+            // Gateway endpoints
             '/graphql': {
                 target: gatewayUrl,
                 changeOrigin: true,

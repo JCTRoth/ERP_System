@@ -116,11 +116,12 @@ public class InvoiceService : IInvoiceService
             BillingPostalCode = input.BillingPostalCode,
             BillingCountry = input.BillingCountry,
             VatNumber = input.VatNumber,
-            IssueDate = input.IssueDate ?? DateTime.UtcNow,
+            IssueDate = input.InvoiceDate ?? DateTime.UtcNow,
             DueDate = input.DueDate,
-            TaxRate = input.TaxRate,
+            TaxRate = input.TaxRate ?? 0.19m,
             Notes = input.Notes,
             PaymentTerms = input.PaymentTerms ?? "Net 30",
+            Currency = input.Currency,
             CreatedAt = DateTime.UtcNow
         };
 
