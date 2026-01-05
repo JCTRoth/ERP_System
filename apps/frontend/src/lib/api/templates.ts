@@ -149,3 +149,14 @@ export async function getAvailableVariables(): Promise<AvailableVariables> {
   }
   return response.json();
 }
+
+/**
+ * Fetch context samples (orders, companies, invoices, shipments, cancellations, refunds)
+ */
+export async function getContextSamples(): Promise<Record<string, any[]>> {
+  const response = await fetch(`${API_BASE}/templates/context-samples`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch context samples: ${response.statusText}`);
+  }
+  return response.json();
+}

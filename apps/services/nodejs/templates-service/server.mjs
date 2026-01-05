@@ -266,13 +266,16 @@ app.post('/api/templates/:id/render', async (req, res) => {
   const context = req.body;
   const errors = [];
 
-  // Simple variable replacement for {{namespace.key}}
-  let content = template.content.replace(/\{\{([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)\}\}/g, (match, path) => {
-    const [namespace, key] = path.split('.');
-    const value = context[namespace]?.[key];
-    if (value === undefined) {
-      errors.push(`Missing variable: ${match}`);
-      return match;
+  // Simple variable replacement for {path.to.value} with nested paths
+  let content = template.content.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}/g, (match, path) => {
+    const segments = path.split('.');
+    let value = context;
+    for (const segment of segments) {
+      if (value == null || typeof value !== 'object' || !(segment in value)) {
+        errors.push(`Missing variable: ${match}`);
+        return match;
+      }
+      value = value[segment];
     }
     return String(value);
   });
@@ -313,7 +316,7 @@ app.post('/api/templates/:id/render', async (req, res) => {
 
 const PORT = process.env.PORT || 8087;
 app.listen(PORT, () => {
-  console.log(`Templates Service Mock running on port ${PORT}`);
+  console.log(`Templates Service running on port ${PORT}`);
 });
 
 // Simple PDF endpoint for preview/download in tests
@@ -327,8 +330,8 @@ app.get('/api/templates/:id/pdf', async (req, res) => {
       context = JSON.parse(decodeURIComponent(req.query.context));
     } catch (e) {
       console.error('Failed to parse context:', e);
-    }
-  }
+  // Replace variables in content (AsciiDoc attributes: {namespace.key})
+  let content = template.content.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)\}/g, (match, path) => {
 
   // Replace variables in content
   let content = template.content.replace(/\{\{([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)\}\}/g, (match, path) => {

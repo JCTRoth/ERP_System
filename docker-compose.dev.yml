@@ -212,21 +212,13 @@ services:
 
   templates-service:
     build:
-      context: ./apps/services/java/templates-service
+      context: ./apps/services/nodejs/templates-service
     ports:
       - "8087:8087"
     volumes:
-      - ./apps/services/java/templates-service:/app
+      - ./apps/services/nodejs/templates-service:/app
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-templates:5432/templatesdb
-      - DB_USERNAME=postgres
-      - DB_PASSWORD=postgres
-      - AWS_S3_BUCKET=templates-documents
-      - AWS_S3_REGION=eu-central-1
-      - AWS_S3_ENDPOINT=http://minio:9000
-      - AWS_ACCESS_KEY_ID=minioadmin
-      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - NODE_ENV=development
     depends_on:
       - postgres-templates
 

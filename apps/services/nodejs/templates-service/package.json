@@ -1,12 +1,11 @@
 {
-  "name": "templates-service-mock",
+  "name": "templates-service",
   "version": "1.0.0",
   "type": "module",
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs",
-    "dev": "node --watch server.mjs",
-    "test:render": "node tests/render-and-pdf.js"
+    "dev": "node --watch server.mjs"
   },
   "dependencies": {
     "asciidoctor.js": "^1.5.9",
