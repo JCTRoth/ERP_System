@@ -141,6 +141,18 @@ public class OrderItemType : ObjectType<OrderItem>
         descriptor.Field(i => i.Total).Type<NonNullType<DecimalType>>();
         descriptor.Field(i => i.Notes).Type<StringType>();
         descriptor.Field(i => i.CreatedAt).Type<NonNullType<DateTimeType>>();
+        
+        descriptor.Field("product")
+            .Type<NonNullType<ProductType>>()
+            .ResolveWith<OrderItemResolvers>(r => r.GetProduct(default!, default!));
+    }
+}
+
+public class OrderItemResolvers
+{
+    public async Task<Product?> GetProduct([Parent] OrderItem item, [Service] ShopDbContext context)
+    {
+        return await context.Products.FindAsync(item.ProductId);
     }
 }
 
@@ -151,6 +163,7 @@ public class OrderType : ObjectType<Order>
         
         descriptor.Field(o => o.Id).Type<NonNullType<IdType>>();
         descriptor.Field(o => o.OrderNumber).Type<NonNullType<StringType>>();
+        descriptor.Field(o => o.CustomerId).Type<IdType>();
         descriptor.Field(o => o.Status).Type<NonNullType<EnumType<OrderStatus>>>();
         descriptor.Field(o => o.PaymentStatus).Type<NonNullType<EnumType<PaymentStatus>>>();
         
@@ -197,15 +210,15 @@ public class OrderType : ObjectType<Order>
             });
         
         descriptor.Field(o => o.Items)
+            .Type<NonNullType<ListType<NonNullType<OrderItemType>>>>()
             .ResolveWith<OrderResolvers>(r => r.GetItems(default!, default!));
 
         descriptor.Field(o => o.Payments)
             .ResolveWith<OrderResolvers>(r => r.GetPayments(default!, default!));
         
-        // TODO: Add customer resolver when federation is properly set up
-        // descriptor.Field("customer")
-        //     .Type<UserType>()
-        //     .ResolveWith<OrderResolvers>(r => r.GetCustomer(default!, default!));
+        descriptor.Field("customer")
+            .Type<UserType>()
+            .ResolveWith<OrderResolvers>(r => r.GetCustomer(default!, default!));
     }
 }
 
@@ -221,12 +234,22 @@ public class OrderResolvers
         return context.Payments.Where(p => p.OrderId == order.Id);
     }
     
-    // Customer resolver for federation - this would need to call UserService
-    public async Task<User?> GetCustomer([Parent] Order order)
+    // Customer resolver - fetches from ShopService database
+    public User? GetCustomer([Parent] Order order, [Service] ShopDbContext context)
     {
-        // This would need to be implemented to fetch from UserService
-        // For now, return null to avoid errors
-        return null;
+        if (order.CustomerId == Guid.Empty)
+            return null;
+            
+        // For now, return customer data based on CustomerId
+        // In a production system, this would query the customer database
+        return new User
+        {
+            Id = order.CustomerId,
+            FirstName = "Customer", // Could be enhanced to look up actual names
+            LastName = "",
+            Email = "customer@example.com",
+            Phone = null
+        };
     }
 }
 

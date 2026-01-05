@@ -86,7 +86,13 @@ const GET_CUSTOMERS = gql`
       nodes {
         id
         name
+        customerNumber
         email
+        phone
+        website
+        taxId
+        creditLimit
+        status
       }
     }
   }
@@ -147,7 +153,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
 
   const { data: accountsData } = useQuery(GET_ACCOUNTS);
   const { data: ordersData } = useQuery(GET_ORDERS, { client: shopApolloClient });
-  const { data: customersData } = useQuery(GET_CUSTOMERS, { client: shopApolloClient });
+  const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS);
   const { data: productsData } = useQuery(GET_PRODUCTS, { client: shopApolloClient });
   const { data: orderDetailsData } = useQuery(GET_ORDER_DETAILS, {
     variables: { id: formData.orderId },
@@ -160,6 +166,13 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
   const [deleteInvoice, { loading: deleteLoading }] = useMutation(DELETE_INVOICE);
 
   const loading = createLoading || updateLoading || deleteLoading;
+
+  // Debug customers data
+  useEffect(() => {
+    console.log('Customers data:', customersData);
+    console.log('Customers loading:', customersLoading);
+    console.log('Customers error:', customersError);
+  }, [customersData, customersLoading, customersError]);
 
   // Auto-populate from order when selected
   useEffect(() => {
@@ -420,14 +433,56 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                   });
                 }}
                 className="input mt-1 w-full"
+                disabled={customersLoading}
               >
-                <option value="">{t('accounting.selectCustomer') || 'Select Customer'}</option>
+                <option value="">
+                  {customersLoading ? t('common.loading') : (customersError ? 'Error loading customers' : t('accounting.selectCustomer') || 'Select Customer')}
+                </option>
                 {customersData?.customers?.nodes?.map((customer: any) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name}
                   </option>
                 ))}
               </select>
+              
+              {/* Customer Info Box */}
+              {formData.customerId && customersData?.customers?.nodes && (
+                <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-900/20">
+                  {(() => {
+                    const selectedCustomer = customersData.customers.nodes.find((c: any) => c.id === formData.customerId);
+                    return selectedCustomer ? (
+                      <div className="space-y-1 text-sm">
+                        <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedCustomer.name}</div>
+                        {selectedCustomer.customerNumber && (
+                          <div className="text-gray-600 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-gray-500">{t('masterdata.customerNumber')}:</span> {selectedCustomer.customerNumber}
+                          </div>
+                        )}
+                        {selectedCustomer.email && (
+                          <div className="text-gray-600 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-gray-500">{t('common.email')}:</span> {selectedCustomer.email}
+                          </div>
+                        )}
+                        {selectedCustomer.phone && (
+                          <div className="text-gray-600 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-gray-500">{t('common.phone')}:</span> {selectedCustomer.phone}
+                          </div>
+                        )}
+                        {selectedCustomer.taxId && (
+                          <div className="text-gray-600 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-gray-500">{t('masterdata.taxId')}:</span> {selectedCustomer.taxId}
+                          </div>
+                        )}
+                        {selectedCustomer.creditLimit !== undefined && (
+                          <div className="text-gray-600 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-gray-500">{t('masterdata.creditLimit')}:</span> {selectedCustomer.creditLimit}
+                          </div>
+                        )}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">

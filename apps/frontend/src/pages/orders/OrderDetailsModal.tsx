@@ -10,12 +10,19 @@ const GET_ORDER_DETAILS = gql`
       id
       orderNumber
       status
+      customer {
+        id
+        firstName
+        lastName
+        email
+        phone
+      }
       items {
         id
         quantity
         unitPrice
         discount
-        totalPrice
+        total
         product {
           id
           name
@@ -38,7 +45,7 @@ const GET_ORDER_DETAILS = gql`
       taxAmount
       shippingAmount
       discountAmount
-      totalAmount
+      total
       notes
       createdAt
       updatedAt
@@ -435,7 +442,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                       product?: { id: string; name?: string; sku?: string };
                       quantity: number;
                       unitPrice: number;
-                      totalPrice: number;
+                      total: number;
                     }, index: number) => (
                       <tr key={item.id}>
                         <td className="px-4 py-3 text-center font-medium text-gray-500">{index + 1}</td>
@@ -448,7 +455,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                           {formatCurrency(item.unitPrice)}
                         </td>
                         <td className="px-4 py-3 text-right font-medium">
-                          {formatCurrency(item.totalPrice)}
+                          {formatCurrency(item.total)}
                         </td>
                       </tr>
                     ))}
@@ -480,7 +487,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-2 text-lg font-bold dark:border-gray-600">
                   <span>{t('orders.total')}</span>
-                  <span>{formatCurrency(order.totalAmount)}</span>
+                  <span>{formatCurrency(order.total)}</span>
                 </div>
               </div>
             </div>

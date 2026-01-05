@@ -90,6 +90,7 @@ export default function OrdersPage() {
       where: statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined,
     },
     errorPolicy: 'all',
+    client: shopApolloClient,
   } as any);
 
   const [cancelOrder] = useMutation(CANCEL_ORDER, {
@@ -104,11 +105,12 @@ export default function OrdersPage() {
       console.error('Cancel order error:', error);
       alert(t('orders.cancelError'));
     },
-    
+    client: shopApolloClient,
   } as any);
 
   const [deleteOrder] = useMutation(DELETE_ORDER, {
     onCompleted: () => refetch(),
+    client: shopApolloClient,
   } as any);
 
   const handleViewDetails = (order: Order) => {

@@ -19,7 +19,7 @@ export default defineConfig({
     proxy: {
       // Route shop-specific requests directly to the Shop service in dev
       '/shop/graphql': {
-        target: process.env.VITE_SHOP_URL || 'http://localhost:5002',
+        target: process.env.VITE_SHOP_URL || 'http://erp_system-shop-service-1:5003',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/shop\/graphql/, '/graphql'),
