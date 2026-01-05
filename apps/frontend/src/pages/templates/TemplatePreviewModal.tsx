@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { XMarkIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import * as templatesApi from '../../lib/api/templates';
@@ -21,7 +21,7 @@ export default function TemplatePreviewModal({
 }: TemplatePreviewModalProps) {
   const { t } = useI18n();
   const [renderResult, setRenderResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [renderError, setRenderError] = useState<string | null>(null);
 
   const handleRender = async () => {
@@ -98,6 +98,11 @@ export default function TemplatePreviewModal({
     }
   };
 
+  // Auto-render on mount
+  useEffect(() => {
+    handleRender();
+  }, [template.id]);
+
   return (
     <>
       {/* Modal Overlay */}
@@ -122,27 +127,23 @@ export default function TemplatePreviewModal({
 
             {/* Content */}
             <div className="max-h-[70vh] space-y-4 overflow-y-auto p-6">
-              {/* Preview Button */}
-              <div className="flex gap-2">
-                <button
-                  onClick={handleRender}
-                  disabled={loading}
-                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-800"
-                >
-                  {loading && <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>}
-                  {t('templates.preview')}
-                </button>
-              </div>
+              {/* Loading State */}
+              {loading && (
+                <div className="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-12 dark:border-gray-700 dark:bg-gray-700">
+                  <div className="h-6 w-6 animate-spin rounded-full border-3 border-gray-300 border-t-blue-600 dark:border-gray-600 dark:border-t-blue-500"></div>
+                  <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
+                </div>
+              )}
 
               {/* Error Message */}
-              {renderError && (
+              {renderError && !loading && (
                 <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300">
                   {renderError}
                 </div>
               )}
 
               {/* Preview Results */}
-              {renderResult && (
+              {renderResult && !loading && (
                 <>
                   {/* HTML Preview */}
                   <div className="space-y-2">

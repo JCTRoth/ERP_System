@@ -86,3 +86,4 @@ temp/
 *.bak
 
 TODO.txt
+apps/services/templates-service-mock/tests-output/

@@ -1,6 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -34,234 +40,58 @@ const availableVariables = {
   },
 };
 
-// Initialize with sample templates
-templates.set('sample-invoice-1', {
-  id: 'sample-invoice-1',
-  companyId: '1',
-  key: 'invoice',
-  name: 'Invoice Template',
-  content: `= Invoice #{order.number}
+// Load templates from files
+function loadTemplatesFromFiles() {
+  const templatesDir = path.join(__dirname, 'templates');
+  
+  if (!fs.existsSync(templatesDir)) {
+    console.log('Templates directory not found');
+    return;
+  }
 
-Company: {{company.name}}
-Address: {{company.address}}, {{company.city}}
-Date: {{order.date}}
+  const files = fs.readdirSync(templatesDir).filter(file => file.endsWith('.adoc'));
+  
+  files.forEach((file, index) => {
+    const filePath = path.join(templatesDir, file);
+    const content = fs.readFileSync(filePath, 'utf8');
+    const key = file.replace('.adoc', '');
+    
+    // Map filename to document type
+    const documentTypeMap = {
+      'invoice': 'invoice',
+      'order-confirmation': 'orderConfirmation',
+      'shipping-notice': 'shippingNotice',
+      'cancellation': 'cancellation',
+      'refund': 'refund'
+    };
+    
+    const documentType = documentTypeMap[key] || 'invoice';
+    const name = key.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    const template = {
+      id: `template-${index + 1}`,
+      companyId: '1', // Default company
+      key: key,
+      name: name,
+      content: content,
+      language: 'en',
+      documentType: documentType,
+      assignedState: null,
+      isActive: true,
+      metadata: { version: 1 },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: 'system',
+      lastModifiedBy: 'system'
+    };
+    
+    templates.set(template.id, template);
+    console.log(`Loaded template: ${template.name}`);
+  });
+}
 
-== Items
-{{order.items}}
-
-Subtotal: {{order.subtotal}}
-Tax: {{order.tax}}
-Shipping: {{order.shipping}}
-Total: {{order.total}}`,
-  language: 'en',
-  documentType: 'invoice',
-  assignedState: null,
-  isActive: true,
-  metadata: { version: 1 },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  createdBy: 'system',
-  lastModifiedBy: 'system'
-});
-
-templates.set('sample-confirmation-1', {
-  id: 'sample-confirmation-1',
-  companyId: '1',
-  key: 'order_confirmation',
-  name: 'Order Confirmation',
-  content: `= Order Confirmation
-
-Order Number: {{order.number}}
-Order Date: {{order.date}}
-
-Dear {{order.customer}},
-
-Your order has been received and is being processed.
-Status: {{order.status}}
-
-Total Amount: {{order.total}}
-
-Thank you for your business!`,
-  language: 'en',
-  documentType: 'confirmation',
-  assignedState: null,
-  isActive: true,
-  metadata: { version: 1 },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  createdBy: 'system',
-  lastModifiedBy: 'system'
-});
-
-templates.set('sample-shipping-1', {
-  id: 'sample-shipping-1',
-  companyId: '1',
-  key: 'shipping_label',
-  name: 'Shipping Label',
-  content: `= Shipping Label
-
-Order: {{order.number}}
-Date: {{order.date}}
-
-== Recipient
-{{order.customer.name}}
-{{order.customer.address}}
-{{order.customer.city}}, {{order.customer.postalCode}}
-{{order.customer.country}}
-
-== Sender
-{{company.name}}
-{{company.address}}
-{{company.city}}, {{company.postalCode}}
-{{company.country}}
-
-Weight: {{order.shipping.weight}} kg
-Service: Standard Shipping`,
-  language: 'en',
-  documentType: 'shipping',
-  assignedState: null,
-  isActive: true,
-  metadata: { version: 1 },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  createdBy: 'system',
-  lastModifiedBy: 'system'
-});
-
-templates.set('sample-receipt-1', {
-  id: 'sample-receipt-1',
-  companyId: '1',
-  key: 'receipt',
-  name: 'Payment Receipt',
-  content: `= Payment Receipt
-
-Receipt Number: RCPT-{{order.number}}
-Date: {{order.date}}
-
-== Customer Information
-Name: {{order.customer.name}}
-Email: {{order.customer.email}}
-
-== Order Details
-Order Number: {{order.number}}
-Payment Date: {{order.date}}
-
-[cols="3,1,1,1", options="header"]
-|===
-| Item | Quantity | Price | Total
-
-{{#order.items}}
-| {{productName}} | {{quantity}} | {{price}} | {{total}}
-{{/order.items}}
-|===
-
-== Payment Summary
-Subtotal: {{order.subtotal}}
-Tax: {{order.taxAmount}}
-Shipping: {{order.shippingAmount}}
-*Total Paid: {{order.total}}*
-
-Thank you for your payment!`,
-  language: 'en',
-  documentType: 'receipt',
-  assignedState: null,
-  isActive: true,
-  metadata: { version: 1 },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  createdBy: 'system',
-  lastModifiedBy: 'system'
-});
-
-templates.set('sample-quote-1', {
-  id: 'sample-quote-1',
-  companyId: '1',
-  key: 'quote',
-  name: 'Quote Template',
-  content: `= Quote
-
-Quote Number: QUOTE-{{order.number}}
-Valid Until: {{order.validUntil}}
-Date: {{order.date}}
-
-== Customer
-{{order.customer.name}}
-{{order.customer.company}}
-{{order.customer.address}}
-{{order.customer.city}}, {{order.customer.postalCode}}
-{{order.customer.country}}
-
-== Quoted Items
-[cols="2,1,1,1", options="header"]
-|===
-| Description | Quantity | Unit Price | Total
-
-{{#order.items}}
-| {{productName}} | {{quantity}} | {{price}} | {{total}}
-{{/order.items}}
-|===
-
-== Summary
-Subtotal: {{order.subtotal}}
-Tax: {{order.taxAmount}}
-*Total: {{order.total}}*
-
-Terms: Payment due within 30 days.
-Valid for 30 days from quote date.`,
-  language: 'en',
-  documentType: 'quote',
-  assignedState: null,
-  isActive: true,
-  metadata: { version: 1 },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  createdBy: 'system',
-  lastModifiedBy: 'system'
-});
-
-templates.set('sample-packing-1', {
-  id: 'sample-packing-1',
-  companyId: '1',
-  key: 'packing_slip',
-  name: 'Packing Slip',
-  content: `= Packing Slip
-
-Order Number: {{order.number}}
-Order Date: {{order.date}}
-Ship Date: {{order.shipDate}}
-
-== Ship To
-{{order.customer.name}}
-{{order.customer.address}}
-{{order.customer.city}}, {{order.customer.postalCode}}
-{{order.customer.country}}
-
-== Order Items
-[cols="1,2,1", options="header"]
-|===
-| Qty | Description | Notes
-
-{{#order.items}}
-| {{quantity}} | {{productName}} | {{notes}}
-{{/order.items}}
-|===
-
-== Shipping Information
-Carrier: {{order.shipping.carrier}}
-Tracking Number: {{order.shipping.trackingNumber}}
-Service: {{order.shipping.service}}
-
-Please inspect your order upon delivery.`,
-  language: 'en',
-  documentType: 'packing_slip',
-  assignedState: null,
-  isActive: true,
-  metadata: { version: 1 },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  createdBy: 'system',
-  lastModifiedBy: 'system'
-});
+// Initialize with templates from files
+loadTemplatesFromFiles();
 
 // Health check
 app.get('/actuator/health', (req, res) => {
@@ -352,7 +182,7 @@ app.put('/api/templates/:id', (req, res) => {
     updatedAt: new Date().toISOString(),
   };
 
-  templates.set(id, updated);
+  templates.set(req.params.id, updated);
   res.json(updated);
 });
 
@@ -367,7 +197,7 @@ app.delete('/api/templates/:id', (req, res) => {
 });
 
 // Render template
-app.post('/api/templates/:id/render', (req, res) => {
+app.post('/api/templates/:id/render', async (req, res) => {
   const template = templates.get(req.params.id);
   if (!template) {
     return res.status(404).json({ error: 'Template not found' });
@@ -376,8 +206,8 @@ app.post('/api/templates/:id/render', (req, res) => {
   const context = req.body;
   const errors = [];
 
-  // Replace all {{namespace.key}} variables with context values
-  let html = template.content.replace(/\{\{([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)\}\}/g, (match, path) => {
+  // Simple variable replacement for {{namespace.key}}
+  let content = template.content.replace(/\{\{([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)\}\}/g, (match, path) => {
     const [namespace, key] = path.split('.');
     const value = context[namespace]?.[key];
     if (value === undefined) {
@@ -387,27 +217,36 @@ app.post('/api/templates/:id/render', (req, res) => {
     return String(value);
   });
 
-  // Wrap in HTML
-  const htmlOutput = `
-    <html>
-      <head>
-        <title>${template.name}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; }
-          h1 { color: #333; }
-          pre { background: #f4f4f4; padding: 10px; border-radius: 4px; }
-        </style>
-      </head>
-      <body>
-        <h1>${template.name}</h1>
-        <pre>${html}</pre>
-      </body>
-    </html>
-  `;
+  // Try to render AsciiDoc using asciidoctor.js if installed
+  let htmlOutput;
+  try {
+    const Asciidoctor = await import('asciidoctor.js')
+      .then((m) => m.default ? m.default() : m());
+    const opts = { safe: 'safe', attributes: { 'showtitle': true } };
+    htmlOutput = Asciidoctor.convert(content, opts);
+  } catch (err) {
+    // If asciidoctor.js is not available or conversion fails, fallback to preformatted HTML
+    htmlOutput = `
+      <html>
+        <head>
+          <title>${template.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            h1 { color: #333; }
+            pre { background: #f4f4f4; padding: 10px; border-radius: 4px; }
+          </style>
+        </head>
+        <body>
+          <h1>${template.name}</h1>
+          <div>${content.replace(/</g, '&lt;')}</div>
+        </body>
+      </html>
+    `;
+  }
 
   res.json({
     html: htmlOutput,
-    pdfUrl: `http://localhost:8087/api/templates/${template.id}/pdf`,
+    pdfUrl: `http://localhost:8087/api/templates/${template.id}/pdf?context=${encodeURIComponent(JSON.stringify(context))}`,
     errors,
   });
 });
@@ -415,4 +254,87 @@ app.post('/api/templates/:id/render', (req, res) => {
 const PORT = process.env.PORT || 8087;
 app.listen(PORT, () => {
   console.log(`Templates Service Mock running on port ${PORT}`);
+});
+
+// Simple PDF endpoint for preview/download in tests
+app.get('/api/templates/:id/pdf', async (req, res) => {
+  const template = templates.get(req.params.id);
+  if (!template) return res.status(404).send('Not found');
+
+  let context = {};
+  if (req.query.context) {
+    try {
+      context = JSON.parse(decodeURIComponent(req.query.context));
+    } catch (e) {
+      console.error('Failed to parse context:', e);
+    }
+  }
+
+  // Replace variables in content
+  let content = template.content.replace(/\{\{([a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*)\}\}/g, (match, path) => {
+    const [namespace, key] = path.split('.');
+    const value = context[namespace]?.[key];
+    return value !== undefined ? String(value) : match;
+  });
+
+  // Try to render AsciiDoc using asciidoctor.js
+  let htmlOutput;
+  try {
+    const Asciidoctor = await import('asciidoctor.js')
+      .then((m) => m.default ? m.default() : m());
+    const opts = { safe: 'safe', attributes: { 'showtitle': true } };
+    htmlOutput = Asciidoctor.convert(content, opts);
+  } catch (err) {
+    htmlOutput = `
+      <html>
+        <head>
+          <title>${template.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            h1 { color: #333; }
+            pre { background: #f4f4f4; padding: 10px; border-radius: 4px; }
+          </style>
+        </head>
+        <body>
+          <h1>${template.name}</h1>
+          <div>${content.replace(/</g, '&lt;')}</div>
+        </body>
+      </html>
+    `;
+  }
+
+  // Try to use asciidoctor-pdf CLI if installed on the system
+  try {
+    const { spawnSync } = await import('node:child_process');
+    const tmp = await import('node:os');
+    const tmpdir = tmp.tmpdir();
+    const pdfPath = path.join(tmpdir, `${template.key || 'document'}-${Date.now()}.pdf`);
+    const adocPath = path.join(tmpdir, `${template.key || 'document'}-${Date.now()}.adoc`);
+
+    fs.writeFileSync(adocPath, content, 'utf8');
+
+    const result = spawnSync('asciidoctor-pdf', ['-o', pdfPath, adocPath], { encoding: 'utf8' });
+    if (result.status === 0 && fs.existsSync(pdfPath)) {
+      const pdfBuffer = fs.readFileSync(pdfPath);
+      // clean up
+      try { fs.unlinkSync(pdfPath); } catch (e) {}
+      try { fs.unlinkSync(adocPath); } catch (e) {}
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${template.key || 'document'}.pdf"`);
+      res.send(pdfBuffer);
+      return;
+    } else {
+      console.warn('asciidoctor-pdf failed', result.stderr || result.stdout);
+      try { fs.unlinkSync(adocPath); } catch (e) {}
+    }
+  } catch (err) {
+    console.warn('asciidoctor-pdf not available or failed', err?.message || err);
+  }
+
+  // Fallback to returning HTML
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${template.key || 'document'}.html"`);
+  res.send(htmlOutput);
+  return;
 });

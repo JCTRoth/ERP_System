@@ -60,13 +60,13 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
+  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, ({
     variables: {
       first: 20,
     },
     errorPolicy: 'all',
     client: shopApolloClient,
-  });
+  } as any));
 
   useEffect(() => {
     if (data) {
@@ -80,20 +80,20 @@ export default function ProductsPage() {
     }
   }, [error]);
 
-  const [deleteProduct] = useMutation(DELETE_PRODUCT, {
-    onCompleted: (data) => {
+  const [deleteProduct] = useMutation(DELETE_PRODUCT, ({
+    onCompleted: (data: any) => {
       if (data.deleteProduct) {
         refetch();
       } else {
         alert(t('products.deleteFailed'));
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Delete product error:', error);
       alert(t('products.deleteError'));
     },
     client: shopApolloClient,
-  });
+  } as any));
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
@@ -102,7 +102,7 @@ export default function ProductsPage() {
 
   const handleDelete = async (id: string) => {
     if (window.confirm(t('products.confirmDelete'))) {
-      await deleteProduct({ variables: { id } });
+      await deleteProduct(({ variables: { id } } as any));
     }
   };
 

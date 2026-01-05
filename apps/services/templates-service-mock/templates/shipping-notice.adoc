@@ -1,0 +1,34 @@
+= Shipping Notice
+:doctype: article
+:icons: font
+:author: {company.name}
+:revnumber: {shipment.number}
+:revdate: {shipment.date}
+
+== Shipment {shipment.number}
+
+Parcel for order: {order.number}
+
+Ship to:
+
+{shipping.name}
+{shipping.street}
+{shipping.city}, {shipping.postalCode}
+{shipping.country}
+
+Carrier: {shipment.carrier}
+Tracking: {shipment.trackingNumber}
+
+[options="header"]
+|===
+| # | Product | Qty
+
+{#items}
+| {index}
+| {item.name}
+| {item.quantity}
+{#end}
+|===
+
+== Notes
+{shipment.notes}

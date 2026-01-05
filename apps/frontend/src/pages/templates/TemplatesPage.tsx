@@ -8,9 +8,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { useAuthStore } from '../../stores/authStore';
-import TemplateEditorModal from './TemplateEditorModal';
-import TemplatePreviewModal from './TemplatePreviewModal';
 import * as templatesApi from '../../lib/api/templates';
+import TemplatePreviewModal from './TemplatePreviewModal';
+import TemplateEditorModal from './TemplateEditorModal';
 
 interface Template {
   id: string;
@@ -45,7 +45,7 @@ export default function TemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<SelectedTemplate | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<SelectedTemplate | null>(null);
 
-  const companyId = currentCompanyId || '';
+  const companyId = currentCompanyId || '1';
 
   // Fetch templates
   useEffect(() => {
@@ -157,6 +157,9 @@ export default function TemplatesPage() {
   const documentTypeOptions = [
     { value: 'invoice', label: t('templates.documentType.invoice') },
     { value: 'deliveryNote', label: t('templates.documentType.deliveryNote') },
+    { value: 'shippingNotice', label: t('templates.documentType.shippingNotice') },
+    { value: 'cancellation', label: t('templates.documentType.cancellation') },
+    { value: 'refund', label: t('templates.documentType.refund') },
     { value: 'quotation', label: t('templates.documentType.quotation') },
     { value: 'purchaseOrder', label: t('templates.documentType.purchaseOrder') },
   ];

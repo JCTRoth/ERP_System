@@ -1,0 +1,35 @@
+= Order Cancellation
+:doctype: article
+:icons: font
+:author: {company.name}
+:revnumber: {order.number}
+:revdate: {cancellation.date}
+
+== Cancellation for Order {order.number}
+
+Customer: {customer.name} ({customer.email})
+
+Reason:
+
+{cancellation.reason}
+
+[options="header"]
+|===
+| # | Product | Qty | Unit price | Total
+
+{#items}
+| {index}
+| {item.name}
+| {item.quantity}
+| {item.unitPrice}
+| {item.total}
+{#end}
+|===
+
+== Refund
+
+- Refund amount: {cancellation.refundAmount}
+- Refund method: {cancellation.method}
+
+== Notes
+{cancellation.notes}

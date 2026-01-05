@@ -116,10 +116,10 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
     country: '',
   });
 
-  const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, {
+  const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, ({
     variables: { id: orderId },
     client: shopApolloClient,
-    onCompleted: (data) => {
+    onCompleted: (data: any) => {
       if (data?.order?.shippingAddress) {
         setShippingAddress(data.order.shippingAddress);
       }
@@ -127,7 +127,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
         setBillingAddress(data.order.billingAddress);
       }
     },
-  });
+  } as any));
 
   const [updateStatus] = useMutation(UPDATE_ORDER_STATUS, {
     onCompleted: () => refetch(),
@@ -145,14 +145,14 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   const order = data?.order;
 
   const handleStatusChange = async (newStatus: string) => {
-    await updateStatus({
+    await updateStatus(({
       variables: { 
         input: { 
           orderId: orderId, 
           status: newStatus 
         } 
       },
-    });
+    } as any));
   };
 
   const formatCurrency = (amount: number) => {
@@ -186,7 +186,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   };
 
   const handleSaveAddresses = async () => {
-    await updateAddresses({
+    await updateAddresses(({
       variables: {
         input: {
           orderId,
@@ -194,7 +194,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
           billingAddress,
         },
       },
-    });
+    } as any));
   };
 
   return (

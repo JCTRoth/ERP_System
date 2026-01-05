@@ -1,0 +1,18 @@
+= Refund Notice
+:doctype: article
+:icons: font
+:author: {company.name}
+:revnumber: {refund.number}
+:revdate: {refund.date}
+
+== Refund {refund.number}
+
+Order: {order.number}
+Customer: {customer.name} ({customer.email})
+
+- Refund amount: {refund.amount}
+- Refund reason: {refund.reason}
+- Refunded via: {refund.method}
+
+== Notes
+{refund.notes}

@@ -96,10 +96,10 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   const [billingPostalCode, setBillingPostalCode] = useState('');
   const [billingCountry, setBillingCountry] = useState('');
 
-  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, { client: shopApolloClient });
-  const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS);
-  const { data: taxCodesData, loading: taxCodesLoading, error: taxCodesError } = useQuery(GET_TAX_CODES);
-  const [createOrder, { loading }] = useMutation(CREATE_ORDER, { client: shopApolloClient });
+  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, ({ client: shopApolloClient } as any));
+  const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS, ({} as any));
+  const { data: taxCodesData, loading: taxCodesLoading, error: taxCodesError } = useQuery(GET_TAX_CODES, ({} as any));
+  const [createOrder, { loading }] = useMutation(CREATE_ORDER, ({ client: shopApolloClient } as any));
 
   // Debug logs
   console.log('Products data:', productsData);
@@ -158,7 +158,7 @@ export default function OrderModal({ onClose }: OrderModalProps) {
     }
 
     try {
-      await createOrder({
+      await createOrder(({
         variables: {
           input: {
             customerId,
@@ -181,7 +181,7 @@ export default function OrderModal({ onClose }: OrderModalProps) {
             billingCountry: useDifferentBillingAddress ? billingCountry || null : null,
           },
         },
-      });
+      } as any));
       onClose();
     } catch (error) {
       console.error('Error creating order:', error);

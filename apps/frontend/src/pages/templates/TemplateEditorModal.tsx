@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 // import Editor from '@monaco-editor/react'; // Temporarily disabled due to installation issues
 import { useI18n } from '../../providers/I18nProvider';
-import TemplateVariablesPanel from './TemplateVariablesPanel';
 import * as templatesApi from '../../lib/api/templates';
+import TemplateVariablesPanel from './TemplateVariablesPanel';
 
 interface Template {
   id: string;
@@ -101,6 +101,10 @@ export default function TemplateEditorModal({
 
   const documentTypeOptions = [
     { value: 'invoice', label: t('templates.documentType.invoice') },
+    { value: 'orderConfirmation', label: t('templates.documentType.orderConfirmation') },
+    { value: 'shippingNotice', label: t('templates.documentType.shippingNotice') },
+    { value: 'cancellation', label: t('templates.documentType.cancellation') },
+    { value: 'refund', label: t('templates.documentType.refund') },
     { value: 'deliveryNote', label: t('templates.documentType.deliveryNote') },
     { value: 'quotation', label: t('templates.documentType.quotation') },
     { value: 'purchaseOrder', label: t('templates.documentType.purchaseOrder') },
@@ -214,12 +218,21 @@ export default function TemplateEditorModal({
                     onChange={handleInputChange}
                     className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">Select State</option>
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
+                    <option value="">{t('templates.selectState') || 'Select State'}</option>
+                    {[
+                      'pending',
+                      'confirmed',
+                      'processing',
+                      'shipped',
+                      'delivered',
+                      'cancelled',
+                      'refunded',
+                      'on_hold',
+                    ].map((state) => (
+                      <option key={state} value={state}>
+                        {t(`orders.status.${state}`)}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

@@ -1,0 +1,50 @@
+= Order Confirmation
+:doctype: article
+:icons: font
+:author: {company.name}
+:revnumber: {order.number}
+:revdate: {order.date}
+
+== Order {order.number}
+
+Order placed by: {customer.name} ({customer.email})
+
+[options="header"]
+|===
+| # | Product | SKU | Qty | Unit price | Total
+
+{#items}
+| {index}
+| {item.name}
+| {item.sku}
+| {item.quantity}
+| {item.unitPrice}
+| {item.total}
+{#end}
+
+|===
+
+== Totals
+
+- Subtotal: {order.subtotal}
+- Tax: {order.tax}
+- Shipping: {order.shipping}
+- Discount: {order.discount}
+- Total: {order.total}
+
+== Billing & Shipping
+
+=== Billing
+{order.billing.name}
+{order.billing.street}
+{order.billing.city}, {order.billing.postalCode}
+{order.billing.country}
+
+=== Shipping
+{order.shipping.name}
+{order.shipping.street}
+{order.shipping.city}, {order.shipping.postalCode}
+{order.shipping.country}
+
+== Notes
+{order.notes}

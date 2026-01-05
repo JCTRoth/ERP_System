@@ -1,0 +1,48 @@
+= Invoice
+:doctype: article
+:icons: font
+:toc: macro
+:author: {company.name}
+:revnumber: {invoice.number}
+:revdate: {invoice.date}
+
+== Invoice {invoice.number}
+
+:Invoice To:
+
+{customer.name}
+{customer.address.street}
+{customer.address.city}, {customer.address.postalCode}
+{customer.address.country}
+
+[options="header"]
+|===
+| # | Description | Qty | Unit price | Discount | Total
+
+{#items}
+| {index}
+| {item.description}
+| {item.quantity}
+| {item.unitPrice}
+| {item.discount}
+| {item.total}
+{#end}
+
+|===
+
+[cols="2,1"]
+|===
+| Subtotal | {invoice.subtotal}
+| Tax ({invoice.taxRate}%) | {invoice.tax}
+| Shipping | {invoice.shipping}
+| Discount | -{invoice.discount}
+| **Total** | **{invoice.total}**
+|===
+
+== Notes
+
+{invoice.notes}
+
+== Footer
+
+{company.name} \| {company.email} \| {company.phone}
