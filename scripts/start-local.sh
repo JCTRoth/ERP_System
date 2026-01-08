@@ -57,7 +57,7 @@ check_compose_file() {
 # Accepts a docker-compose service name, resolves the container id, and checks pg_isready
 wait_for_db() {
     local service_name=$1
-    local max_attempts=60
+    local max_attempts=30  # Reduced from 60
     local attempt=1
 
     print_status "Waiting for $service_name to be ready..."
@@ -74,7 +74,7 @@ wait_for_db() {
         fi
 
         echo -n "."
-        sleep 2
+        sleep 1  # Reduced from 2
         ((attempt++))
     done
 
@@ -82,51 +82,118 @@ wait_for_db() {
     return 1
 }
 
-# Function to check service health
-check_service_health() {
-    local service_name=$1
-    local port=$2
-    local max_attempts=10
-    local attempt=1
+# Function to check service health (parallel version)
+check_service_health_parallel() {
+    local services=("$@")
+    local pids=()
+    local results=()
 
-    print_status "Checking health of $service_name on port $port..."
+    print_status "Checking health of ${#services[@]} services in parallel..."
 
-    while [ $attempt -le $max_attempts ]; do
-        if curl -f http://localhost:$port/health >/dev/null 2>&1; then
-            print_status "$service_name is healthy!"
-            return 0
-        fi
+    # Start health checks in parallel
+    for service_info in "${services[@]}"; do
+        local service_name
+        service_name=$(echo "$service_info" | cut -d: -f1)
+        local port
+        port=$(echo "$service_info" | cut -d: -f2)
+        local max_attempts=8  # Reduced from 10
 
-        sleep 3
-        ((attempt++))
+        (
+            local attempt=1
+            while [ $attempt -le $max_attempts ]; do
+                if curl -f --max-time 5 http://localhost:"$port"/health >/dev/null 2>&1; then
+                    echo "SUCCESS:$service_name"
+                    return 0
+                fi
+                sleep 2  # Reduced from 3
+                ((attempt++))
+            done
+            echo "FAILED:$service_name"
+        ) &
+        pids+=($!)
     done
 
-    print_warning "$service_name health check failed, but continuing..."
-    return 0
+    # Wait for all checks to complete
+    for pid in "${pids[@]}"; do
+        wait "$pid"
+        result=$(wait "$pid" 2>/dev/null && echo "SUCCESS" || echo "FAILED")
+        results+=("$result")
+    done
+
+    # Report results
+    local success_count=0
+    for result in "${results[@]}"; do
+        if [[ $result == SUCCESS* ]]; then
+            local service
+            service=$(echo "$result" | cut -d: -f2)
+            print_status "$service is healthy!"
+            ((success_count++))
+        else
+            local service
+            service=$(echo "$result" | cut -d: -f2)
+            print_warning "$service health check failed, but continuing..."
+        fi
+    done
+
+    print_status "Health checks completed: $success_count/${#services[@]} services healthy"
 }
 
-# Function to check GraphQL endpoint health
-check_graphql_health() {
-    local service_name=$1
-    local port=$2
-    local max_attempts=15
-    local attempt=1
+# Function to check GraphQL endpoint health (parallel version)
+check_graphql_health_parallel() {
+    local services=("$@")
+    local pids=()
+    local results=()
 
-    print_status "Checking GraphQL endpoint for $service_name on port $port..."
+    print_status "Checking GraphQL endpoints for ${#services[@]} services in parallel..."
 
-    while [ $attempt -le $max_attempts ]; do
-        if curl -f -X POST -H "Content-Type: application/json" -d '{"query":"{__typename}"}' http://localhost:$port/graphql >/dev/null 2>&1; then
-            print_status "$service_name GraphQL endpoint is ready!"
-            return 0
-        fi
+    # Start GraphQL checks in parallel
+    for service_info in "${services[@]}"; do
+        local service_name
+        service_name=$(echo "$service_info" | cut -d: -f1)
+        local port
+        port=$(echo "$service_info" | cut -d: -f2)
+        local max_attempts=10  # Reduced from 15
 
-        echo -n "."
-        sleep 3
-        ((attempt++))
+        (
+            local attempt=1
+            while [ $attempt -le $max_attempts ]; do
+                if curl -f --max-time 5 -X POST -H "Content-Type: application/json" -d '{"query":"{__typename}"}' http://localhost:"$port"/graphql >/dev/null 2>&1; then
+                    echo "SUCCESS:$service_name"
+                    return 0
+                fi
+                sleep 2
+                ((attempt++))
+            done
+            echo "FAILED:$service_name"
+        ) &
+        pids+=($!)
     done
 
-    print_warning "$service_name GraphQL endpoint not ready, but continuing..."
-    return 0
+    # Wait for all checks to complete
+    for pid in "${pids[@]}"; do
+        if wait "$pid" 2>/dev/null; then
+            results+=("SUCCESS")
+        else
+            results+=("FAILED")
+        fi
+    done
+
+    # Report results
+    local success_count=0
+    for result in "${results[@]}"; do
+        if [[ $result == SUCCESS* ]]; then
+            local service
+            service=$(echo "$result" | cut -d: -f2)
+            print_status "$service GraphQL endpoint is ready!"
+            ((success_count++))
+        else
+            local service
+            service=$(echo "$result" | cut -d: -f2)
+            print_warning "$service GraphQL endpoint not ready, but continuing..."
+        fi
+    done
+
+    print_status "GraphQL checks completed: $success_count/${#services[@]} endpoints ready"
 }
 
 # Main startup function
@@ -150,9 +217,9 @@ main() {
     print_status "Waiting for database to be ready..."
     wait_for_db postgres
 
-    # Start GraphQL services required by the gateway
+    # Start all GraphQL services in parallel
     print_header "Starting GraphQL Dependencies"
-    print_status "Bringing up UserService, TranslationService, CompanyService, ShopService, MasterdataService, and AccountingService..."
+    print_status "Bringing up all services in parallel..."
 
     docker compose -f "$COMPOSE_FILE" up -d \
         user-service \
@@ -163,36 +230,35 @@ main() {
         accounting-service \
         templates-service
 
-    # Give services a moment to spin up
-    print_status "Waiting for dependent services..."
-    sleep 10
+    # Give services a moment to spin up (reduced from 10 seconds)
+    print_status "Waiting for services to initialize..."
+    sleep 5
 
-    check_service_health "UserService" "5000"
-    check_graphql_health "UserService" "5000"
+    # Check all services health in parallel
+    check_service_health_parallel \
+        "UserService:5000" \
+        "TranslationService:8083" \
+        "CompanyService:8081" \
+        "ShopService:5003" \
+        "MasterdataService:5002" \
+        "AccountingService:5001" \
+        "TemplatesService:8087"
 
-    check_service_health "TranslationService" "8083"
-    check_graphql_health "TranslationService" "8083"
-
-    check_service_health "CompanyService" "8081"
-    check_graphql_health "CompanyService" "8081"
-
-    check_service_health "ShopService" "5003"
-    check_graphql_health "ShopService" "5003"
-
-    check_service_health "MasterdataService" "5002"
-    check_graphql_health "MasterdataService" "5002"
-
-    check_service_health "AccountingService" "5001"
-    check_graphql_health "AccountingService" "5001"
-
-    check_service_health "TemplatesService" "8087"
+    # Check GraphQL endpoints in parallel
+    check_graphql_health_parallel \
+        "UserService:5000" \
+        "TranslationService:8083" \
+        "CompanyService:8081" \
+        "ShopService:5003" \
+        "MasterdataService:5002" \
+        "AccountingService:5001"
 
     # Start the gateway after dependencies are healthy
     print_header "Starting Gateway"
     docker compose -f "$COMPOSE_FILE" up -d gateway
 
     print_status "Waiting for Gateway to become ready..."
-    sleep 15
+    sleep 8  # Reduced from 15
 
     check_service_health "Gateway" "4000"
 
