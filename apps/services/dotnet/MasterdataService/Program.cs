@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Prometheus;
+using Models = MasterdataService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -107,6 +108,53 @@ using (var scope = app.Services.CreateScope())
     {
         // For development, ensure the database is created
         dbContext.Database.EnsureCreated();
+        
+        // Update tax codes to German VAT rates (development only)
+        var taxCodes = dbContext.TaxCodes.ToList();
+        if (taxCodes.Any())
+        {
+            var stdTax = taxCodes.FirstOrDefault(t => t.Code == "STD");
+            if (stdTax != null && stdTax.Rate != 19m)
+            {
+                stdTax.Rate = 19m;
+                stdTax.Description = "Standard sales tax (19%)";
+            }
+            
+            var reducedTax = taxCodes.FirstOrDefault(t => t.Code == "REDUCED");
+            if (reducedTax != null && reducedTax.Rate != 7m)
+            {
+                reducedTax.Rate = 7m;
+                reducedTax.Description = "Reduced sales tax (7%)";
+            }
+            
+            // Add REDUCED2 if it doesn't exist
+            if (!taxCodes.Any(t => t.Code == "REDUCED2"))
+            {
+                dbContext.TaxCodes.Add(new Models.TaxCode 
+                { 
+                    Id = Guid.Parse("f3c2f2e9-8548-431f-9f03-9186942bb48f"), 
+                    Code = "REDUCED2", 
+                    Name = "Reduced Rate 2", 
+                    Description = "Reduced sales tax (16%)", 
+                    Rate = 16m, 
+                    Type = Models.TaxType.Sales, 
+                    IsActive = true, 
+                    EffectiveFrom = DateTime.UtcNow, 
+                    CreatedAt = DateTime.UtcNow 
+                });
+            }
+            else
+            {
+                var reduced2Tax = taxCodes.FirstOrDefault(t => t.Code == "REDUCED2");
+                if (reduced2Tax != null && reduced2Tax.Rate != 16m)
+                {
+                    reduced2Tax.Rate = 16m;
+                    reduced2Tax.Description = "Reduced sales tax (16%)";
+                }
+            }
+            
+            dbContext.SaveChanges();
+        }
     }
 }
 

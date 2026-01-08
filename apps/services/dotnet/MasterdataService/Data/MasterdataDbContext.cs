@@ -200,10 +200,11 @@ public class MasterdataDbContext : DbContext
 
         // Seed default tax codes
         modelBuilder.Entity<TaxCode>().HasData(
-            new TaxCode { Id = Guid.NewGuid(), Code = "STD", Name = "Standard Rate", Description = "Standard sales tax", Rate = 10m, Type = TaxType.Sales, IsActive = true, IsDefault = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
-            new TaxCode { Id = Guid.NewGuid(), Code = "REDUCED", Name = "Reduced Rate", Description = "Reduced sales tax", Rate = 5m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
-            new TaxCode { Id = Guid.NewGuid(), Code = "ZERO", Name = "Zero Rate", Description = "Zero-rated", Rate = 0m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
-            new TaxCode { Id = Guid.NewGuid(), Code = "EXEMPT", Name = "Exempt", Description = "Tax exempt", Rate = 0m, Type = TaxType.Exempt, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow }
+            new TaxCode { Id = Guid.Parse("d1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "STD", Name = "Standard Rate", Description = "Standard sales tax (19%)", Rate = 19m, Type = TaxType.Sales, IsActive = true, IsDefault = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new TaxCode { Id = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "REDUCED", Name = "Reduced Rate", Description = "Reduced sales tax (7%)", Rate = 7m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new TaxCode { Id = Guid.Parse("f3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "REDUCED2", Name = "Reduced Rate 2", Description = "Reduced sales tax (16%)", Rate = 16m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new TaxCode { Id = Guid.Parse("a4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "ZERO", Name = "Zero Rate", Description = "Zero-rated (0%)", Rate = 0m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new TaxCode { Id = Guid.Parse("b5c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "EXEMPT", Name = "Exempt", Description = "Tax exempt", Rate = 0m, Type = TaxType.Exempt, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow }
         );
 
         //

@@ -149,6 +149,14 @@ using (var scope = app.Services.CreateScope())
             {
                 dbContext.Database.EnsureCreated();
             }
+            
+            // Update invoice customer name (development only)
+            var invoice = dbContext.Invoices.FirstOrDefault(i => i.InvoiceNumber == "INV-2026-0001");
+            if (invoice != null && invoice.CustomerName != "Jonas Roth")
+            {
+                invoice.CustomerName = "Jonas Roth";
+                dbContext.SaveChanges();
+            }
         }
         catch (Exception ex)
         {

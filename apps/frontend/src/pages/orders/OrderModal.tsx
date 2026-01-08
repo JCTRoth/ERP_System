@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
@@ -100,6 +100,17 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS, ({} as any));
   const { data: taxCodesData, loading: taxCodesLoading, error: taxCodesError } = useQuery(GET_TAX_CODES, ({} as any));
   const [createOrder, { loading }] = useMutation(CREATE_ORDER, ({ client: shopApolloClient } as any));
+
+  // Set default tax code to standard rate (19%) when data loads
+  useEffect(() => {
+    if (taxCodesData?.taxCodes && !selectedTaxCodeId) {
+      const standardRate = taxCodesData.taxCodes.find((tc: { rate: number }) => tc.rate === 19);
+      if (standardRate) {
+        setSelectedTaxCodeId(standardRate.id);
+        setTaxRate(0.19);
+      }
+    }
+  }, [taxCodesData, selectedTaxCodeId]);
 
   // Debug logs
   console.log('Products data:', productsData);
@@ -383,7 +394,7 @@ export default function OrderModal({ onClose }: OrderModalProps) {
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">{t('orders.tax')} (19%)</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t('orders.tax')} ({(taxRate * 100).toFixed(0)}%)</span>
                   <span>{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-2 text-lg font-bold dark:border-gray-600">

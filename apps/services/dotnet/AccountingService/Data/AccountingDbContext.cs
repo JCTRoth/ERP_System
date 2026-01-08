@@ -464,7 +464,7 @@ public class AccountingDbContext : DbContext
                 SupplierId = null,
                 OrderId = Guid.Parse("50000000-0000-0000-0000-000000000001"),
                 OrderNumber = "ORD-1001",
-                CustomerName = "John Doe",
+                CustomerName = "Jonas Roth",
                 SupplierName = null,
                 BillingAddress = "123 Demo Street",
                 BillingCity = "Demo City",
