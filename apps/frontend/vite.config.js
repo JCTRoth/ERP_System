@@ -20,7 +20,7 @@ export default defineConfig({
                 target: process.env.VITE_SHOP_URL || 'http://erp_system-shop-service-1:5003',
                 changeOrigin: true,
                 secure: false,
-                rewrite: (path) => path.replace(/^\/shop\/graphql/, '/graphql'),
+                rewrite: function (path) { return path.replace(/^\/shop\/graphql/, '/graphql'); },
             },
             // Gateway endpoints
             '/graphql': {

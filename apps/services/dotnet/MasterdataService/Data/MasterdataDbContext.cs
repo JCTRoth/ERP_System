@@ -206,11 +206,15 @@ public class MasterdataDbContext : DbContext
             new TaxCode { Id = Guid.NewGuid(), Code = "EXEMPT", Name = "Exempt", Description = "Tax exempt", Rate = 0m, Type = TaxType.Exempt, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow }
         );
 
-        // Seed sample customers for development
+        //
+        // Demo Data
+        //
+
+        // Seed sample customers for development (use fixed GUID so other seeds can reference)
         modelBuilder.Entity<Customer>().HasData(
             new Customer
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
                 CustomerNumber = "CUST-000001",
                 Name = "Jonas Roth",
                 LegalName = "Mailbase.info",
@@ -223,6 +227,65 @@ public class MasterdataDbContext : DbContext
                 Status = CustomerStatus.Active,
                 CreatedAt = DateTime.UtcNow
             }
+        );
+
+        // Seed example suppliers
+        modelBuilder.Entity<Supplier>().HasData(
+            new Supplier
+            {
+                Id = Guid.Parse("6a2f2e9e-8548-431f-9f03-9186942bb48f"),
+                SupplierNumber = "SUPP-0001",
+                Name = "ACME Supplies",
+                ContactPerson = "Jane Supplier",
+                Email = "supplier@acme.example",
+                Phone = "+1-555-0202",
+                Address = "456 Supplier Lane",
+                City = "Supply City",
+                PostalCode = "54321",
+                Country = "DE",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            }
+        );
+
+        // Seed example department, cost center and location
+        modelBuilder.Entity<Department>().HasData(
+            new Department { Id = Guid.Parse("70000000-0000-0000-0000-000000000001"), Code = "SALES", Name = "Sales", CreatedAt = DateTime.UtcNow }
+        );
+
+        modelBuilder.Entity<CostCenter>().HasData(
+            new CostCenter { Id = Guid.Parse("70000000-0000-0000-0000-000000000002"), Code = "CC-100", Name = "Main Cost Center", CreatedAt = DateTime.UtcNow }
+        );
+
+        modelBuilder.Entity<BusinessLocation>().HasData(
+            new BusinessLocation { Id = Guid.Parse("70000000-0000-0000-0000-000000000003"), Code = "HQ", Name = "Headquarters", CreatedAt = DateTime.UtcNow }
+        );
+
+        // Seed example employee
+        modelBuilder.Entity<Employee>().HasData(
+            new Employee { Id = Guid.Parse("8a2f2e9e-8548-431f-9f03-9186942bb48f"), EmployeeNumber = "EMP-0001", FirstName = "Alice", LastName = "Admin", Email = "alice.admin@example.com", CreatedAt = DateTime.UtcNow }
+        );
+
+        // Seed a sample address, contact and bank detail linked to customer
+        modelBuilder.Entity<Address>().HasData(
+            new Address { Id = Guid.Parse("9a2f2e9e-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), Line1 = "123 Demo Street", City = "Demo City", PostalCode = "12345", Country = "DE", CreatedAt = DateTime.UtcNow }
+        );
+
+        modelBuilder.Entity<Contact>().HasData(
+            new Contact { Id = Guid.Parse("9b2f2e9e-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), Name = "John Doe", Email = "john.doe@example.com", Phone = "+1-555-0123", CreatedAt = DateTime.UtcNow }
+        );
+
+        modelBuilder.Entity<BankDetail>().HasData(
+            new BankDetail { Id = Guid.Parse("9c2f2e9e-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), BankName = "Demo Bank", Iban = "DE89370400440532013000", Bic = "DEUTDEDBXXX", CreatedAt = DateTime.UtcNow }
+        );
+
+        // Seed example asset category and asset
+        modelBuilder.Entity<AssetCategory>().HasData(
+            new AssetCategory { Id = Guid.Parse("80000000-0000-0000-0000-000000000001"), Code = "IT", Name = "IT Equipment", CreatedAt = DateTime.UtcNow }
+        );
+
+        modelBuilder.Entity<Asset>().HasData(
+            new Asset { Id = Guid.Parse("80000000-0000-0000-0000-000000000011"), AssetNumber = "ASSET-0001", Name = "Laptop Demo", AssetCategoryId = Guid.Parse("80000000-0000-0000-0000-000000000001"), CreatedAt = DateTime.UtcNow }
         );
     }
 }

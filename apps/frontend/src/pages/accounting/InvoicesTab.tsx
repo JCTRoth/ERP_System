@@ -71,6 +71,7 @@ export default function InvoicesTab() {
   const { t } = useI18n();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [readOnly, setReadOnly] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -106,9 +107,18 @@ export default function InvoicesTab() {
     );
   }
 
-  const handleEdit = (invoice: Invoice) => {
+  const handleEdit = (invoice: Invoice, readOnlyMode: boolean = false) => {
     setSelectedInvoice(invoice);
+    setReadOnly(readOnlyMode);
     setIsModalOpen(true);
+  };
+
+  const handleView = (invoice: Invoice) => {
+    handleEdit(invoice, true);
+  };
+
+  const handleEditDraft = (invoice: Invoice) => {
+    handleEdit(invoice, false);
   };
 
   const handleDelete = async (invoice: Invoice) => {
@@ -124,6 +134,7 @@ export default function InvoicesTab() {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedInvoice(null);
+    setReadOnly(false);
     refetch();
   };
 
@@ -279,7 +290,7 @@ export default function InvoicesTab() {
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleEdit(invoice)}
+                          onClick={() => handleView(invoice)}
                           className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                           title={t('common.view')}
                         >
@@ -287,7 +298,7 @@ export default function InvoicesTab() {
                         </button>
                         {invoice.status === 'DRAFT' && (
                           <button
-                            onClick={() => handleEdit(invoice)}
+                            onClick={() => handleEditDraft(invoice)}
                             className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
                             title={t('common.edit')}
                           >
@@ -318,6 +329,7 @@ export default function InvoicesTab() {
         <InvoiceModal
           invoice={selectedInvoice}
           onClose={handleModalClose}
+          readOnly={readOnly}
         />
       )}
     </div>

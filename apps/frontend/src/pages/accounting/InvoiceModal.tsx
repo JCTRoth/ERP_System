@@ -122,6 +122,37 @@ const GET_PRODUCTS = gql`
   }
 `;
 
+const GET_INVOICE = gql`
+  query GetInvoice($id: UUID!) {
+    invoice(id: $id) {
+      id
+      invoiceNumber
+      type
+      status
+      customerId
+      customerName
+      orderId
+      orderNumber
+      invoiceDate
+      dueDate
+      currency
+      notes
+      lineItems {
+        id
+        description
+        sku
+        productId
+        accountId
+        quantity
+        unit
+        unitPrice
+        discountPercent
+        taxRate
+      }
+    }
+  }
+`;
+
 interface InvoiceLineItem {
   description: string;
   quantity: number;
@@ -139,16 +170,30 @@ interface Invoice {
   invoiceNumber: string;
   type: string;
   status: string;
+  customerId?: string;
+  customerName?: string;
+  orderId?: string;
+  orderNumber?: string;
+  invoiceDate?: string;
+  dueDate?: string;
+  currency?: string;
+  notes?: string;
+  lineItems?: any[];
 }
 
 interface InvoiceModalProps {
   invoice: Invoice | null;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
-export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
+export default function InvoiceModal({ invoice, onClose, readOnly = false }: InvoiceModalProps) {
   const { t } = useI18n();
   const isEditing = !!invoice;
+  const isReadOnly = readOnly || (isEditing && invoice?.status !== 'DRAFT');
+
+  // Helper to determine if form inputs should be disabled
+  const isFormDisabled = isReadOnly;
 
   const [formData, setFormData] = useState({
     type: 'SalesInvoice',
@@ -167,6 +212,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
   ]);
 
   const [validationError, setValidationError] = useState<string>('');
+  const [defaultAccountId, setDefaultAccountId] = useState<string>('');
 
   const { data: accountsData } = useQuery(GET_ACCOUNTS);
   const { data: ordersData } = useQuery(GET_ORDERS, { client: shopApolloClient });
@@ -178,11 +224,34 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
     client: shopApolloClient,
   });
 
+  const { data: invoiceData, loading: invoiceLoading } = useQuery(GET_INVOICE, {
+    variables: { id: invoice?.id },
+    skip: !invoice?.id,
+  });
+
   const [createInvoice, { loading: createLoading }] = useMutation(CREATE_INVOICE);
   const [updateInvoice, { loading: updateLoading }] = useMutation(UPDATE_INVOICE);
   const [deleteInvoice, { loading: deleteLoading }] = useMutation(DELETE_INVOICE);
 
-  const loading = createLoading || updateLoading || deleteLoading;
+  const loading = createLoading || updateLoading || deleteLoading || invoiceLoading;
+
+  // Find and set default account (1100 Bank Account)
+  useEffect(() => {
+    if (accountsData?.accounts?.nodes) {
+      const defaultAccount = accountsData.accounts.nodes.find(
+        (account: any) => account.accountNumber === '1100' && account.name === 'Bank Account'
+      );
+      if (defaultAccount) {
+        setDefaultAccountId(defaultAccount.id);
+        // Update existing line items with default account if they don't have one
+        setLineItems(prevItems =>
+          prevItems.map(item => 
+            item.accountId ? item : { ...item, accountId: defaultAccount.id }
+          )
+        );
+      }
+    }
+  }, [accountsData]);
 
   // Debug customers data
   useEffect(() => {
@@ -220,7 +289,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
             description: item.productName || '',
             quantity: item.quantity,
             unitPrice: item.unitPrice || 0,
-            accountId: '', // Will need to be selected
+            accountId: defaultAccountId, // Set default account automatically
             discountPercent: 0,
             // Use item.taxRate if provided; otherwise default to 19 (percent)
             // Normalize taxRate: if given as fraction (0.19) convert to percent (19)
@@ -234,10 +303,79 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
     }
   }, [orderDetailsData, customersData]);
 
+  // Populate form with existing invoice data when editing
+  useEffect(() => {
+    if (invoiceData?.invoice && isEditing) {
+      const invoice = invoiceData.invoice;
+      
+      // Set form data
+      // Start with values from invoice
+      const initialForm = {
+        type: invoice.type ? invoice.type.replace('_', '') : 'SalesInvoice', // Convert SALES_INVOICE to SalesInvoice
+        orderId: invoice.orderId || '',
+        orderNumber: invoice.orderNumber || '',
+        customerId: invoice.customerId || '',
+        customerName: invoice.customerName || '',
+        invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        currency: invoice.currency || 'USD',
+        notes: invoice.notes || '',
+      } as any;
+
+      // If invoice has orderNumber but no customerId, try to find an order in ordersData
+      if (!initialForm.customerId && invoice.orderNumber && ordersData?.orders?.nodes) {
+        const matchingOrder = ordersData.orders.nodes.find((o: any) => o.orderNumber === invoice.orderNumber);
+        if (matchingOrder) {
+          initialForm.orderId = matchingOrder.id || initialForm.orderId;
+          initialForm.customerId = matchingOrder.customerId || initialForm.customerId;
+          // If we can resolve customer name from customersData, set it
+          const cust = customersData?.customers?.nodes?.find((c: any) => c.id === matchingOrder.customerId);
+          if (cust) initialForm.customerName = cust.name;
+        }
+      }
+
+      // If still no customerId but we have a customerName, try to match by name
+      if (!initialForm.customerId && initialForm.customerName && customersData?.customers?.nodes) {
+        const matchedCustomer = customersData.customers.nodes.find((c: any) => c.name === initialForm.customerName || c.customerNumber === initialForm.customerName);
+        if (matchedCustomer) {
+          initialForm.customerId = matchedCustomer.id;
+        }
+      }
+
+      setFormData(initialForm);
+
+      // Set line items
+      if (invoice.lineItems && invoice.lineItems.length > 0) {
+        setLineItems(
+          invoice.lineItems.map((item: any) => {
+            // If productId missing but SKU present, try to find product from productsData
+            let inferredProductId = item.productId;
+            if (!inferredProductId && item.sku && productsData?.products?.nodes) {
+              const prod = productsData.products.nodes.find((p: any) => p.sku === item.sku || p.name === item.description);
+              if (prod) inferredProductId = prod.id;
+            }
+
+            return {
+              description: item.description || '',
+              quantity: item.quantity || 1,
+              unitPrice: item.unitPrice || 0,
+              accountId: item.accountId || defaultAccountId,
+              taxRate: item.taxRate ? (item.taxRate > 1 ? item.taxRate : item.taxRate * 100) : 0, // Convert decimal to percentage
+              discountPercent: item.discountPercent || 0,
+              productId: inferredProductId || undefined,
+              sku: item.sku || undefined,
+              unit: item.unit || undefined,
+            } as InvoiceLineItem;
+          })
+        );
+      }
+    }
+  }, [invoiceData, isEditing, defaultAccountId]);
+
   const addLineItem = () => {
     setLineItems([
       ...lineItems,
-      { description: '', quantity: 1, unitPrice: 0, accountId: '', taxRate: 0, discountPercent: 0 },
+      { description: '', quantity: 1, unitPrice: 0, accountId: defaultAccountId, taxRate: 0, discountPercent: 0 },
     ]);
   };
 
@@ -407,7 +545,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold">
-            {isEditing ? t('accounting.editInvoice') : t('accounting.createInvoice')}
+            {isReadOnly ? t('accounting.viewInvoice') : (isEditing ? t('accounting.editInvoice') : t('accounting.createInvoice'))}
           </h2>
           <button
             onClick={onClose}
@@ -453,6 +591,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
               value={formData.orderId}
               onChange={(e) => setFormData({ ...formData, orderId: e.target.value })}
               className="input mt-1 w-full"
+              disabled={isFormDisabled}
             >
               <option value="">{t('accounting.selectOrder') || 'No Order'}</option>
               {ordersData?.orders?.nodes?.map((order: any) => (
@@ -473,6 +612,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="input mt-1 w-full"
+                disabled={isFormDisabled}
               >
                 <option value="SalesInvoice">{t('accounting.salesInvoice')}</option>
                 <option value="PurchaseInvoice">{t('accounting.purchaseInvoice')}</option>
@@ -490,6 +630,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                 value={formData.invoiceDate}
                 onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })}
                 className="input mt-1 w-full"
+                disabled={isFormDisabled}
               />
             </div>
             <div>
@@ -502,6 +643,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                 className="input mt-1 w-full"
+                disabled={isFormDisabled}
               />
             </div>
           </div>
@@ -525,7 +667,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                   });
                 }}
                 className="input mt-1 w-full"
-                disabled={customersLoading}
+                disabled={customersLoading || isFormDisabled}
               >
                 <option value="">
                   {customersLoading ? t('common.loading') : (customersError ? 'Error loading customers' : t('accounting.selectCustomer') || 'Select Customer')}
@@ -584,6 +726,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                 className="input mt-1 w-full"
+                disabled={isFormDisabled}
               >
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
@@ -674,6 +817,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                         });
                       }}
                       className="input w-full"
+                      disabled={isFormDisabled}
                     >
                       <option value="">{t('accounting.selectProduct') || 'Select Product'}</option>
                       {productsData?.products?.nodes?.map((product: any) => (
@@ -691,6 +835,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                       onChange={(e) => updateLineItem(index, { description: e.target.value })}
                       className="input w-full"
                       required
+                      disabled={isFormDisabled}
                     />
                   </div>
                   <div className="col-span-2">
@@ -699,6 +844,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                       onChange={(e) => updateLineItem(index, { accountId: e.target.value })}
                       className={`input w-full ${!item.accountId ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-900/20' : ''}`}
                       required
+                      disabled={isFormDisabled}
                     >
                       <option value="">{t('accounting.selectAccount')} *</option>
                       {accountsData?.accounts?.nodes?.map((account: {
@@ -721,6 +867,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                       onChange={(e) => updateLineItem(index, { quantity: parseInt(e.target.value) })}
                       className="input w-full"
                       required
+                      disabled={isFormDisabled}
                     />
                   </div>
                   <div className="col-span-1 flex items-center gap-2">
@@ -733,6 +880,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                       onChange={(e) => updateLineItem(index, { unitPrice: parseFloat(e.target.value) })}
                       className="input flex-1 w-full"
                       required
+                      disabled={isFormDisabled}
                     />
                   </div>
                   <div className="col-span-1">
@@ -740,6 +888,7 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
                       value={item.taxRate}
                       onChange={(e) => updateLineItem(index, { taxRate: parseFloat(e.target.value) })}
                       className="input w-full"
+                      disabled={isFormDisabled}
                     >
                       <option value="0">0%</option>
                       <option value="7">7%</option>
@@ -793,12 +942,13 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="input mt-1 w-full"
               rows={3}
+              disabled={isFormDisabled}
             />
           </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
-            {isEditing && (
+            {isEditing && !isReadOnly && (
               <button
                 type="button"
                 onClick={handleDelete}
@@ -816,13 +966,15 @@ export default function InvoiceModal({ invoice, onClose }: InvoiceModalProps) {
             >
               {t('common.cancel')}
             </button>
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={loading}
-            >
-              {loading ? t('common.saving') : t('common.save')}
-            </button>
+            {!isReadOnly && (
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={loading}
+              >
+                {loading ? t('common.saving') : t('common.save')}
+              </button>
+            )}
           </div>
         </form>
       </div>

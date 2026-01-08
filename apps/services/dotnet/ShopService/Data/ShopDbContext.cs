@@ -541,6 +541,97 @@ public class ShopDbContext : DbContext
             }
         );
 
+        // Seed example products
+        var prodA = Guid.Parse("40000000-0000-0000-0000-000000000001");
+        var prodB = Guid.Parse("40000000-0000-0000-0000-000000000002");
+        var prodC = Guid.Parse("40000000-0000-0000-0000-000000000003");
+
+        modelBuilder.Entity<Product>().HasData(
+            new Product
+            {
+                Id = prodA,
+                Name = "Example Product A",
+                Sku = "PROD-A-001",
+                Price = 50.00m,
+                StockQuantity = 100,
+                CategoryId = Guid.Parse("10000000-0000-0000-0000-000000000001"), // Electronics
+                BrandId = Guid.Parse("30000000-0000-0000-0000-000000000001"),
+                Status = ProductStatus.Active,
+                Slug = "example-product-a",
+                CreatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = prodB,
+                Name = "Example Product B",
+                Sku = "PROD-B-002",
+                Price = 100.00m,
+                StockQuantity = 50,
+                CategoryId = Guid.Parse("10000000-0000-0000-0000-000000000001"),
+                BrandId = Guid.Parse("30000000-0000-0000-0000-000000000002"),
+                Status = ProductStatus.Active,
+                Slug = "example-product-b",
+                CreatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = prodC,
+                Name = "Example Product C",
+                Sku = "PROD-C-003",
+                Price = 25.00m,
+                StockQuantity = 200,
+                CategoryId = Guid.Parse("10000000-0000-0000-0000-000000000003"), // Books
+                BrandId = Guid.Parse("30000000-0000-0000-0000-000000000003"),
+                Status = ProductStatus.Active,
+                Slug = "example-product-c",
+                CreatedAt = DateTime.UtcNow
+            }
+        );
+
+        // Seed example order linked to customer and products (OrderNumber ORD-1001)
+        var orderId = Guid.Parse("50000000-0000-0000-0000-000000000001");
+        modelBuilder.Entity<Order>().HasData(
+            new Order
+            {
+                Id = orderId,
+                OrderNumber = "ORD-1001",
+                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
+                Status = OrderStatus.Completed,
+                Subtotal = 200.00m,
+                TaxAmount = 38.00m,
+                Total = 238.00m,
+                Currency = "EUR",
+                CreatedAt = DateTime.UtcNow
+            }
+        );
+
+        modelBuilder.Entity<OrderItem>().HasData(
+            new OrderItem
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000011"),
+                OrderId = orderId,
+                ProductId = prodA,
+                ProductName = "Example Product A",
+                Sku = "PROD-A-001",
+                Quantity = 2,
+                UnitPrice = 50.00m,
+                Total = 100.00m,
+                CreatedAt = DateTime.UtcNow
+            },
+            new OrderItem
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000012"),
+                OrderId = orderId,
+                ProductId = prodB,
+                ProductName = "Example Product B",
+                Sku = "PROD-B-002",
+                Quantity = 1,
+                UnitPrice = 100.00m,
+                Total = 100.00m,
+                CreatedAt = DateTime.UtcNow
+            }
+        );
+
         // AuditLog configuration
         modelBuilder.Entity<AuditLog>(entity =>
         {
