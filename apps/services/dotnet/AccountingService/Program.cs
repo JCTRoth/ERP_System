@@ -104,6 +104,17 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
+// Enable Swagger UI in development for API exploration
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Accounting API V1");
+        options.RoutePrefix = "swagger"; // Serve swagger at /swagger
+    });
+}
+
 app.UseCors();
 
 // Prometheus metrics endpoint

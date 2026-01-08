@@ -110,6 +110,9 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+
+app.UseRouting();
+
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -118,20 +121,26 @@ app.UseAuthorization();
 app.UseHttpMetrics();
 app.MapMetrics();
 
+// Enable Swagger UI (development and dev compose) for API exploration
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Masterdata API V1");
+    options.RoutePrefix = "swagger"; // Serve swagger at /swagger
+});
+
 // Health check endpoint
 app.MapHealthChecks("/health");
 
-// GraphQL endpoint
-app.MapGraphQL();
-
 // Controllers
 app.MapControllers();
+
+// GraphQL endpoint
+app.MapGraphQL();
 
 // WebSocket for subscriptions
 app.UseWebSockets();
 
 app.Run();
-
-public partial class Program { }
 
 public partial class Program { }

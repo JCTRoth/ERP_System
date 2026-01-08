@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import EmployeeModal, { type Employee } from './EmployeeModal';
-import Tooltip, { IconButtonWithTooltip } from '../../components/Tooltip';
+import { IconButtonWithTooltip } from '../../components/Tooltip';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 const GET_EMPLOYEES = gql`

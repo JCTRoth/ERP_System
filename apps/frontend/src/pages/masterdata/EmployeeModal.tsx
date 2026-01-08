@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
-import Tooltip from '../../components/Tooltip';
 
 const CREATE_EMPLOYEE = gql`
   mutation CreateEmployee($input: CreateEmployeeInput!) {

@@ -62,7 +62,7 @@ export default function Header() {
                 <div className="py-1">
                   {SUPPORTED_LANGUAGES.map((lang) => (
                     <Menu.Item key={lang}>
-                      {({ active }) => (
+                      {({ active }: { active: boolean }) => (
                         <button
                           onClick={() => setLanguage(lang)}
                           className={`${

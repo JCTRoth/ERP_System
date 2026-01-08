@@ -8,7 +8,6 @@ import {
   ServerIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
-import Tooltip from '@/components/Tooltip';
 
 type SettingsTab = 'general' | 'developer' | 'interface' | 'account';
 
@@ -63,7 +62,7 @@ export default function SettingsPage() {
       <div className="space-y-6">
         {/* General Tab */}
         {activeTab === 'general' && (
-          <>
+          <div className="contents">
             {/* Appearance */}
             <div className="card p-6">
               <h2 className="mb-4 text-lg font-semibold">{t('settings.appearance')}</h2>
@@ -113,7 +112,7 @@ export default function SettingsPage() {
                 ))}
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {/* Developer Tab (Admin Only) */}
@@ -170,86 +169,26 @@ export default function SettingsPage() {
             </p>
             
             <div className="space-y-4">
-              {/* GraphQL Playground */}
-              <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-medium">{t('settings.graphqlPlayground') || 'GraphQL Playground'}</h3>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      {t('settings.graphqlPlaygroundDesc') || 'Interactive GraphQL IDE for exploring and testing the federated API. Includes schema documentation and query autocompletion.'}
-                    </p>
-                  </div>
-                  <a
-                    href="http://localhost:4000/graphql"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary flex items-center gap-2"
-                  >
-                    {t('common.open')}
-                  </a>
-                </div>
-              </div>
-
-              {/* User Service Swagger */}
-              <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-medium">{t('settings.userServiceApi') || 'User Service API'}</h3>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      {t('settings.userServiceApiDesc') || 'Authentication, user management, and session handling. Handles login, registration, password reset, and user profile operations.'}
-                    </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5000/swagger</p>
-                  </div>
-                  <a
-                    href="http://localhost:5000/swagger"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    {t('common.open')}
-                  </a>
-                </div>
-              </div>
-
-              {/* Accounting Service Swagger */}
-              <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-medium">{t('settings.accountingServiceApi') || 'Accounting Service API'}</h3>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      {t('settings.accountingServiceApiDesc') || 'Financial management including invoices, payments, journal entries, chart of accounts, and financial reports.'}
-                    </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5001/swagger</p>
-                  </div>
-                  <a
-                    href="http://localhost:5001/swagger"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    {t('common.open')}
-                  </a>
-                </div>
-              </div>
-
-              {/* Masterdata Service Swagger */}
+              {/* Masterdata Service API */}
               <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="font-medium">{t('settings.masterdataServiceApi') || 'Master Data Service API'}</h3>
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      {t('settings.masterdataServiceApiDesc') || 'Core business entities including customers, suppliers, employees, assets, currencies, and reference data management.'}
+                      {t('settings.masterdataServiceApiDesc') || 'Core business entities including customers, suppliers, employees, assets, currencies, and reference data management. Health check.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5002/swagger</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5002/swagger/index.html</p>
                   </div>
-                  <a
-                    href="http://localhost:5002/swagger"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    {t('common.open')}
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="http://localhost:5002/swagger/index.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary flex items-center gap-2"
+                    >
+                      {t('common.open')}
+                    </a>
+                  </div>
                 </div>
               </div>
 
@@ -263,14 +202,16 @@ export default function SettingsPage() {
                     </p>
                     <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5003/swagger</p>
                   </div>
-                  <a
-                    href="http://localhost:5003/swagger"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    {t('common.open')}
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="http://localhost:5003/swagger"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary flex items-center gap-2"
+                    >
+                      {t('common.open')}
+                    </a>
+                  </div>
                 </div>
               </div>
 
@@ -282,16 +223,18 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {t('settings.companyServiceApiDesc') || 'Multi-tenant company management, organizational structure, and company settings. Java/Spring Boot service.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:8080/swagger-ui.html</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:8080/swagger-ui/index.html</p>
                   </div>
-                  <a
-                    href="http://localhost:8080/swagger-ui.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    {t('common.open')}
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="http://localhost:8080/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary flex items-center gap-2"
+                    >
+                      {t('common.open')}
+                    </a>
+                  </div>
                 </div>
               </div>
 
@@ -305,14 +248,16 @@ export default function SettingsPage() {
                     </p>
                     <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:8081/swagger-ui.html</p>
                   </div>
-                  <a
-                    href="http://localhost:8081/swagger-ui.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    {t('common.open')}
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="http://localhost:8081/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary flex items-center gap-2"
+                    >
+                      {t('common.open')}
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

@@ -8,7 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import SupplierModal, { type Supplier } from './SupplierModal';
-import Tooltip, { IconButtonWithTooltip } from '../../components/Tooltip';
+import { IconButtonWithTooltip } from '../../components/Tooltip';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
 const GET_SUPPLIERS = gql`
