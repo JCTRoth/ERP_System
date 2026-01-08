@@ -182,42 +182,115 @@ initialize();
 
 // Helper: normalize our custom template syntax to Mustache-compatible template
 function normalizeTemplateToMustache(src) {
-  let out = src;
+  // Stack-based scanner to convert {#name}...{#end} into matched Mustache sections
+  const outParts = [];
+  const stack = [];
+  let i = 0;
 
-  // Process each section {#name} ... {#end}
-  const sectionOpenRegex = /\{#([a-zA-Z0-9_.]+)\}/g;
-  let match;
-  while ((match = sectionOpenRegex.exec(out)) !== null) {
-    const name = match[1];
-    const startIndex = match.index;
-    const afterOpen = startIndex + match[0].length;
-    const endToken = '{#end}';
-    const endIndex = out.indexOf(endToken, afterOpen);
-    if (endIndex === -1) break; // no matching end
+  while (i < src.length) {
+    const endMatch = src.slice(i).match(/^\{#end\}/);
+    const openMatch = src.slice(i).match(/^\{#([a-zA-Z0-9_.]+)\}/);
+    const varMatch = src.slice(i).match(/^\{([a-zA-Z_][a-zA-Z0-9_.\-]*)\}/);
 
-    const blockContent = out.substring(afterOpen, endIndex);
+    if (endMatch) {
+      // close last opened section; if none, emit literal
+      const last = stack.pop();
+      if (last) {
+        outParts.push(`{{/${last}}}`);
+      } else {
+        outParts.push('{#end}');
+      }
+      i += endMatch[0].length;
+      continue;
+    }
 
-    // Replace {name.prop} inside block with {{prop}}
-    const innerReplaced = blockContent.replace(new RegExp('\\{' + name.replace('.', '\\.') + '\\.([a-zA-Z0-9_\\.\\-]+)\\}', 'g'), '{{$1}}');
+    if (openMatch) {
+      // push current section name and emit opening Mustache tag
+      const name = openMatch[1];
+      outParts.push(`{{#${name}}}`);
+      stack.push(name);
+      i += openMatch[0].length;
+      continue;
+    }
 
-    // Replace entire block with Mustache section
-    out = out.slice(0, startIndex) + `{{#${name}}}` + innerReplaced + `{{/${name}}}` + out.slice(endIndex + endToken.length);
+    if (varMatch) {
+      outParts.push(`{{${varMatch[1]}}}`);
+      i += varMatch[0].length;
+      continue;
+    }
 
-    // Reset regex search to after replaced block to continue
-    sectionOpenRegex.lastIndex = startIndex + 1;
+    // No special token: copy single character
+    outParts.push(src[i]);
+    i += 1;
   }
 
-  // Convert any remaining single-brace variables {a.b} -> {{a.b}}
-  out = out.replace(/\{([a-zA-Z_][a-zA-Z0-9_\.\-]*)\}/g, '{{$1}}');
+  // If stack not empty, close any remaining sections to avoid Mustache parse errors
+  while (stack.length) {
+    const name = stack.pop();
+    outParts.push(`{{/${name}}}`);
+  }
 
-  return out;
+  return outParts.join('');
+}
+
+// Resolve a dotted path from context with sensible fallbacks
+function resolveValue(ctx, path) {
+  const segments = path.split('.');
+
+  // Direct lookup
+  let value = ctx;
+  for (const segment of segments) {
+    if (value == null || typeof value !== 'object' || !(segment in value)) {
+      value = undefined;
+      break;
+    }
+    value = value[segment];
+  }
+  if (value !== undefined) return value;
+
+  // Fallbacks
+  // company.* -> companies[0].*
+  if (segments[0] === 'company' && Array.isArray(ctx.companies) && ctx.companies.length > 0) {
+    const rest = segments.slice(1);
+    let c = ctx.companies[0];
+    for (const seg of rest) {
+      if (c == null || typeof c !== 'object' || !(seg in c)) { c = undefined; break; }
+      c = c[seg];
+    }
+    if (c !== undefined) return c;
+  }
+
+  // customer.address.* -> customer.billing.* or customer.shippingAddr.*
+  if (segments.length >= 3 && segments[1] === 'address' && segments[0] === 'customer') {
+    const rest = segments.slice(2);
+    const tryKeys = ['billing', 'shippingAddr', 'shipping'];
+    for (const k of tryKeys) {
+      let c = ctx.customer && ctx.customer[k];
+      if (!c) continue;
+      for (const seg of rest) {
+        if (c == null || typeof c !== 'object' || !(seg in c)) { c = undefined; break; }
+        c = c[seg];
+      }
+      if (c !== undefined) return c;
+    }
+  }
+
+  // invoice.taxRate -> compute from invoice.tax and invoice.subtotal
+  if (path === 'invoice.taxRate' && ctx.invoice && typeof ctx.invoice.tax === 'number' && typeof ctx.invoice.subtotal === 'number' && ctx.invoice.subtotal !== 0) {
+    return (ctx.invoice.tax / ctx.invoice.subtotal) * 100;
+  }
+
+  return undefined;
 }
 
 // Fallback renderer when Mustache is not available: expand loops and variables
 function renderWithoutMustache(src, ctx, errorsList) {
   let out = src;
 
-  // Handle loop blocks {#items} ... {#end}
+  // Normalize Mustache-style sections to {#name}...{#end}
+  out = out.replace(/\{\{#([a-zA-Z0-9_.]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (m, name, block) => `{#${name}}${block}{#end}`);
+
+  // Process custom loop blocks {#name} ... {#end}
   const loopRegex = /\{#([a-zA-Z0-9_.]+)\}([\s\S]*?)\{#end\}/g;
   out = out.replace(loopRegex, (m, name, block) => {
     const arr = name.split('.').reduce((acc, k) => (acc && acc[k] ? acc[k] : null), ctx);
@@ -226,32 +299,21 @@ function renderWithoutMustache(src, ctx, errorsList) {
       return '';
     }
 
-    const renderedItems = arr.map((item) => {
-      // For each item, replace occurrences of {item.prop} or {prop} inside block
+    const renderedItems = arr.map((item, idx) => {
       return block.replace(/\{{1,2}\s*([a-zA-Z_][a-zA-Z0-9_\.\-]*)\s*\}{1,2}/g, (match, path) => {
-        // If path starts with item. or the loop name prefix, strip it
         let p = path;
         const prefix = name + '.';
         if (p.startsWith(prefix)) p = p.slice(prefix.length);
         if (p.startsWith('item.')) p = p.slice(5);
 
-        const segments = p.split('.');
-        let value = item;
-        for (const seg of segments) {
-          if (value == null || typeof value !== 'object' || !(seg in value)) {
-            // Try global context as fallback
-            value = ctx;
-            for (const s of segments) {
-              if (value == null || typeof value !== 'object' || !(s in value)) {
-                return match; // keep placeholder
-              }
-              value = value[s];
-            }
-            break;
-          }
-          value = value[seg];
+        if (p === 'index') return String(idx + 1);
+
+        const resolved = resolveValue({ ...ctx, item, invoice: ctx.invoice }, p);
+        if (resolved === undefined) {
+          errorsList.push(`Missing variable: ${match}`);
+          return match;
         }
-        return String(value);
+        return String(resolved);
       });
     });
 
@@ -260,22 +322,41 @@ function renderWithoutMustache(src, ctx, errorsList) {
 
   // Replace remaining variables {a.b} or {{a.b}}
   out = out.replace(/\{{1,2}\s*([a-zA-Z_][a-zA-Z0-9_\.\-]*)\s*\}{1,2}/g, (match, path) => {
-    const segments = path.split('.');
-    let value = ctx;
-    for (const segment of segments) {
-      if (value == null || typeof value !== 'object' || !(segment in value)) {
-        errorsList.push(`Missing variable: ${match}`);
-        return match;
-      }
-      value = value[segment];
+    const resolved = resolveValue(ctx, path);
+    if (resolved === undefined) {
+      errorsList.push(`Missing variable: ${match}`);
+      return match;
     }
-    return String(value);
+    return String(resolved);
   });
 
   return out;
 }
 
-// Helper function to format database rows to API response format
+// Helper to run asciidoctor-pdf CLI
+function runAsciidoctorPdf(adocPath, pdfPath) {
+  try {
+    const res = spawnSync('asciidoctor-pdf', ['-o', pdfPath, adocPath], { encoding: 'utf8' });
+    if (res.status === 0) {
+      return { ok: true, stdout: res.stdout || '' };
+    }
+    return { ok: false, error: res.stderr || res.stdout || `Exit ${res.status}` };
+  } catch (e) {
+    return { ok: false, error: e?.message || String(e) };
+  }
+}
+
+// Health check
+app.get('/actuator/health', async (req, res) => {
+  try {
+    await pool.query('SELECT NOW()');
+    res.json({ status: 'UP', components: { db: { status: 'UP' } } });
+  } catch (err) {
+    res.status(503).json({ status: 'DOWN', components: { db: { status: 'DOWN' } } });
+  }
+});
+
+// Helper: format template row from database to API response
 function formatTemplate(row) {
   return {
     id: row.id,
@@ -288,64 +369,12 @@ function formatTemplate(row) {
     assignedState: row.assigned_state,
     isActive: row.is_active,
     metadata: row.metadata,
-    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
-    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
     createdBy: row.created_by,
     lastModifiedBy: row.last_modified_by,
   };
 }
-
-// Provide sample context records for preview selections
-app.get('/api/templates/context-samples', (req, res) => {
-  const samples = {
-    orders: [
-      {
-        id: 'order-1',
-        number: 'ORD-1001',
-        date: new Date().toISOString(),
-        status: 'confirmed',
-        customer: { id: 'cust-1', name: 'John Doe', email: 'john@example.com' },
-        items: [
-          { index: 1, name: 'Product A', quantity: 2, unitPrice: 50, total: 100 },
-          { index: 2, name: 'Product B', quantity: 1, unitPrice: 75, total: 75 },
-        ],
-        subtotal: 175,
-        tax: 17.5,
-        shipping: 10,
-        discount: 0,
-        total: 202.5,
-        billing: { name: 'John Doe', street: '123 Main St', city: 'Springfield', postalCode: '12345', country: 'USA' },
-        shippingAddr: { name: 'John Doe', street: '123 Main St', city: 'Springfield', postalCode: '12345', country: 'USA' },
-      },
-    ],
-    companies: [
-      { id: 'comp-1', name: 'ACME Corp', address: '456 Business Ave', city: 'New York', postalCode: '10001', country: 'USA', email: 'info@acme.com', phone: '+1234567890' },
-    ],
-    invoices: [
-      { id: 'inv-1', number: 'INV-1001', date: new Date().toISOString(), subtotal: 175, tax: 17.5, shipping: 10, discount: 0, total: 202.5, notes: 'Thanks for your business' },
-    ],
-    shipments: [
-      { id: 'ship-1', number: 'SHP-1001', date: new Date().toISOString(), carrier: 'DHL', trackingNumber: 'TRK123456' },
-    ],
-    cancellations: [
-      { id: 'can-1', number: 'CAN-1001', date: new Date().toISOString(), reason: 'Customer requested', refundAmount: 50, method: 'credit_card' },
-    ],
-    refunds: [
-      { id: 'ref-1', number: 'REF-1001', date: new Date().toISOString(), amount: 50, reason: 'Product defect', method: 'bank_transfer' },
-    ],
-  };
-  res.json(samples);
-});
-
-// Health check
-app.get('/actuator/health', async (req, res) => {
-  try {
-    await pool.query('SELECT NOW()');
-    res.json({ status: 'UP', components: { db: { status: 'UP' } } });
-  } catch (err) {
-    res.status(503).json({ status: 'DOWN', components: { db: { status: 'DOWN' } } });
-  }
-});
 
 // Get all templates
 app.get('/api/templates', async (req, res) => {
@@ -531,35 +560,7 @@ app.post('/api/templates/:id/render', async (req, res) => {
     const context = req.body;
     const errors = [];
 
-    // Normalize template placeholders to Mustache-compatible syntax
-    // {var}  -> {{var}}
-    // {#items} ... {#end} -> {{#items}} ... {{/items}}
-    function normalizeTemplateToMustache(src) {
-      // Convert opening section markers {#name} -> {{#name}}
-      let out = src.replace(/\{#([a-zA-Z0-9_.]+)\}/g, '{{$1}}');
-      // The previous line is temporary; we'll do proper conversions below
-
-      // Convert {#name} to {{#name}} and {#end} to {{/name}} using a stack
-      const tokenRegex = /\{#([a-zA-Z0-9_.]+)\}|\{#end\}|\{([a-zA-Z0-9_.]+)\}|\{{2}([^{]+?)\}{2}/g;
-      const stack = [];
-      out = src.replace(/\{#([a-zA-Z0-9_.]+)\}/g, (m, name) => {
-        stack.push(name);
-        return `{{#${name}}}`;
-      });
-      out = out.replace(/\{#end\}/g, (m) => {
-        const name = stack.pop() || '';
-        return `{{/${name}}}`;
-      });
-
-      // Convert single-brace variables {a.b} to Mustache {{a.b}}
-      out = out.replace(/\{([a-zA-Z_][a-zA-Z0-9_\.\-]*)\}/g, (m, path) => `{{${path}}}`);
-
-      // Leave existing double-brace placeholders intact
-      return out;
-    }
-
-    // Apply normalization and then Mustache rendering
-    const mustacheTemplate = normalizeTemplateToMustache(template.content);
+      // Use helpers below (normalizeTemplateToMustache / renderWithoutMustache)
     // Fallback simple replacer for environments where Mustache isn't available
     function simpleReplace(src, ctx, errorsList) {
       // Handle both {{var}} and {var} placeholders
@@ -577,17 +578,14 @@ app.post('/api/templates/:id/render', async (req, res) => {
       });
     }
 
+    // Use robust fallback renderer directly to avoid Mustache parsing issues
     let renderedAdoc;
     try {
-      if (Mustache && typeof Mustache.render === 'function') {
-        renderedAdoc = Mustache.render(mustacheTemplate, context);
-      } else {
-        renderedAdoc = renderWithoutMustache(mustacheTemplate, context, errors);
-      }
+      renderedAdoc = renderWithoutMustache(template.content, context, errors);
     } catch (err) {
-      console.error('Mustache render error:', err);
+      console.error('Fallback render error in /render:', err);
       errors.push('Template rendering error');
-      renderedAdoc = renderWithoutMustache(mustacheTemplate, context, errors);
+      renderedAdoc = template.content;
     }
 
     // Try to render AsciiDoc
@@ -640,29 +638,17 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
     const template = formatTemplate(result.rows[0]);
     const context = req.body || {};
 
-    // Normalize and render using Mustache
-    const mustacheTemplate = (function normalizeTemplateToMustache(src) {
-      const stack = [];
-      let out = src.replace(/\{#([a-zA-Z0-9_.]+)\}/g, (m, name) => {
-        stack.push(name);
-        return `{{#${name}}}`;
-      });
-      out = out.replace(/\{#end\}/g, (m) => {
-        const name = stack.pop() || '';
-        return `{{/${name}}}`;
-      });
-      out = out.replace(/\{([a-zA-Z_][a-zA-Z0-9_\.\-]*)\}/g, (m, path) => `{{${path}}}`);
-      return out;
-    })(template.content);
-
+    // Render using fallback renderer on original template content; prefer Mustache if available
     let renderedAdoc;
     try {
       if (Mustache && typeof Mustache.render === 'function') {
-        renderedAdoc = Mustache.render(mustacheTemplate, context);
+        // Convert our simple {var} and {#...}{#end} syntax to Mustache before rendering
+        const normalized = normalizeTemplateToMustache(template.content);
+        console.log('DEBUG: normalized template preview:\n', normalized.slice(0,400).replace(/\n/g,'\\n'));
+        renderedAdoc = Mustache.render(normalized, context);
       } else {
-        // Use robust fallback when Mustache is not available
         const errorsLocal = [];
-        renderedAdoc = renderWithoutMustache(mustacheTemplate, context, errorsLocal);
+        renderedAdoc = renderWithoutMustache(template.content, context, errorsLocal);
         if (errorsLocal.length) console.warn('Template renderWithoutMustache warnings:', errorsLocal);
       }
     } catch (err) {
@@ -676,12 +662,24 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
     const pdfPath = path.join(tmpDir, `${req.params.id}.pdf`);
     fs.writeFileSync(adocPath, renderedAdoc, 'utf8');
 
-    // Convert AsciiDoc -> HTML and render PDF with Puppeteer
+    // Prefer asciidoctor-pdf CLI for PDF generation
     try {
+      const cliRes = runAsciidoctorPdf(adocPath, pdfPath);
+      if (cliRes.ok && fs.existsSync(pdfPath)) {
+        const pdfBuffer = fs.readFileSync(pdfPath);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${template.key}.pdf"`);
+        return res.send(pdfBuffer);
+      }
+
+      console.warn('asciidoctor-pdf CLI not available or failed:', cliRes.error || cliRes.stdout);
+
+      // Fallback to programmatic AsciiDoc -> HTML -> Puppeteer as before
       let html = '';
       try {
         const AsciidoctorModule = await import('@asciidoctor/core');
-        const Asciidoctor = AsciidoctorModule.default || AsciidoctorModule;
+        const AsciidoctorFactory = AsciidoctorModule.default || AsciidoctorModule;
+        const Asciidoctor = typeof AsciidoctorFactory === 'function' ? AsciidoctorFactory() : AsciidoctorFactory;
         const opts = { safe: 'safe', attributes: { showtitle: true } };
         html = Asciidoctor.convert(renderedAdoc, opts);
       } catch (e) {
@@ -717,10 +715,18 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
         return res.send(pdfBuffer);
       } catch (err) {
         console.error('Puppeteer PDF generation failed:', err?.message || err);
-        return res.status(500).json({ error: 'PDF generation failed' });
+        // Fallback: return HTML so clients can still download/open a preview
+        try {
+          res.setHeader('Content-Type', 'text/html');
+          res.setHeader('Content-Disposition', `attachment; filename="${template.key || 'document'}.html"`);
+          return res.send(html);
+        } catch (e) {
+          return res.status(500).json({ error: 'PDF generation failed' });
+        }
       }
     } finally {
       try { if (fs.existsSync(adocPath)) fs.unlinkSync(adocPath); } catch (e) {}
+      try { if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath); } catch (e) {}
     }
   } catch (err) {
     console.error('Error generating PDF:', err);
@@ -753,21 +759,11 @@ app.get('/api/templates/:id/pdf', async (req, res) => {
       }
     }
 
-    // Variable replacement
-    let content = template.content.replace(
-      /\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}/g,
-      (match, path) => {
-        const segments = path.split('.');
-        let value = context;
-        for (const segment of segments) {
-          if (value == null || typeof value !== 'object' || !(segment in value)) {
-            return match;
-          }
-          value = value[segment];
-        }
-        return String(value);
-      }
-    );
+    // Variable replacement using resolveValue fallbacks
+    let content = template.content.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}/g, (match, path) => {
+      const v = resolveValue(context, path);
+      return v === undefined ? match : String(v);
+    });
 
     // Try to render AsciiDoc
     let htmlOutput;
@@ -797,6 +793,25 @@ app.get('/api/templates/:id/pdf', async (req, res) => {
 
     // Try programmatic AsciiDoc -> HTML -> PDF via Puppeteer
     try {
+      // Write temporary files and try asciidoctor-pdf CLI first
+      const tmpDir = tmpdir();
+      const adocPath = path.join(tmpDir, `${req.params.id}.adoc`);
+      const pdfPath = path.join(tmpDir, `${req.params.id}.pdf`);
+      fs.writeFileSync(adocPath, content, 'utf8');
+
+      const cliRes = runAsciidoctorPdf(adocPath, pdfPath);
+      if (cliRes.ok && fs.existsSync(pdfPath)) {
+        const pdfBuffer = fs.readFileSync(pdfPath);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${template.key || 'document'}.pdf"`);
+        res.send(pdfBuffer);
+        try { if (fs.existsSync(adocPath)) fs.unlinkSync(adocPath); } catch (e) {}
+        try { if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath); } catch (e) {}
+        return;
+      }
+
+      console.warn('asciidoctor-pdf CLI not available or failed:', cliRes.error || cliRes.stdout);
+
       let htmlOutputLocal = htmlOutput;
 
       // If we only have raw AsciiDoc content, try converting it

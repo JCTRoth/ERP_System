@@ -57,12 +57,12 @@ services:
       - ./apps/services/dotnet/UserService:/app
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres-users;Database=userdb;Username=postgres;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=userdb;Username=erp_user;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
     depends_on:
-      - postgres-users
+      - postgres
 
   shop-service:
     build:
@@ -74,12 +74,12 @@ services:
       - ./apps/services/dotnet/ShopService:/app
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres-shop;Database=shopdb;Username=postgres;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=shopdb;Username=erp_shop;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
     depends_on:
-      - postgres-shop
+      - postgres
 
   accounting-service:
     build:
@@ -89,12 +89,12 @@ services:
       - "5001:5001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres-accounting;Database=accountingdb;Username=postgres;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=accountingdb;Username=erp_accounting;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
     depends_on:
-      - postgres-accounting
+      - postgres
 
   masterdata-service:
     build:
@@ -107,12 +107,12 @@ services:
       - ./apps/services/dotnet/MasterdataService:/app
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres-masterdata;Database=masterdatadb;Username=postgres;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=masterdatadb;Username=erp_masterdata;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
     depends_on:
-      - postgres-masterdata
+      - postgres
 
   # Java Services
   company-service:
@@ -127,14 +127,14 @@ services:
       - /app/build
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-company:5432/companydb
-      - DB_HOST=postgres-company
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/companydb
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=companydb
-      - DB_USER=postgres
+      - DB_USER=erp_company
       - DB_PASSWORD=postgres
     depends_on:
-      - postgres-company
+      - postgres
 
   notification-service:
     build:
@@ -146,14 +146,14 @@ services:
       - ./apps/services/java/notification-service:/app
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-notification:5432/notificationdb
-      - DB_HOST=postgres-notification
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/notificationdb
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=notificationdb
-      - DB_USER=postgres
+      - DB_USER=erp_notification
       - DB_PASSWORD=postgres
     depends_on:
-      - postgres-notification
+      - postgres
 
   translation-service:
     build:
@@ -165,14 +165,14 @@ services:
       - ./apps/services/java/translation-service:/app
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-translation:5432/translationdb
-      - DB_HOST=postgres-translation
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/translationdb
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=translationdb
-      - DB_USER=postgres
+      - DB_USER=erp_translation
       - DB_PASSWORD=postgres
     depends_on:
-      - postgres-translation
+      - postgres
 
   scripting-service:
     build:
@@ -184,13 +184,13 @@ services:
       - ./apps/services/java/scripting-service:/app
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - DB_HOST=postgres-company
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=companydb
-      - DB_USER=postgres
+      - DB_USER=erp_company
       - DB_PASSWORD=postgres
     depends_on:
-      - postgres-company
+      - postgres
 
   edifact-service:
     build:
@@ -202,13 +202,13 @@ services:
       - ./apps/services/java/edifact-service:/app
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      - DB_HOST=postgres-company
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=companydb
-      - DB_USER=postgres
+      - DB_USER=erp_company
       - DB_PASSWORD=postgres
     depends_on:
-      - postgres-company
+      - postgres
 
   templates-service:
     build:
@@ -219,99 +219,33 @@ services:
       - ./apps/services/nodejs/templates-service:/app
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres-templates:5432/templatesdb
+      - DATABASE_URL=postgresql://erp_templates:postgres@postgres:5432/templatesdb
     depends_on:
-      - postgres-templates
+      - postgres
 
-  # PostgreSQL Databases
-  postgres-users:
+  # PostgreSQL Database (consolidated single instance)
+  postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: userdb
+      POSTGRES_DB: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    # changed host port to avoid conflict with local Postgres on 5432
+      # Passwords for per-service users (defaults for development)
+      ERP_USER_PASSWORD: postgres
+      ERP_SHOP_PASSWORD: postgres
+      ERP_ACCOUNTING_PASSWORD: postgres
+      ERP_MASTERDATA_PASSWORD: postgres
+      ERP_COMPANY_PASSWORD: postgres
+      ERP_NOTIFICATION_PASSWORD: postgres
+      ERP_TRANSLATION_PASSWORD: postgres
+      ERP_TEMPLATES_PASSWORD: postgres
+      ERP_EDIFACT_PASSWORD: postgres
+      ERP_SCRIPTING_PASSWORD: postgres
     ports:
-      - "5442:5432"
+      - "15432:5432"
     volumes:
-      - postgres-users-data:/var/lib/postgresql/data
-
-  postgres-shop:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: shopdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5436:5432"
-    volumes:
-      - postgres-shop-data:/var/lib/postgresql/data
-
-  postgres-accounting:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: accountingdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5437:5432"
-    volumes:
-      - postgres-accounting-data:/var/lib/postgresql/data
-
-  postgres-masterdata:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: masterdatadb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5438:5432"
-    volumes:
-      - postgres-masterdata-data:/var/lib/postgresql/data
-
-  postgres-company:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: companydb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres-company-data:/var/lib/postgresql/data
-
-  postgres-notification:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: notificationdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5434:5432"
-    volumes:
-      - postgres-notification-data:/var/lib/postgresql/data
-
-  postgres-translation:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: translationdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5435:5432"
-    volumes:
-      - postgres-translation-data:/var/lib/postgresql/data
-
-  postgres-templates:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: templatesdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5439:5432"
-    volumes:
-      - postgres-templates-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres-init:/docker-entrypoint-initdb.d:ro
 
   # Observability
   prometheus:
@@ -341,14 +275,7 @@ services:
       - redis-data:/data
 
 volumes:
-  postgres-users-data:
-  postgres-shop-data:
-  postgres-accounting-data:
-  postgres-masterdata-data:
-  postgres-company-data:
-  postgres-notification-data:
-  postgres-translation-data:
-  postgres-templates-data:
+  postgres-data:
   prometheus-data:
   grafana-data:
   redis-data:

@@ -61,7 +61,7 @@ export const GET_COMPANIES = gql`
 
 // Detail queries for fetching full records
 export const GET_ORDER_DETAILS = gql`
-  query GetOrderDetails($id: ID!) {
+  query GetOrderDetails($id: UUID!) {
     order(id: $id) {
       id
       orderNumber
@@ -90,25 +90,37 @@ export const GET_ORDER_DETAILS = gql`
 `;
 
 export const GET_INVOICE_DETAILS = gql`
-  query GetInvoiceDetails($id: ID!) {
+  query GetInvoiceDetails($id: UUID!) {
     invoice(id: $id) {
       id
       invoiceNumber
+      type
+      status
+      customerId
+      customerName
+      billingAddress
+      billingCity
+      billingPostalCode
+      billingCountry
+      vatNumber
       issueDate
       invoiceDate
+      dueDate
       subtotal
       taxAmount
       taxRate
       discountAmount
       total
+      currency
       notes
+      paymentTerms
       lineItems { description sku quantity unitPrice discountAmount total lineNumber }
     }
   }
 `;
 
 export const GET_CUSTOMER_DETAILS = gql`
-  query GetCustomerDetails($id: ID!) {
+  query GetCustomerDetails($id: UUID!) {
     customer(id: $id) {
       id
       name
@@ -120,7 +132,7 @@ export const GET_CUSTOMER_DETAILS = gql`
 `;
 
 export const GET_COMPANY_DETAILS = gql`
-  query GetCompanyDetails($id: ID!) {
+  query GetCompanyDetails($id: UUID!) {
     company(id: $id) {
       id
       name
@@ -134,7 +146,7 @@ export const GET_COMPANY_DETAILS = gql`
 `;
 
 export const GET_PRODUCT_DETAILS = gql`
-  query GetProductDetails($id: ID!) {
+  query GetProductDetails($id: UUID!) {
     product(id: $id) {
       id
       name
@@ -150,44 +162,47 @@ export interface TemplateContext {
   company?: {
     id: string;
     name: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-    city?: string;
-    postalCode?: string;
-    country?: string;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    city?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
   };
   customer?: {
     id: string;
     name: string;
-    email?: string;
+    email?: string | null;
     address?: {
-      street?: string;
-      city?: string;
-      postalCode?: string;
-      country?: string;
+      street?: string | null;
+      city?: string | null;
+      postalCode?: string | null;
+      country?: string | null;
     };
   };
   invoice?: {
     id: string;
-    number?: string;
-    date?: string;
-    subtotal?: number;
-    taxRate?: number;
-    tax?: number;
-    shipping?: number;
-    discount?: number;
-    total?: number;
-    notes?: string;
+    number?: string | null;
+    date?: string | null;
+    dueDate?: string | null;
+    subtotal?: number | null;
+    taxRate?: number | null;
+    tax?: number | null;
+    shipping?: number | null;
+    discount?: number | null;
+    total?: number | null;
+    notes?: string | null;
+    currency?: string | null;
+    paymentTerms?: string | null;
   };
   order?: any;
   items?: Array<{
     index: number;
-    description?: string;
-    quantity?: number;
-    unitPrice?: number;
-    discount?: number;
-    total?: number;
+    description?: string | null;
+    quantity?: number | null;
+    unitPrice?: number | null;
+    discount?: number | null;
+    total?: number | null;
   }>;
   product?: any;
 }
@@ -218,7 +233,11 @@ export function getRequiredContextFields(usedVariables: Set<string>): Set<string
         required.add('company');
         break;
       case 'customer':
-        required.add('customer');
+        // Customer data can come from invoice billing fields, so only require invoice if using customer variables
+        // The invoice's billingAddress/customerName will auto-populate customer context
+        if (!required.has('invoice')) {
+          required.add('invoice');
+        }
         break;
       case 'invoice':
         required.add('invoice');
@@ -231,10 +250,9 @@ export function getRequiredContextFields(usedVariables: Set<string>): Set<string
         break;
       case 'items':
       case 'item':
-        // Items require either invoice or order
-        if (usedVariables.has('invoice') || usedVariables.has('order')) {
-          // Already covered
-        } else {
+      case 'index':
+        // Items/index require either invoice or order
+        if (!required.has('invoice') && !required.has('order')) {
           required.add('invoice'); // Default to invoice for items
         }
         break;
@@ -316,14 +334,32 @@ export function buildTemplateContext(
         id: inv.id,
         number: inv.invoiceNumber || inv.number || null,
         date: inv.issueDate || inv.invoiceDate || inv.date || inv.createdAt || null,
+        dueDate: inv.dueDate || null,
         subtotal: inv.subtotal ?? inv.Subtotal ?? inv.amountBeforeTax ?? null,
         taxRate: inv.taxRate ?? inv.TaxRate ?? null,
         tax: inv.taxAmount ?? inv.TaxAmount ?? inv.tax ?? null,
         shipping: inv.shipping ?? null,
         discount: inv.discount ?? inv.discountAmount ?? null,
         total: inv.total ?? inv.Total ?? inv.amount ?? null,
+        currency: inv.currency || null,
         notes: inv.notes || inv.Notes || null,
+        paymentTerms: inv.paymentTerms || null,
       };
+
+      // Auto-populate customer context from invoice billing data (no need to select customer separately)
+      if (!context.customer && (inv.customerName || inv.billingAddress)) {
+        context.customer = {
+          id: inv.customerId || '',
+          name: inv.customerName || null,
+          email: null,
+          address: {
+            street: inv.billingAddress || undefined,
+            city: inv.billingCity || undefined,
+            postalCode: inv.billingPostalCode || undefined,
+            country: inv.billingCountry || undefined,
+          },
+        };
+      }
 
       // Map line items to items array
       if (Array.isArray((inv as any).lineItems) && (inv as any).lineItems.length > 0) {

@@ -56,141 +56,125 @@ export default function TemplatePreviewModal({
                 </div>
               )}
 
-              {/* Master Data Selectors - 3 Column Grid */}
+              {/* Master Data Selectors - Only show selectors that are actually needed */}
               {!state.dataLoading && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('templates.selectContext')}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('templates.selectContextHint') || 'Select the data sources needed for this template. Customer/item data is automatically included from the selected invoice.'}
+                  </p>
                   <div className="grid grid-cols-3 gap-4">
-                    {/* Companies */}
-                    <div>
-                      <label className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                        {t('masterdata.companies')}
-                        {state.requiredFields.has('company') && (
+                    {/* Companies - only show if required */}
+                    {state.requiredFields.has('company') && (
+                      <div>
+                        <label className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {t('masterdata.companies')}
                           <InformationCircleIcon className="h-3 w-3 text-blue-500" title="Required for template" />
-                        )}
-                      </label>
-                      <select
-                        value={state.selectedIds.companyId ?? ''}
-                        onChange={(e) => updateSelection('companyId', e.target.value || null)}
-                        className={`block w-full rounded-md border px-2 py-1 text-sm dark:bg-gray-800 dark:text-white ${
-                          state.requiredFields.has('company') && !state.selectedIds.companyId
-                            ? 'border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}
-                      >
-                        <option value="">{t('common.select')}</option>
-                        {state.masterData.companies.map((c: any) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name || c.slug}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                        </label>
+                        <select
+                          value={state.selectedIds.companyId ?? ''}
+                          onChange={(e) => updateSelection('companyId', e.target.value || null)}
+                          className={`block w-full rounded-md border px-2 py-1 text-sm dark:bg-gray-800 dark:text-white ${
+                            !state.selectedIds.companyId
+                              ? 'border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        >
+                          <option value="">{t('common.select')}</option>
+                          {state.masterData.companies.map((c: any) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name || c.slug}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
-                    {/* Customers */}
-                    <div>
-                      <label className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                        {t('masterdata.customers')}
-                        {state.requiredFields.has('customer') && (
+                    {/* Orders - only show if required */}
+                    {state.requiredFields.has('order') && (
+                      <div>
+                        <label className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {t('nav.orders')}
                           <InformationCircleIcon className="h-3 w-3 text-blue-500" title="Required for template" />
-                        )}
-                      </label>
-                      <select
-                        value={state.selectedIds.customerId ?? ''}
-                        onChange={(e) => updateSelection('customerId', e.target.value || null)}
-                        className={`block w-full rounded-md border px-2 py-1 text-sm dark:bg-gray-800 dark:text-white ${
-                          state.requiredFields.has('customer') && !state.selectedIds.customerId
-                            ? 'border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}
-                      >
-                        <option value="">{t('common.select')}</option>
-                        {state.masterData.customers.map((c: any) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                        </label>
+                        <select
+                          value={state.selectedIds.orderId ?? ''}
+                          onChange={(e) => updateSelection('orderId', e.target.value || null)}
+                          className={`block w-full rounded-md border px-2 py-1 text-sm dark:bg-gray-800 dark:text-white ${
+                            !state.selectedIds.orderId
+                              ? 'border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        >
+                          <option value="">{t('common.select')}</option>
+                          {state.masterData.orders.map((o: any) => (
+                            <option key={o.id} value={o.id}>
+                              {o.orderNumber}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
-                    {/* Orders */}
-                    <div>
-                      <label className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                        {t('nav.orders')}
-                        {state.requiredFields.has('order') && (
+                    {/* Invoices - only show if required */}
+                    {state.requiredFields.has('invoice') && (
+                      <div>
+                        <label className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {t('accounting.invoices')}
                           <InformationCircleIcon className="h-3 w-3 text-blue-500" title="Required for template" />
-                        )}
-                      </label>
-                      <select
-                        value={state.selectedIds.orderId ?? ''}
-                        onChange={(e) => updateSelection('orderId', e.target.value || null)}
-                        className={`block w-full rounded-md border px-2 py-1 text-sm dark:bg-gray-800 dark:text-white ${
-                          state.requiredFields.has('order') && !state.selectedIds.orderId
-                            ? 'border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}
-                      >
-                        <option value="">{t('common.select')}</option>
-                        {state.masterData.orders.map((o: any) => (
-                          <option key={o.id} value={o.id}>
-                            {o.orderNumber}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                        </label>
+                        <select
+                          value={state.selectedIds.invoiceId ?? ''}
+                          onChange={(e) => updateSelection('invoiceId', e.target.value || null)}
+                          className={`block w-full rounded-md border px-2 py-1 text-sm dark:bg-gray-800 dark:text-white ${
+                            !state.selectedIds.invoiceId
+                              ? 'border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        >
+                          <option value="">{t('common.select')}</option>
+                          {state.masterData.invoices.map((inv: any) => (
+                            <option key={inv.id} value={inv.id}>
+                              {inv.invoiceNumber}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
-                    {/* Invoices */}
-                    <div>
-                      <label className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                        {t('accounting.invoices')}
-                        {state.requiredFields.has('invoice') && (
+                    {/* Products - only show if required */}
+                    {state.requiredFields.has('product') && (
+                      <div>
+                        <label className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {t('nav.products')}
                           <InformationCircleIcon className="h-3 w-3 text-blue-500" title="Required for template" />
-                        )}
-                      </label>
-                      <select
-                        value={state.selectedIds.invoiceId ?? ''}
-                        onChange={(e) => updateSelection('invoiceId', e.target.value || null)}
-                        className={`block w-full rounded-md border px-2 py-1 text-sm dark:bg-gray-800 dark:text-white ${
-                          state.requiredFields.has('invoice') && !state.selectedIds.invoiceId
-                            ? 'border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}
-                      >
-                        <option value="">{t('common.select')}</option>
-                        {state.masterData.invoices.map((inv: any) => (
-                          <option key={inv.id} value={inv.id}>
-                            {inv.invoiceNumber}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Products */}
-                    <div>
-                      <label className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                        {t('nav.products')}
-                        {state.requiredFields.has('product') && (
-                          <InformationCircleIcon className="h-3 w-3 text-blue-500" title="Required for template" />
-                        )}
-                      </label>
-                      <select
-                        value={state.selectedIds.productId ?? ''}
-                        onChange={(e) => updateSelection('productId', e.target.value || null)}
-                        className={`block w-full rounded-md border px-2 py-1 text-sm dark:bg-gray-800 dark:text-white ${
-                          state.requiredFields.has('product') && !state.selectedIds.productId
-                            ? 'border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}
-                      >
-                        <option value="">{t('common.select')}</option>
-                        {state.masterData.products.map((p: any) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                        </label>
+                        <select
+                          value={state.selectedIds.productId ?? ''}
+                          onChange={(e) => updateSelection('productId', e.target.value || null)}
+                          className={`block w-full rounded-md border px-2 py-1 text-sm dark:bg-gray-800 dark:text-white ${
+                            !state.selectedIds.productId
+                              ? 'border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-900/20'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        >
+                          <option value="">{t('common.select')}</option>
+                          {state.masterData.products.map((p: any) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
+                  
+                  {/* Show note if no selectors are needed */}
+                  {state.requiredFields.size === 0 && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                      {t('templates.noDataRequired') || 'This template does not require any data selection.'}
+                    </p>
+                  )}
                 </div>
               )}
 

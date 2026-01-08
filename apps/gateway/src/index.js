@@ -127,13 +127,42 @@ async function startServer() {
     res.json({ status: 'healthy', timestamp: new Date().toISOString() });
   });
 
+  // Lightweight login proxy: handle login mutation directly against user-service
+  // This allows the frontend to authenticate while federated subgraphs are composing
+  app.post('/graphql', express.json(), async (req, res, next) => {
+    try {
+      const body = req.body || {};
+      const query = body.query || '';
+      // If this is a login mutation, forward directly to user-service
+      if (typeof query === 'string' && /login\s*\(/i.test(query)) {
+        const userServiceUrl = process.env.USER_SERVICE_URL || 'http://user-service:5000/graphql/';
+        try {
+          const response = await fetch(userServiceUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const data = await response.json();
+          return res.status(response.status).json(data);
+        } catch (err) {
+          console.error('Login proxy to user-service failed:', err.message || err);
+          return res.status(502).json({ errors: [{ message: 'User service unavailable' }] });
+        }
+      }
+    } catch (err) {
+      console.error('Login proxy error:', err);
+    }
+    // Not a login mutation - continue to Apollo middleware (registered later)
+    return next();
+  });
+
   // Prometheus metrics
   app.get('/metrics', async (req, res) => {
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
   });
 
-  // Start Apollo Server
+  // Start Apollo Server immediately; IntrospectAndCompose will poll subgraphs.
   await server.start();
 
   // GraphQL middleware

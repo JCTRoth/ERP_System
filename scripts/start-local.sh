@@ -54,17 +54,23 @@ check_compose_file() {
 }
 
 # Function to wait for database to be ready
+# Accepts a docker-compose service name, resolves the container id, and checks pg_isready
 wait_for_db() {
-    local container_name=$1
-    local max_attempts=30
+    local service_name=$1
+    local max_attempts=60
     local attempt=1
 
-    print_status "Waiting for $container_name to be ready..."
+    print_status "Waiting for $service_name to be ready..."
 
     while [ $attempt -le $max_attempts ]; do
-        if docker exec $container_name pg_isready -U postgres >/dev/null 2>&1; then
-            print_status "$container_name is ready!"
-            return 0
+        # Resolve the container id for the compose service
+        container_id=$(docker compose -f "$COMPOSE_FILE" ps -q "$service_name" 2>/dev/null || true)
+
+        if [ -n "$container_id" ]; then
+            if docker exec "$container_id" pg_isready -U postgres >/dev/null 2>&1; then
+                print_status "$service_name (container $container_id) is ready!"
+                return 0
+            fi
         fi
 
         echo -n "."
@@ -72,7 +78,7 @@ wait_for_db() {
         ((attempt++))
     done
 
-    print_error "$container_name failed to start within expected time"
+    print_error "$service_name failed to start within expected time"
     return 1
 }
 
@@ -138,26 +144,12 @@ main() {
     print_status "Starting databases and Redis..."
 
     docker compose -f "$COMPOSE_FILE" up -d \
-        postgres-users \
-        postgres-shop \
-        postgres-accounting \
-        postgres-masterdata \
-        postgres-company \
-        postgres-notification \
-        postgres-translation \
-        postgres-templates \
+        postgres \
         redis
 
-    # Wait for databases to be ready
-    print_status "Waiting for databases to be ready..."
-    wait_for_db erp_system-postgres-users-1
-    wait_for_db erp_system-postgres-shop-1
-    wait_for_db erp_system-postgres-accounting-1
-    wait_for_db erp_system-postgres-masterdata-1
-    wait_for_db erp_system-postgres-company-1
-    wait_for_db erp_system-postgres-notification-1
-    wait_for_db erp_system-postgres-translation-1
-    wait_for_db erp_system-postgres-templates-1
+    # Wait for consolidated database to be ready
+    print_status "Waiting for database to be ready..."
+    wait_for_db postgres
 
     # Start GraphQL services required by the gateway
     print_header "Starting GraphQL Dependencies"

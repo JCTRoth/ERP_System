@@ -41,4 +41,5 @@ RUN dotnet publish "AccountingService.csproj" -c Release -o /app/publish /p:UseA
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+ENV ASPNETCORE_HTTP_PORTS=5001
 ENTRYPOINT ["dotnet", "AccountingService.dll"]
