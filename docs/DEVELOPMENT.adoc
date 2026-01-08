@@ -22,7 +22,6 @@ The ERP system consists of:
   - TemplatesService (Node.js + Express)
 * **Infrastructure**:
   - PostgreSQL databases (multiple instances)
-  - Redis
   - MinIO (object storage)
   - Prometheus + Grafana
 
@@ -53,8 +52,7 @@ cd ERP_System
 ./start-local.sh
 ----
 +
-This script will:
-- Start all databases and Redis
+- Start all databases
 - Wait for databases to be ready
 - Start core services (UserService, Gateway, Frontend)
 - Perform health checks
@@ -72,7 +70,7 @@ If you need to start services individually:
 [source,bash]
 ----
 # Start databases only
-docker compose -f docker-compose.dev.yml up postgres-users postgres-shop redis -d
+docker compose -f docker-compose.dev.yml up postgres-users postgres-shop -d
 
 # Start specific service
 docker compose -f docker-compose.dev.yml up user-service -d

@@ -5,8 +5,8 @@ This script provides an easy way to start the complete ERP system locally for de
 ## Prerequisites
 
 - Docker and Docker Compose installed and running
-- At least 4GB of available RAM
-- Ports 4000, 5000, 5173, 5432-5439, 6379, 9000-9001 available
+ - At least 4GB of available RAM
+ - Ports 4000, 5000, 5173, 5432-5439, 9000-9001 available
 
 ## Usage
 
@@ -35,7 +35,7 @@ This script provides an easy way to start the complete ERP system locally for de
 ## What the script does
 
 1. **Checks prerequisites**: Ensures Docker is running and compose file exists
-2. **Starts infrastructure**: PostgreSQL databases, Redis, and MinIO
+2. **Starts infrastructure**: PostgreSQL databases and MinIO
 3. **Waits for databases**: Ensures all databases are ready before proceeding
 4. **Starts services**: UserService, Gateway, and Frontend
 5. **Health checks**: Verifies core services are responding
@@ -63,7 +63,7 @@ The script starts the core working services. Currently, only UserService is acti
 - ✅ Gateway (Node.js) - GraphQL federation (configured for UserService only)
 - ✅ Frontend (React/Vite) - Web interface
 - ✅ Databases (PostgreSQL) - Data persistence
-- ✅ Redis - Caching
+- ✅ MinIO - File storage
 - ✅ MinIO - File storage
 - ⚠️ TranslationService - Java build issues, not in federation
 - ⚠️ CompanyService - Java build issues, not in federation

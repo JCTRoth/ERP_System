@@ -139,13 +139,12 @@ main() {
 
     cd "$PROJECT_DIR"
 
-    # Start infrastructure (databases and Redis)
+    # Start infrastructure (databases)
     print_header "Starting Infrastructure"
-    print_status "Starting databases and Redis..."
+    print_status "Starting databases..."
 
     docker compose -f "$COMPOSE_FILE" up -d \
-        postgres \
-        redis
+        postgres
 
     # Wait for consolidated database to be ready
     print_status "Waiting for database to be ready..."
@@ -204,7 +203,7 @@ main() {
     # Show status
     print_header "System Status"
     echo ""
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(gateway|user-service|masterdata-service|accounting-service|templates-service|frontend|postgres|redis)"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(gateway|user-service|masterdata-service|accounting-service|templates-service|frontend|postgres)"
 
     # Show access information
     print_header "Access Information"
@@ -252,7 +251,7 @@ show_help() {
     echo ""
     echo "The script will:"
     echo "  1. Check Docker availability"
-    echo "  2. Start all databases and Redis"
+    echo "  2. Start all databases"
     echo "  3. Wait for databases to be ready"
     echo "  4. Start core services (UserService, Gateway, Frontend)"
     echo "  5. Show access URLs and login credentials"

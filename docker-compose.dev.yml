@@ -266,19 +266,10 @@ services:
       - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
       - grafana-data:/var/lib/grafana
 
-  # Message Queue (for notifications)
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-
 volumes:
   postgres-data:
   prometheus-data:
   grafana-data:
-  redis-data:
 
 networks:
   default:

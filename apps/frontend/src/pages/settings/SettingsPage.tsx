@@ -44,19 +44,18 @@ export default function SettingsPage() {
       <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex gap-4">
           {tabs.map((tab) => (
-            <Tooltip key={tab.id} content={tab.label} position="bottom">
-              <button
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                <tab.icon className="h-5 w-5" />
-                {tab.label}
-              </button>
-            </Tooltip>
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <tab.icon className="h-5 w-5" />
+              {tab.label}
+            </button>
           ))}
         </nav>
       </div>
@@ -74,18 +73,17 @@ export default function SettingsPage() {
                   <label className="label mb-2">{t('settings.theme')}</label>
                   <div className="flex gap-3">
                     {(['light', 'dark', 'system'] as const).map((themeOption) => (
-                      <Tooltip key={themeOption} content={t(`settings.theme${themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}Desc`) || `Use ${themeOption} theme`}>
-                        <button
-                          onClick={() => setTheme(themeOption)}
-                          className={`rounded-md px-4 py-2 ${
-                            theme === themeOption
-                              ? 'bg-primary-600 text-white'
-                              : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'
-                          }`}
-                        >
-                          {t(`settings.theme${themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}`)}
-                        </button>
-                      </Tooltip>
+                      <button
+                        key={themeOption}
+                        onClick={() => setTheme(themeOption)}
+                        className={`rounded-md px-4 py-2 ${
+                          theme === themeOption
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {t(`settings.theme${themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}`)}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -98,21 +96,20 @@ export default function SettingsPage() {
               
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {SUPPORTED_LANGUAGES.map((lang) => (
-                  <Tooltip key={lang} content={`Switch to ${LANGUAGE_NAMES[lang]}`}>
-                    <button
-                      onClick={() => setLanguage(lang)}
-                      className={`rounded-md px-4 py-3 text-center ${
-                        language === lang
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      <span className="block text-2xl mb-1">
-                        {lang === 'en' ? '🇬🇧' : lang === 'de' ? '🇩🇪' : lang === 'fr' ? '🇫🇷' : 'RU'}
-                      </span>
-                      {LANGUAGE_NAMES[lang]}
-                    </button>
-                  </Tooltip>
+                  <button
+                    key={lang}
+                    onClick={() => setLanguage(lang)}
+                    className={`rounded-md px-4 py-3 text-center ${
+                      language === lang
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <span className="block text-2xl mb-1">
+                      {lang === 'en' ? '🇬🇧' : lang === 'de' ? '🇩🇪' : lang === 'fr' ? '🇫🇷' : 'RU'}
+                    </span>
+                    {LANGUAGE_NAMES[lang]}
+                  </button>
                 ))}
               </div>
             </div>
@@ -126,14 +123,13 @@ export default function SettingsPage() {
             
             <div className="space-y-6">
               {/* Show Translation Keys Toggle */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{t('settings.showTranslationKeys')}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {t('settings.showTranslationKeysDesc')}
-                  </p>
-                </div>
-                <Tooltip content={showTranslationKeys ? t('settings.hideKeys') || 'Hide translation keys' : t('settings.showKeys') || 'Show translation keys'}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{t('settings.showTranslationKeys')}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {t('settings.showTranslationKeysDesc')}
+                    </p>
+                  </div>
                   <button
                     onClick={toggleTranslationKeys}
                     className={`relative h-6 w-11 rounded-full transition-colors ${
@@ -146,8 +142,7 @@ export default function SettingsPage() {
                       }`}
                     />
                   </button>
-                </Tooltip>
-              </div>
+                </div>
 
               {/* Debug Info */}
               <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
@@ -184,16 +179,14 @@ export default function SettingsPage() {
                       {t('settings.graphqlPlaygroundDesc') || 'Interactive GraphQL IDE for exploring and testing the federated API. Includes schema documentation and query autocompletion.'}
                     </p>
                   </div>
-                  <Tooltip content={t('settings.openInNewTab') || 'Open in new tab'}>
-                    <a
-                      href="http://localhost:4000/graphql"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-primary flex items-center gap-2"
-                    >
-                      {t('common.open')}
-                    </a>
-                  </Tooltip>
+                  <a
+                    href="http://localhost:4000/graphql"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    {t('common.open')}
+                  </a>
                 </div>
               </div>
 
@@ -207,16 +200,14 @@ export default function SettingsPage() {
                     </p>
                     <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5000/swagger</p>
                   </div>
-                  <Tooltip content={t('settings.openSwagger') || 'Open Swagger UI'}>
-                    <a
-                      href="http://localhost:5000/swagger"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-secondary flex items-center gap-2"
-                    >
-                      {t('common.open')}
-                    </a>
-                  </Tooltip>
+                  <a
+                    href="http://localhost:5000/swagger"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    {t('common.open')}
+                  </a>
                 </div>
               </div>
 
@@ -230,16 +221,14 @@ export default function SettingsPage() {
                     </p>
                     <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5001/swagger</p>
                   </div>
-                  <Tooltip content={t('settings.openSwagger') || 'Open Swagger UI'}>
-                    <a
-                      href="http://localhost:5001/swagger"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-secondary flex items-center gap-2"
-                    >
-                      {t('common.open')}
-                    </a>
-                  </Tooltip>
+                  <a
+                    href="http://localhost:5001/swagger"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    {t('common.open')}
+                  </a>
                 </div>
               </div>
 
@@ -253,16 +242,14 @@ export default function SettingsPage() {
                     </p>
                     <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5002/swagger</p>
                   </div>
-                  <Tooltip content={t('settings.openSwagger') || 'Open Swagger UI'}>
-                    <a
-                      href="http://localhost:5002/swagger"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-secondary flex items-center gap-2"
-                    >
-                      {t('common.open')}
-                    </a>
-                  </Tooltip>
+                  <a
+                    href="http://localhost:5002/swagger"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    {t('common.open')}
+                  </a>
                 </div>
               </div>
 
@@ -276,16 +263,14 @@ export default function SettingsPage() {
                     </p>
                     <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5003/swagger</p>
                   </div>
-                  <Tooltip content={t('settings.openSwagger') || 'Open Swagger UI'}>
-                    <a
-                      href="http://localhost:5003/swagger"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-secondary flex items-center gap-2"
-                    >
-                      {t('common.open')}
-                    </a>
-                  </Tooltip>
+                  <a
+                    href="http://localhost:5003/swagger"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    {t('common.open')}
+                  </a>
                 </div>
               </div>
 
@@ -299,16 +284,14 @@ export default function SettingsPage() {
                     </p>
                     <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:8080/swagger-ui.html</p>
                   </div>
-                  <Tooltip content={t('settings.openSwagger') || 'Open Swagger UI'}>
-                    <a
-                      href="http://localhost:8080/swagger-ui.html"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-secondary flex items-center gap-2"
-                    >
-                      {t('common.open')}
-                    </a>
-                  </Tooltip>
+                  <a
+                    href="http://localhost:8080/swagger-ui.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    {t('common.open')}
+                  </a>
                 </div>
               </div>
 
@@ -322,16 +305,14 @@ export default function SettingsPage() {
                     </p>
                     <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:8081/swagger-ui.html</p>
                   </div>
-                  <Tooltip content={t('settings.openSwagger') || 'Open Swagger UI'}>
-                    <a
-                      href="http://localhost:8081/swagger-ui.html"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-secondary flex items-center gap-2"
-                    >
-                      {t('common.open')}
-                    </a>
-                  </Tooltip>
+                  <a
+                    href="http://localhost:8081/swagger-ui.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    {t('common.open')}
+                  </a>
                 </div>
               </div>
             </div>

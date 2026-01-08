@@ -18,6 +18,12 @@ const GET_ORDERS = gql`
       nodes {
         id
         orderNumber
+        customer {
+          id
+          firstName
+          lastName
+          email
+        }
         status
         subtotal
         taxAmount

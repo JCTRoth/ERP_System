@@ -298,9 +298,6 @@ mutation {
 | PostgreSQL connection string
 | -
 
-| `REDIS_URL`
-| Redis connection string
-| -
 
 | `GATEWAY_URL`
 | GraphQL Gateway URL

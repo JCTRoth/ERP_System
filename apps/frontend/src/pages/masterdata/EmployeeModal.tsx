@@ -146,14 +146,13 @@ export default function EmployeeModal({ employee, onClose, onSuccess }: Employee
           <h2 className="text-xl font-bold">
             {isEditing ? t('masterdata.editEmployee') : t('masterdata.addEmployee')}
           </h2>
-          <Tooltip content={t('common.close')} position="left">
-            <button
-              onClick={onClose}
-              className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-          </Tooltip>
+          <button
+            onClick={onClose}
+            className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label={t('common.close')}
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

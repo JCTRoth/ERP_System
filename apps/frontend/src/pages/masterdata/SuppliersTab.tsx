@@ -126,15 +126,10 @@ export default function SuppliersTab() {
             />
           </div>
         </div>
-        <Tooltip content={t('masterdata.addSupplierTooltip') || 'Add a new supplier'} position="left">
-          <button
-            onClick={handleAddClick}
-            className="btn-primary flex items-center gap-2"
-          >
+          <button onClick={handleAddClick} className="btn-primary flex items-center gap-2">
             <PlusIcon className="h-5 w-5" />
             {t('masterdata.addSupplier')}
           </button>
-        </Tooltip>
       </div>
 
       {/* Table */}

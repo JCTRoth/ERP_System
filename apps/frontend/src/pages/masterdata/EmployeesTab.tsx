@@ -191,12 +191,10 @@ export default function EmployeesTab() {
             {t('masterdata.departments')}
           </button>
         </div>
-        <Tooltip content={view === 'employees' ? t('masterdata.addEmployeeTooltip') || 'Add a new employee' : t('masterdata.addDepartmentTooltip') || 'Add a new department'} position="left">
-          <button onClick={handleAddClick} className="btn-primary flex items-center gap-2">
-            <PlusIcon className="h-5 w-5" />
-            {view === 'employees' ? t('masterdata.addEmployee') : t('masterdata.addDepartment')}
-          </button>
-        </Tooltip>
+        <button onClick={handleAddClick} className="btn-primary flex items-center gap-2">
+          <PlusIcon className="h-5 w-5" />
+          {view === 'employees' ? t('masterdata.addEmployee') : t('masterdata.addDepartment')}
+        </button>
       </div>
 
       {view === 'employees' ? (

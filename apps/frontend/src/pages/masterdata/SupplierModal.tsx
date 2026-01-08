@@ -158,14 +158,13 @@ export default function SupplierModal({ supplier, onClose, onSuccess }: Supplier
           <h2 className="text-xl font-bold">
             {isEditing ? t('masterdata.editSupplier') : t('masterdata.addSupplier')}
           </h2>
-          <Tooltip content={t('common.close')} position="left">
-            <button
-              onClick={onClose}
-              className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-          </Tooltip>
+          <button
+            onClick={onClose}
+            className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label={t('common.close')}
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -377,15 +376,14 @@ export default function SupplierModal({ supplier, onClose, onSuccess }: Supplier
             >
               {t('common.cancel')}
             </button>
-            <Tooltip content={isEditing ? t('masterdata.updateSupplierTooltip') : t('masterdata.createSupplierTooltip')} position="top">
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={loading}
-              >
-                {loading ? t('common.saving') : t('common.save')}
-              </button>
-            </Tooltip>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={loading}
+              aria-label={isEditing ? t('masterdata.updateSupplierTooltip') : t('masterdata.createSupplierTooltip')}
+            >
+              {loading ? t('common.saving') : t('common.save')}
+            </button>
           </div>
         </form>
       </div>

@@ -237,16 +237,28 @@ public class OrderResolvers
     // Customer resolver - fetches from ShopService database
     public User? GetCustomer([Parent] Order order, [Service] ShopDbContext context)
     {
-        if (order.CustomerId == Guid.Empty)
+        // Sometimes the parent Order instance given to the resolver is a projected object
+        // that doesn't include scalar values like CustomerId. Try to read it from the parent
+        // first and, if empty, load the value from the database using the order Id.
+        var customerId = order.CustomerId;
+        if (customerId == Guid.Empty)
+        {
+            var dbOrder = context.Orders.AsNoTracking().Where(o => o.Id == order.Id).Select(o => o.CustomerId).FirstOrDefault();
+            customerId = dbOrder;
+        }
+
+        if (customerId == Guid.Empty)
+        {
             return null;
-            
-        // For now, return customer data based on CustomerId
-        // In a production system, this would query the customer database
+        }
+
+        // For now, return a lightweight User object based on the CustomerId.
+        // This can be enhanced to query a dedicated customer service/database for full details.
         return new User
         {
-            Id = order.CustomerId,
-            FirstName = "Customer", // Could be enhanced to look up actual names
-            LastName = "",
+            Id = customerId,
+            FirstName = "Customer",
+            LastName = string.Empty,
             Email = "customer@example.com",
             Phone = null
         };

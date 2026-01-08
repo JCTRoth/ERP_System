@@ -550,40 +550,43 @@ public class ShopDbContext : DbContext
             new Product
             {
                 Id = prodA,
-                Name = "Example Product A",
-                Sku = "PROD-A-001",
-                Price = 50.00m,
-                StockQuantity = 100,
-                CategoryId = Guid.Parse("10000000-0000-0000-0000-000000000001"), // Electronics
+                Name = "Katchup",
+                Description = "Classic tomato katchup in 500ml bottle",
+                Sku = "KTP-1001",
+                Price = 2.99m,
+                StockQuantity = 200,
+                CategoryId = Guid.Parse("10000000-0000-0000-0000-000000000001"),
                 BrandId = Guid.Parse("30000000-0000-0000-0000-000000000001"),
                 Status = ProductStatus.Active,
-                Slug = "example-product-a",
+                Slug = "katchup-500ml",
                 CreatedAt = DateTime.UtcNow
             },
             new Product
             {
                 Id = prodB,
-                Name = "Example Product B",
-                Sku = "PROD-B-002",
-                Price = 100.00m,
-                StockQuantity = 50,
-                CategoryId = Guid.Parse("10000000-0000-0000-0000-000000000001"),
+                Name = "Cola",
+                Description = "Sparkling cola drink, 330ml can",
+                Sku = "COL-2002",
+                Price = 1.49m,
+                StockQuantity = 500,
+                CategoryId = Guid.Parse("10000000-0000-0000-0000-000000000002"),
                 BrandId = Guid.Parse("30000000-0000-0000-0000-000000000002"),
                 Status = ProductStatus.Active,
-                Slug = "example-product-b",
+                Slug = "cola-330ml",
                 CreatedAt = DateTime.UtcNow
             },
             new Product
             {
                 Id = prodC,
-                Name = "Example Product C",
-                Sku = "PROD-C-003",
-                Price = 25.00m,
-                StockQuantity = 200,
-                CategoryId = Guid.Parse("10000000-0000-0000-0000-000000000003"), // Books
+                Name = "Coffe",
+                Description = "Freshly roasted ground coffee, 250g",
+                Sku = "COF-3003",
+                Price = 7.99m,
+                StockQuantity = 120,
+                CategoryId = Guid.Parse("10000000-0000-0000-0000-000000000003"),
                 BrandId = Guid.Parse("30000000-0000-0000-0000-000000000003"),
                 Status = ProductStatus.Active,
-                Slug = "example-product-c",
+                Slug = "coffe-250g",
                 CreatedAt = DateTime.UtcNow
             }
         );
@@ -596,7 +599,7 @@ public class ShopDbContext : DbContext
                 Id = orderId,
                 OrderNumber = "ORD-1001",
                 CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
-                Status = OrderStatus.Completed,
+                Status = OrderStatus.Confirmed,
                 Subtotal = 200.00m,
                 TaxAmount = 38.00m,
                 Total = 238.00m,
