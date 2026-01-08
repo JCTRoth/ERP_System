@@ -3,16 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ERP System 🌐</title>
-    <meta name="description" content="Advanced ERP System for streamlined business operations, including order management, product catalog, accounting, and more. Optimize your enterprise with our comprehensive solution." />
-    <meta name="keywords" content="ERP, Enterprise Resource Planning, Business Management, Order Management, Product Catalog, Accounting, Dashboard, Analytics" />
+    <!-- Favicons (emoji globe embedded inline to ensure consistent rendering) -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='transparent'/%3E%3Ctext x='50%25' y='56%25' font-family='Segoe UI Emoji, Noto Color Emoji, Apple Color Emoji, sans-serif' font-size='44' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%8C%90%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <title>ERP System</title>
+    <!-- Primary SEO -->
+    <meta name="description" content="ERP System — Modern enterprise suite for orders, inventory, accounting and templates. Fast, extensible, and ready for demos and production." />
+    <meta name="keywords" content="ERP,Enterprise Resource Planning,orders,accounting,inventory,templates,admin,dashboard" />
     <meta name="author" content="ERP System Team" />
-    <meta property="og:title" content="ERP System 🌐" />
-    <meta property="og:description" content="Advanced ERP System for streamlined business operations, including order management, product catalog, accounting, and more." />
+    <link rel="canonical" href="http://localhost:5173/" />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="ERP System" />
+    <meta property="og:title" content="ERP System" />
+    <meta property="og:description" content="ERP System — Modern enterprise suite for orders, inventory, accounting and document templates." />
     <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="ERP System 🌐" />
-    <meta name="twitter:description" content="Advanced ERP System for streamlined business operations." />
+    <meta property="og:url" content="http://localhost:5173/" />
+    <meta property="og:image" content="/social-preview.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ERP System" />
+    <meta name="twitter:description" content="ERP System — Modern enterprise suite for orders, inventory, accounting and document templates." />
+    <meta name="twitter:image" content="/social-preview.png" />
+
+    <!-- Dynamic title helper: set page-specific title via a meta tag <meta name="page-title" content="Invoices"> -->
+    <script>
+      (function(){
+        try {
+          const pageMeta = document.querySelector('meta[name="page-title"]');
+          const base = 'ERP System';
+          if (pageMeta && pageMeta.content && pageMeta.content.trim().length) {
+            document.title = pageMeta.content.trim() + ' - ' + base;
+          } else {
+            // Keep default title or ensure homepage shows base
+            if (!document.title || document.title === 'ERP System') document.title = base;
+            else if (!document.title.includes(' - ')) document.title = document.title + ' - ' + base;
+          }
+        } catch (e) { /* no-op */ }
+      })();
+    </script>
   </head>
   <body class="antialiased">
     <div id="root"></div>

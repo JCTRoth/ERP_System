@@ -1,1 +1,4 @@
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">
+	<rect width="64" height="64" rx="10" fill="transparent"/>
+	<text x="50%" y="56%" font-family="Segoe UI Emoji, Noto Color Emoji, Apple Color Emoji, sans-serif" font-size="44" text-anchor="middle" dominant-baseline="middle">🌐</text>
+</svg>
