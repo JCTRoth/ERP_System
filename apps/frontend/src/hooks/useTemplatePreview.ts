@@ -10,6 +10,7 @@ import {
   GET_PRODUCTS,
   GET_COMPANIES,
   GET_ORDER_DETAILS,
+  GET_SHOP_ORDER_DETAILS,
   GET_INVOICE_DETAILS,
   GET_CUSTOMER_DETAILS,
   GET_COMPANY_DETAILS,
@@ -102,60 +103,91 @@ export function useTemplatePreview(template: ApiTemplate) {
 
         // Fetch order details from shop (shopApolloClient)
         if (selectedIds.orderId) {
-          const { data } = await shopApolloClient.query({
-            query: GET_ORDER_DETAILS,
-            variables: { id: selectedIds.orderId },
-            fetchPolicy: 'network-only'
-          });
-          if (mounted) updates.fullOrder = data?.order ?? null;
+          try {
+            const { data } = await shopApolloClient.query({
+              query: GET_SHOP_ORDER_DETAILS,
+              variables: { id: selectedIds.orderId },
+              fetchPolicy: 'network-only'
+            });
+            if (mounted) updates.fullOrder = data?.order ?? null;
+          } catch (orderError) {
+            console.warn('Failed to fetch order details:', orderError.message);
+            if (mounted) updates.fullOrder = null;
+          }
         } else {
           if (mounted) updates.fullOrder = null;
         }
 
         // Fetch invoice details from accounting gateway
         if (selectedIds.invoiceId) {
-          const { data } = await gatewayApolloClient.query({
-            query: GET_INVOICE_DETAILS,
-            variables: { id: selectedIds.invoiceId },
-            fetchPolicy: 'network-only'
-          });
-          if (mounted) updates.fullInvoice = data?.invoice ?? null;
+          try {
+            const { data } = await gatewayApolloClient.query({
+              query: GET_INVOICE_DETAILS,
+              variables: { id: selectedIds.invoiceId },
+              fetchPolicy: 'network-only'
+            });
+            if (mounted) updates.fullInvoice = data?.invoice ?? null;
+          } catch (invoiceError) {
+            console.warn('Failed to fetch invoice details:', invoiceError.message);
+            if (mounted) updates.fullInvoice = null;
+          }
         } else {
           if (mounted) updates.fullInvoice = null;
         }
 
-        // Fetch customer details from gateway (masterdata)
-        if (selectedIds.customerId) {
-          const { data } = await gatewayApolloClient.query({
-            query: GET_CUSTOMER_DETAILS,
-            variables: { id: selectedIds.customerId },
-            fetchPolicy: 'network-only'
-          });
-          if (mounted) updates.fullCustomer = data?.customer ?? null;
+        // Fetch customer details from gateway (masterdata) only if we don't already have customer data
+        if (selectedIds.customerId && !fullRecords.fullCustomer) {
+          try {
+            const { data } = await gatewayApolloClient.query({
+              query: GET_CUSTOMER_DETAILS,
+              variables: { customerNumber: selectedIds.customerId },
+              fetchPolicy: 'network-only'
+            });
+            if (mounted) updates.fullCustomer = data?.customerByNumber ?? null;
+          } catch (customerError) {
+            // If customer fetch fails, don't set fullCustomer to null if we already have data from order
+            // This preserves the auto-populated customer data from the template context builder
+            if (!fullRecords.fullCustomer) {
+              if (mounted) updates.fullCustomer = null;
+            }
+            // Log the error but don't rethrow - this is not critical for template preview
+            console.warn('Failed to fetch customer details, using fallback data:', customerError.message);
+          }
         } else {
           if (mounted) updates.fullCustomer = null;
         }
 
         // Fetch product details from shop
         if (selectedIds.productId) {
-          const { data } = await shopApolloClient.query({
-            query: GET_PRODUCT_DETAILS,
-            variables: { id: selectedIds.productId },
-            fetchPolicy: 'network-only'
-          });
-          if (mounted) updates.fullProduct = data?.product ?? null;
+          try {
+            const { data } = await shopApolloClient.query({
+              query: GET_PRODUCT_DETAILS,
+              variables: { id: selectedIds.productId },
+              fetchPolicy: 'network-only'
+            });
+            if (mounted) updates.fullProduct = data?.product ?? null;
+          } catch (productError) {
+            console.warn('Failed to fetch product details:', productError.message);
+            if (mounted) updates.fullProduct = null;
+          }
         } else {
           if (mounted) updates.fullProduct = null;
         }
 
         // Fetch company details from gateway
         if (selectedIds.companyId) {
-          const { data } = await gatewayApolloClient.query({
-            query: GET_COMPANY_DETAILS,
-            variables: { id: selectedIds.companyId },
-            fetchPolicy: 'network-only'
-          });
-          if (mounted) updates.fullCompany = data?.company ?? null;
+          try {
+            const { data } = await gatewayApolloClient.query({
+              query: GET_COMPANY_DETAILS,
+              variables: { id: selectedIds.companyId },
+              fetchPolicy: 'network-only'
+            });
+            if (mounted) updates.fullCompany = data?.company ?? null;
+          } catch (companyError) {
+            // Log the error but don't rethrow - this is not critical for template preview
+            console.warn('Failed to fetch company details:', companyError.message);
+            if (mounted) updates.fullCompany = null;
+          }
         } else {
           if (mounted) updates.fullCompany = null;
         }
@@ -184,6 +216,7 @@ export function useTemplatePreview(template: ApiTemplate) {
       setRenderError(null);
 
       const context = buildTemplateContext(selectedIds, masterData, fullRecords);
+      console.log('DEBUG: Template context being sent:', JSON.stringify(context, null, 2));
       const result = await templatesApi.renderTemplate(template.id, context);
       setRenderResult(result);
     } catch (err) {

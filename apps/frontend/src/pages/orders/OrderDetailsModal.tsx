@@ -5,7 +5,7 @@ import { useI18n } from '../../providers/I18nProvider';
 import { shopApolloClient } from '../../lib/apollo';
 
 const GET_ORDER_DETAILS = gql`
-  query GetOrderDetails($id: UUID!) {
+  query GetOrderDetails($id: String!) {
     order(id: $id) {
       id
       orderNumber

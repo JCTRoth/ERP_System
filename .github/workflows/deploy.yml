@@ -1,0 +1,111 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image version to deploy'
+        required: true
+        default: 'latest'
+
+jobs:
+  build-and-push:
+    name: Build and Push to GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build and Push Images
+        run: |
+          ./scripts/build-and-push.sh \
+            --username ${{ github.repository_owner }} \
+            --token ${{ secrets.GITHUB_TOKEN }} \
+            --version ${{ steps.version.outputs.VERSION }}
+
+  deploy:
+    name: Deploy to Production Server
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: ${{ success() }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_SERVER }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy Application
+        run: |
+          ./scripts/deploy-production.sh \
+            --server ${{ secrets.DEPLOY_SERVER }} \
+            --domain ${{ secrets.DEPLOY_DOMAIN }} \
+            --username ${{ secrets.DEPLOY_USERNAME }} \
+            --ssh-key ~/.ssh/deploy_key \
+            --registry-url ghcr.io \
+            --registry-user ${{ github.repository_owner }} \
+            --registry-token ${{ secrets.GITHUB_TOKEN }} \
+            --image-version ${{ steps.version.outputs.VERSION }} \
+            --email ${{ secrets.DEPLOY_EMAIL }} \
+            --db-password ${{ secrets.DB_PASSWORD }}
+      
+      - name: Verify Deployment
+        run: |
+          echo "Deployment completed successfully!"
+          echo "Application URL: https://${{ secrets.DEPLOY_DOMAIN }}"
+          echo ""
+          echo "To check deployment status, SSH into the server:"
+          echo "  ssh ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_SERVER }}"
+          echo "  cd /opt/erp-system"
+          echo "  docker compose ps"
+          echo "  docker compose logs -f"
+
+  notify:
+    name: Notify Deployment Status
+    needs: [build-and-push, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Deployment Success
+        if: ${{ success() }}
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Application is available at: https://${{ secrets.DEPLOY_DOMAIN }}"
+      
+      - name: Deployment Failed
+        if: ${{ failure() }}
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Please check the logs for details."
+          exit 1

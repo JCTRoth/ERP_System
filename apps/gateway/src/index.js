@@ -67,15 +67,29 @@ const subgraphs = [
 const gateway = new ApolloGateway({
   supergraphSdl: new IntrospectAndCompose({
     subgraphs,
-    pollIntervalInMs: 10000, // Poll every 10 seconds for changes
+    pollIntervalInMs: 15000, // Poll every 15 seconds for changes
     async onFailureToCompose(err) {
       console.error('Failed to compose supergraph:', err.message);
+      console.log('Gateway will retry composition...');
+      // Don't throw, just log - allow gateway to continue serving
     },
     subgraphHealthCheck: true,
+    // Increase timeout for slower startup environments
+    request: {
+      timeout: 15000, // 15 second timeout for introspection requests
+    },
+    // Add initial composition delay
+    initialCompositionDelayMs: 10000, // Wait 10 seconds before first composition attempt
   }),
   buildService({ name, url }) {
     console.log(`Building service ${name} with URL ${url}`);
     return new AuthenticatedDataSource({ url });
+  },
+  // Allow the gateway to start even if some services aren't available yet
+  didFailComposingGraph() {
+    console.log('Initial composition failed, gateway will retry...');
+    // Don't exit on composition failure, just continue
+    return;
   },
 });
 
@@ -163,7 +177,11 @@ async function startServer() {
     res.end(await register.metrics());
   });
 
-  // Start Apollo Server immediately; IntrospectAndCompose will poll subgraphs.
+  // Add startup delay to allow services to initialize
+  console.log('Waiting for services to initialize before starting Apollo Server...');
+  await new Promise(resolve => setTimeout(resolve, 15000)); // 15 second delay
+
+  // Start Apollo Server; IntrospectAndCompose will poll subgraphs.
   await server.start();
 
   // GraphQL middleware

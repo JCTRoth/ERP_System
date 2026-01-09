@@ -70,7 +70,7 @@ const GET_ORDERS = gql`
 `;
 
 const GET_ORDER_DETAILS = gql`
-  query GetOrderDetailsForInvoice($id: UUID!) {
+  query GetOrderDetailsForInvoice($id: String!) {
     order(id: $id) {
       id
       orderNumber

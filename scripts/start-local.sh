@@ -1,332 +1,614 @@
 #!/bin/bash
 
-# ERP System Local Startup Script
-# This script starts the complete ERP system locally using Docker Compose
+# ERP System Local Startup Script (Redesigned)
+# Architecture: Pre-flight checks → Network validation → Start infrastructure → Start services → Gateway last
+# 
+# Startup order:
+# 1. Pre-flight checks (Docker, compose file)
+# 2. Network/reachability pre-checks
+# 3. Port availability checks
+# 4. Start infrastructure (PostgreSQL)
+# 5. Wait for databases
+# 6. Start all GraphQL services
+# 7. Verify service health
+# 8. Start Frontend
+# 9. START GATEWAY LAST
+# 10. Final verification
 
-set -e  # Exit on any error
+set -e
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Configuration
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 
-# Function to print colored output
+# Logging utilities
 print_status() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    echo -e "${GREEN}[✓]${NC} $1"
+}
+
+print_info() {
+    echo -e "${BLUE}[i]${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${YELLOW}[!]${NC} $1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}[✗]${NC} $1"
 }
 
 print_header() {
-    echo -e "${BLUE}================================${NC}"
-    echo -e "${BLUE}$1${NC}"
-    echo -e "${BLUE}================================${NC}"
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}  $1${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
-# Function to check if Docker is running
-check_docker() {
+# ============================================================================
+# PHASE 1: PRE-FLIGHT CHECKS
+# ============================================================================
+
+preflight_checks() {
+    print_header "PHASE 1: Pre-flight Checks"
+
+    # Check Docker
+    print_info "Checking Docker availability..."
     if ! docker info >/dev/null 2>&1; then
-        print_error "Docker is not running. Please start Docker first."
+        print_error "Docker is not running"
         exit 1
     fi
     print_status "Docker is running"
-}
 
-# Function to check if docker-compose file exists
-check_compose_file() {
+    # Check Docker Compose file
+    print_info "Checking Docker Compose file..."
     if [ ! -f "$COMPOSE_FILE" ]; then
         print_error "Docker Compose file not found: $COMPOSE_FILE"
         exit 1
     fi
-    print_status "Found Docker Compose file: $COMPOSE_FILE"
+    print_status "Found: $COMPOSE_FILE"
+
+    # Check if services already running
+    print_info "Checking for existing services..."
+    local running_count
+    running_count=$(docker ps --format "{{.Names}}" | grep -E "(gateway|user-service|postgres)" | wc -l)
+    if [ "$running_count" -ge 3 ]; then
+        print_warning "ERP System appears to already be running!"
+        echo ""
+        print_info "To see running services: $0 ports"
+        print_info "To stop the system: $0 stop"
+        exit 0
+    fi
+    print_status "No existing services found"
 }
 
-# Function to wait for database to be ready
-# Accepts a docker-compose service name, resolves the container id, and checks pg_isready
-wait_for_db() {
-    local service_name=$1
-    local max_attempts=30  # Reduced from 60
-    local attempt=1
+# ============================================================================
+# PHASE 2: NETWORK & REACHABILITY CHECKS
+# ============================================================================
 
-    print_status "Waiting for $service_name to be ready..."
+network_checks() {
+    print_header "PHASE 2: Network & Reachability Checks"
 
-    while [ $attempt -le $max_attempts ]; do
-        # Resolve the container id for the compose service
-        container_id=$(docker compose -f "$COMPOSE_FILE" ps -q "$service_name" 2>/dev/null || true)
+    local failed=0
+
+    # Define ports that should be available
+    local required_ports=(
+        "5173:Frontend"
+        "4000:Gateway"
+        "5000:UserService"
+        "5001:AccountingService"
+        "5002:MasterdataService"
+        "5003:ShopService"
+        "5004:OrdersService"
+        "8080:CompanyService"
+        "8081:TranslationService"
+        "8087:TemplatesService"
+        "15432:PostgreSQL"
+        "3001:Grafana"
+        "9090:Prometheus"
+        "9001:MinIO"
+    )
+
+    print_info "Checking port availability (${#required_ports[@]} ports)..."
+
+    for port_info in "${required_ports[@]}"; do
+        local port
+        local service
+        port=$(echo "$port_info" | cut -d: -f1)
+        service=$(echo "$port_info" | cut -d: -f2)
+
+        if nc -z localhost "$port" >/dev/null 2>&1; then
+            print_warning "$service ($port) - Already in use (may be from previous run)"
+            ((failed++))
+        else
+            print_status "$service ($port) - Available"
+        fi
+    done
+
+    if [ $failed -gt 0 ]; then
+        print_warning "$failed port(s) already in use"
+        print_info "Try: docker compose -f $COMPOSE_FILE down"
+        print_info "Then retry the startup script"
+        exit 1
+    fi
+}
+
+# ============================================================================
+# PHASE 3: INFRASTRUCTURE STARTUP
+# ============================================================================
+
+start_infrastructure() {
+    print_header "PHASE 3: Starting Infrastructure"
+
+    cd "$PROJECT_DIR"
+
+    print_info "Starting PostgreSQL database..."
+    docker compose -f "$COMPOSE_FILE" up -d postgres >/dev/null 2>&1
+
+    print_status "PostgreSQL container created"
+    
+    # Wait for database to be ready
+    print_info "Waiting for PostgreSQL to accept connections..."
+    local max_attempts=30
+    local attempt=0
+
+    while [ $attempt -lt $max_attempts ]; do
+        local container_id
+        container_id=$(docker compose -f "$COMPOSE_FILE" ps -q postgres 2>/dev/null || true)
 
         if [ -n "$container_id" ]; then
             if docker exec "$container_id" pg_isready -U postgres >/dev/null 2>&1; then
-                print_status "$service_name (container $container_id) is ready!"
+                print_status "PostgreSQL is ready"
                 return 0
             fi
         fi
 
         echo -n "."
-        sleep 1  # Reduced from 2
+        sleep 1
         ((attempt++))
     done
 
-    print_error "$service_name failed to start within expected time"
+    print_error "PostgreSQL failed to start within 30 seconds"
     return 1
 }
 
-# Function to check service health (parallel version)
-check_service_health_parallel() {
-    local services=("$@")
-    local pids=()
-    local results=()
+# ============================================================================
+# PHASE 4: START CORE SERVICES
+# ============================================================================
 
-    print_status "Checking health of ${#services[@]} services in parallel..."
+start_services() {
+    print_header "PHASE 4: Starting Core Services"
 
-    # Start health checks in parallel
-    for service_info in "${services[@]}"; do
-        local service_name
-        service_name=$(echo "$service_info" | cut -d: -f1)
-        local port
-        port=$(echo "$service_info" | cut -d: -f2)
-        local max_attempts=8  # Reduced from 10
+    local services=(
+        "user-service"
+        "translation-service"
+        "company-service"
+        "shop-service"
+        "masterdata-service"
+        "accounting-service"
+        "orders-service"
+        "templates-service"
+    )
 
-        (
-            local attempt=1
-            while [ $attempt -le $max_attempts ]; do
-                if curl -f --max-time 5 http://localhost:"$port"/health >/dev/null 2>&1; then
-                    echo "SUCCESS:$service_name"
-                    return 0
-                fi
-                sleep 2  # Reduced from 3
-                ((attempt++))
-            done
-            echo "FAILED:$service_name"
-        ) &
-        pids+=($!)
+    print_info "Starting ${#services[@]} services..."
+
+    for service in "${services[@]}"; do
+        docker compose -f "$COMPOSE_FILE" up -d "$service" >/dev/null 2>&1
+        print_status "Started: $service"
     done
 
-    # Wait for all checks to complete
-    for pid in "${pids[@]}"; do
-        wait "$pid"
-        result=$(wait "$pid" 2>/dev/null && echo "SUCCESS" || echo "FAILED")
-        results+=("$result")
-    done
-
-    # Report results
-    local success_count=0
-    for result in "${results[@]}"; do
-        if [[ $result == SUCCESS* ]]; then
-            local service
-            service=$(echo "$result" | cut -d: -f2)
-            print_status "$service is healthy!"
-            ((success_count++))
-        else
-            local service
-            service=$(echo "$result" | cut -d: -f2)
-            print_warning "$service health check failed, but continuing..."
-        fi
-    done
-
-    print_status "Health checks completed: $success_count/${#services[@]} services healthy"
-}
-
-# Function to check GraphQL endpoint health (parallel version)
-check_graphql_health_parallel() {
-    local services=("$@")
-    local pids=()
-    local results=()
-
-    print_status "Checking GraphQL endpoints for ${#services[@]} services in parallel..."
-
-    # Start GraphQL checks in parallel
-    for service_info in "${services[@]}"; do
-        local service_name
-        service_name=$(echo "$service_info" | cut -d: -f1)
-        local port
-        port=$(echo "$service_info" | cut -d: -f2)
-        local max_attempts=10  # Reduced from 15
-
-        (
-            local attempt=1
-            while [ $attempt -le $max_attempts ]; do
-                if curl -f --max-time 5 -X POST -H "Content-Type: application/json" -d '{"query":"{__typename}"}' http://localhost:"$port"/graphql >/dev/null 2>&1; then
-                    echo "SUCCESS:$service_name"
-                    return 0
-                fi
-                sleep 2
-                ((attempt++))
-            done
-            echo "FAILED:$service_name"
-        ) &
-        pids+=($!)
-    done
-
-    # Wait for all checks to complete
-    for pid in "${pids[@]}"; do
-        if wait "$pid" 2>/dev/null; then
-            results+=("SUCCESS")
-        else
-            results+=("FAILED")
-        fi
-    done
-
-    # Report results
-    local success_count=0
-    for result in "${results[@]}"; do
-        if [[ $result == SUCCESS* ]]; then
-            local service
-            service=$(echo "$result" | cut -d: -f2)
-            print_status "$service GraphQL endpoint is ready!"
-            ((success_count++))
-        else
-            local service
-            service=$(echo "$result" | cut -d: -f2)
-            print_warning "$service GraphQL endpoint not ready, but continuing..."
-        fi
-    done
-
-    print_status "GraphQL checks completed: $success_count/${#services[@]} endpoints ready"
-}
-
-# Main startup function
-main() {
-    print_header "ERP System Local Startup"
-
-    # Pre-flight checks
-    check_docker
-    check_compose_file
-
-    cd "$PROJECT_DIR"
-
-    # Start infrastructure (databases)
-    print_header "Starting Infrastructure"
-    print_status "Starting databases..."
-
-    docker compose -f "$COMPOSE_FILE" up -d \
-        postgres
-
-    # Wait for consolidated database to be ready
-    print_status "Waiting for database to be ready..."
-    wait_for_db postgres
-
-    # Start all GraphQL services in parallel
-    print_header "Starting GraphQL Dependencies"
-    print_status "Bringing up all services in parallel..."
-
-    docker compose -f "$COMPOSE_FILE" up -d \
-        user-service \
-        translation-service \
-        company-service \
-        shop-service \
-        masterdata-service \
-        accounting-service \
-        templates-service
-
-    # Give services a moment to spin up (reduced from 10 seconds)
-    print_status "Waiting for services to initialize..."
+    print_info "Waiting for services to initialize..."
     sleep 5
-
-    # Check all services health in parallel
-    check_service_health_parallel \
-        "UserService:5000" \
-        "TranslationService:8083" \
-        "CompanyService:8081" \
-        "ShopService:5003" \
-        "MasterdataService:5002" \
-        "AccountingService:5001" \
-        "TemplatesService:8087"
-
-    # Check GraphQL endpoints in parallel
-    check_graphql_health_parallel \
-        "UserService:5000" \
-        "TranslationService:8083" \
-        "CompanyService:8081" \
-        "ShopService:5003" \
-        "MasterdataService:5002" \
-        "AccountingService:5001"
-
-    # Start the gateway after dependencies are healthy
-    print_header "Starting Gateway"
-    docker compose -f "$COMPOSE_FILE" up -d gateway
-
-    print_status "Waiting for Gateway to become ready..."
-    sleep 8  # Reduced from 15
-
-    check_service_health "Gateway" "4000"
-
-    # Start the frontend once the gateway is online
-    print_header "Starting Frontend"
-    docker compose -f "$COMPOSE_FILE" up -d frontend
-
-    # Show status
-    print_header "System Status"
-    echo ""
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(gateway|user-service|masterdata-service|accounting-service|templates-service|frontend|postgres)"
-
-    # Show access information
-    print_header "Access Information"
-    echo ""
-    echo -e "${GREEN}Frontend:${NC}        http://localhost:5173"
-    echo -e "${GREEN}GraphQL Gateway:${NC} http://localhost:4000/graphql"
-    echo -e "${GREEN}UserService:${NC}     http://localhost:5000/graphql"
-    echo -e "${GREEN}TranslationService:${NC} http://localhost:8083/graphql"
-    echo -e "${GREEN}TemplatesService:${NC} http://localhost:8087/api"
-    echo -e "${GREEN}MinIO (Storage):${NC} http://localhost:9001 (admin/admin)"
-    echo ""
-    echo -e "${YELLOW}Login Credentials:${NC}"
-    echo -e "  Email: admin@erp-system.local"
-    echo -e "  Password: Admin123!"
-    echo ""
-
-    print_header "Startup Complete!"
-    print_status "ERP System is now running locally"
-    echo ""
-    print_status "All core services are operational!"
-    print_status "If you see 400 errors in the browser, clear localStorage and log in again"
 }
 
-# Function to stop the system
+# ============================================================================
+# PHASE 5: HEALTH CHECKS
+# ============================================================================
+
+check_service_health() {
+    local service=$1
+    local port=$2
+    local max_attempts=8
+    local attempt=0
+
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -sf --max-time 3 "http://localhost:$port/health" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+        ((attempt++))
+    done
+
+    return 1
+}
+
+check_graphql_endpoint() {
+    local service=$1
+    local port=$2
+    local max_attempts=8
+    local attempt=0
+
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -sf --max-time 3 -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"query":"{__typename}"}' \
+            "http://localhost:$port/graphql" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+        ((attempt++))
+    done
+
+    return 1
+}
+
+verify_services() {
+    print_header "PHASE 5: Verifying Service Health"
+
+    local services=(
+        "UserService:5000"
+        "ShopService:5003"
+        "AccountingService:5001"
+        "MasterdataService:5002"
+        "OrdersService:5004"
+    )
+
+    local healthy=0
+    local failed=0
+
+    print_info "Running health checks (${#services[@]} services)..."
+
+    for service_info in "${services[@]}"; do
+        local service
+        local port
+        service=$(echo "$service_info" | cut -d: -f1)
+        port=$(echo "$service_info" | cut -d: -f2)
+
+        print_info "Checking $service ($port)..."
+
+        if check_service_health "$service" "$port"; then
+            print_status "$service - Health check passed"
+            ((healthy++))
+        else
+            print_warning "$service - Health check failed"
+            ((failed++))
+        fi
+    done
+
+    print_info "Running GraphQL endpoint checks..."
+    for service_info in "${services[@]}"; do
+        local service
+        local port
+        service=$(echo "$service_info" | cut -d: -f1)
+        port=$(echo "$service_info" | cut -d: -f2)
+
+        if check_graphql_endpoint "$service" "$port"; then
+            print_status "$service GraphQL - Ready"
+        else
+            print_warning "$service GraphQL - Not responding (may still be initializing)"
+        fi
+    done
+
+    echo ""
+    echo "Health check summary: $healthy/${#services[@]} services healthy"
+
+    if [ $healthy -lt $((${#services[@]} - 1)) ]; then
+        print_warning "Some services are not healthy yet, but continuing..."
+    fi
+}
+
+# ============================================================================
+# PHASE 6: START FRONTEND
+# ============================================================================
+
+start_frontend() {
+    print_header "PHASE 6: Starting Frontend"
+
+    print_info "Starting frontend container..."
+    docker compose -f "$COMPOSE_FILE" up -d frontend >/dev/null 2>&1
+    print_status "Frontend container started"
+
+    print_info "Waiting for UI to be available (checking for content)..."
+    local max_attempts=10
+    local attempt=0
+
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -sf --max-time 5 "http://localhost:5173" >/dev/null 2>&1; then
+            print_status "UI is serving content"
+            return 0
+        fi
+        echo -n "."
+        sleep 3
+        ((attempt++))
+    done
+
+    print_warning "UI not responding yet (still loading is normal)"
+    return 1
+}
+
+# ============================================================================
+# PHASE 7: START GATEWAY (LAST)
+# ============================================================================
+
+start_gateway() {
+    print_header "PHASE 7: Starting GraphQL Gateway (LAST)"
+
+    print_info "Starting Apollo Gateway..."
+    docker compose -f "$COMPOSE_FILE" up -d gateway >/dev/null 2>&1
+    print_status "Gateway container started"
+
+    print_info "Waiting for Gateway to become ready (with extended service initialization delay)..."
+    local max_attempts=40
+    local attempt=0
+    local restart_count=0
+
+    while [ $attempt -lt $max_attempts ]; do
+        # Check if gateway port is listening
+        if timeout 3 bash -c ">/dev/tcp/localhost/4000" 2>/dev/null; then
+            print_status "Gateway is listening on port 4000"
+            
+            # Try to query GraphQL endpoint
+            if curl -sf --max-time 5 -X POST "http://localhost:4000/graphql" \
+                -H "Content-Type: application/json" \
+                -d '{"query":"{__typename}"}' >/dev/null 2>&1; then
+                print_status "Gateway is responding to GraphQL queries"
+                return 0
+            fi
+        fi
+        
+        # If we've tried for a while and gateway is not responding, restart it
+        if [ $attempt -gt 10 ] && [ $((attempt % 10)) -eq 0 ] && [ $restart_count -lt 2 ]; then
+            print_info "Gateway still not ready, restarting container (attempt $((restart_count + 1)))..."
+            docker compose -f "$COMPOSE_FILE" restart gateway >/dev/null 2>&1
+            ((restart_count++))
+            sleep 5
+        fi
+        
+        echo -n "."
+        sleep 3
+        ((attempt++))
+    done
+
+    print_warning "Gateway not fully ready after extended wait"
+    print_info "The gateway may continue to retry connecting to federated services in the background"
+    return 1
+}
+
+# ============================================================================
+# PHASE 8: FINAL VERIFICATION
+# ============================================================================
+
+final_verification() {
+    print_header "PHASE 8: Final System Verification"
+
+    local checks_passed=0
+    local checks_total=2
+
+    print_info "Verifying critical endpoints..."
+
+    # Check Gateway GraphQL (non-blocking with timeout)
+    print_info "Testing Gateway GraphQL endpoint..."
+    local gw_response
+    gw_response=$(timeout 5 curl -s -X POST \
+        -H "Content-Type: application/json" \
+        -d '{"query":"{__typename}"}' \
+        "http://localhost:4000/graphql" 2>&1) || gw_response="timeout"
+    
+    if [ "$gw_response" != "timeout" ] && [ -n "$gw_response" ]; then
+        print_status "Gateway GraphQL endpoint is responding"
+        ((checks_passed++))
+    else
+        print_warning "Gateway GraphQL endpoint not responding (services may still be initializing)"
+    fi
+
+    # Check Frontend (non-blocking with timeout)
+    print_info "Testing Frontend UI availability..."
+    if timeout 5 curl -sf "http://localhost:5173" >/dev/null 2>&1; then
+        print_status "Frontend UI is serving content"
+        ((checks_passed++))
+    else
+        print_warning "Frontend UI is not responding yet"
+    fi
+
+    echo ""
+    echo "Verification Summary: $checks_passed/$checks_total endpoints verified"
+
+    if [ $checks_passed -eq $checks_total ]; then
+        print_status "All systems operational!"
+        return 0
+    else
+        print_warning "Some systems are still initializing (this is normal on first startup)"
+        return 1
+    fi
+}
+
+# ============================================================================
+# DISPLAY INFORMATION
+# ============================================================================
+
+display_access_information() {
+    print_header "System Startup Complete!"
+
+    echo ""
+    echo -e "${GREEN}Access URLs:${NC}"
+    echo ""
+    echo "  Frontend:               http://localhost:5173"
+    echo "  GraphQL Gateway:        http://localhost:4000/graphql"
+    echo "  User Service:           http://localhost:5000/graphql"
+    echo "  Shop Service:           http://localhost:5003/graphql"
+    echo "  Accounting Service:     http://localhost:5001/graphql"
+    echo "  Masterdata Service:     http://localhost:5002/graphql"
+    echo "  Orders Service:         http://localhost:5004/graphql"
+    echo "  Company Service:        http://localhost:8080/graphql"
+    echo "  Translation Service:    http://localhost:8081/graphql"
+    echo "  Templates Service:      http://localhost:8087/api"
+    echo ""
+    echo "  PostgreSQL (dev):       localhost:15432"
+    echo "  Prometheus:             http://localhost:9090"
+    echo "  Grafana:                http://localhost:3001"
+    echo "  MinIO Storage:          http://localhost:9001 (admin/admin)"
+    echo ""
+
+    echo -e "${GREEN}Default Credentials:${NC}"
+    echo ""
+    echo "  Email:    admin@erp-system.local"
+    echo "  Password: Admin123!"
+    echo ""
+
+    echo -e "${GREEN}Useful Commands:${NC}"
+    echo ""
+    echo "  View running services:  $0 ports"
+    echo "  Stop the system:        $0 stop"
+    echo "  View logs:              docker compose -f docker-compose.dev.yml logs -f"
+    echo ""
+}
+
+display_running_services() {
+    print_header "Running Services"
+
+    echo ""
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | \
+        grep -E "(frontend|gateway|user-service|shop-service|accounting-service|masterdata-service|orders-service|company-service|translation-service|templates-service|postgres|prometheus|grafana|minio)" || true
+
+    echo ""
+}
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+show_ports() {
+    print_header "Service Port Mapping"
+
+    echo ""
+    echo -e "${GREEN}Standard Service Ports:${NC}"
+    echo ""
+    echo "  Frontend:               5173"
+    echo "  Gateway:                4000"
+    echo "  UserService:            5000"
+    echo "  AccountingService:      5001"
+    echo "  MasterdataService:      5002"
+    echo "  ShopService:            5003"
+    echo "  OrdersService:          5004"
+    echo "  CompanyService:         8080"
+    echo "  TranslationService:     8081"
+    echo "  TemplatesService:       8087"
+    echo "  PostgreSQL:             15432"
+    echo "  Prometheus:             9090"
+    echo "  Grafana:                3001"
+    echo "  MinIO:                  9001"
+    echo ""
+
+    display_running_services
+}
+
 stop_system() {
     print_header "Stopping ERP System"
 
     cd "$PROJECT_DIR"
 
-    print_status "Stopping all services..."
-    docker compose -f "$COMPOSE_FILE" down
+    print_info "Stopping all containers..."
+    docker compose -f "$COMPOSE_FILE" down >/dev/null 2>&1
 
-    print_status "System stopped"
+    print_status "All containers stopped"
+    echo ""
 }
 
-# Function to show help
+show_status() {
+    print_header "System Status"
+    echo ""
+
+    display_running_services
+
+    echo -e "${YELLOW}Tip: Use '$0 logs' to view container logs${NC}"
+    echo ""
+}
+
 show_help() {
-    echo "ERP System Local Startup Script"
+    echo ""
+    echo "ERP System - Local Startup Script"
     echo ""
     echo "Usage:"
-    echo "  $0 start    - Start the ERP system"
-    echo "  $0 stop     - Stop the ERP system"
-    echo "  $0 status   - Show system status"
-    echo "  $0 help     - Show this help"
+    echo "  $0 [COMMAND]"
     echo ""
-    echo "The script will:"
-    echo "  1. Check Docker availability"
-    echo "  2. Start all databases"
-    echo "  3. Wait for databases to be ready"
-    echo "  4. Start core services (UserService, Gateway, Frontend)"
-    echo "  5. Show access URLs and login credentials"
+    echo "Commands:"
+    echo "  start       Start the ERP system (default)"
+    echo "  stop        Stop the ERP system"
+    echo "  status      Show system status"
+    echo "  ports       Show service ports and URL mappings"
+    echo "  help        Show this help message"
     echo ""
-    echo "Note: Currently only UserService is active in GraphQL federation."
-    echo "Other services need to be built and configured separately."
+    echo "Startup Phases:"
+    echo "  1. Pre-flight checks (Docker, ports)"
+    echo "  2. Network validation"
+    echo "  3. Infrastructure startup (PostgreSQL)"
+    echo "  4. Core services startup"
+    echo "  5. Service health verification"
+    echo "  6. Frontend startup"
+    echo "  7. Gateway startup (LAST)"
+    echo "  8. Final system verification"
+    echo ""
 }
 
-# Parse command line arguments
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
+main() {
+    print_header "ERP System Startup"
+
+    echo ""
+    print_info "Starting system with health checks and verification"
+    echo ""
+
+    # Phase 1: Pre-flight checks
+    preflight_checks || exit 1
+
+    # Phase 2: Network checks
+    network_checks || exit 1
+
+    # Phase 3: Start infrastructure
+    start_infrastructure || exit 1
+
+    # Phase 4: Start services
+    start_services || exit 1
+
+    # Phase 5: Verify services
+    verify_services || print_warning "Service verification incomplete, continuing..."
+
+    # Add stabilization time for services to fully initialize
+    print_info "Allowing services to fully stabilize..."
+    sleep 15
+
+    # Phase 6: Start frontend
+    start_frontend || print_warning "Frontend not responding yet (may still be loading)"
+
+    # Phase 7: Start gateway (LAST)
+    start_gateway || print_warning "Gateway not responding yet (may still be initializing)"
+
+    # Phase 8: Final verification
+    final_verification
+
+    # Display information
+    display_access_information
+    display_running_services
+
+    print_status "ERP System startup sequence completed"
+    print_info "Check http://localhost:5173 to access the frontend"
+    echo ""
+}
+
+# ============================================================================
+# COMMAND ROUTING
+# ============================================================================
+
 case "${1:-start}" in
     start)
         main
@@ -335,15 +617,16 @@ case "${1:-start}" in
         stop_system
         ;;
     status)
-        print_header "System Status"
-        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(erp_system|minio)"
+        show_status
+        ;;
+    ports)
+        show_ports
         ;;
     help|--help|-h)
         show_help
         ;;
     *)
         print_error "Unknown command: $1"
-        echo ""
         show_help
         exit 1
         ;;

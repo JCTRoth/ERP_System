@@ -61,7 +61,37 @@ export const GET_COMPANIES = gql`
 
 // Detail queries for fetching full records
 export const GET_ORDER_DETAILS = gql`
-  query GetOrderDetails($id: UUID!) {
+  query GetOrderDetails($id: String!) {
+    order(id: $id) {
+      id
+      orderNumber
+      subtotal
+      taxAmount
+      shippingAmount
+      discountAmount
+      total
+      notes
+      items {
+        id
+        productId
+        productName
+        sku
+        quantity
+        unitPrice
+        discount
+        taxAmount
+        total
+      }
+      shippingAddress { name street city postalCode country phone }
+      billingAddress { name street city postalCode country }
+      createdAt
+    }
+  }
+`;
+
+// Shop service version - uses UUID instead of String
+export const GET_SHOP_ORDER_DETAILS = gql`
+  query GetShopOrderDetails($id: UUID!) {
     order(id: $id) {
       id
       orderNumber
@@ -120,8 +150,8 @@ export const GET_INVOICE_DETAILS = gql`
 `;
 
 export const GET_CUSTOMER_DETAILS = gql`
-  query GetCustomerDetails($id: UUID!) {
-    customer(id: $id) {
+  query GetCustomerDetails($customerNumber: String!) {
+    customerByNumber(customerNumber: $customerNumber) {
       id
       name
       email
@@ -132,15 +162,13 @@ export const GET_CUSTOMER_DETAILS = gql`
 `;
 
 export const GET_COMPANY_DETAILS = gql`
-  query GetCompanyDetails($id: UUID!) {
+  query GetCompanyDetails($id: ID!) {
     company(id: $id) {
       id
       name
       slug
       description
       logoUrl
-      email
-      phone
     }
   }
 `;
@@ -173,12 +201,28 @@ export interface TemplateContext {
     id: string;
     name: string;
     email?: string | null;
+    phone?: string | null;
     address?: {
       street?: string | null;
       city?: string | null;
       postalCode?: string | null;
       country?: string | null;
     };
+  };
+  shipment?: {
+    number?: string | null;
+    date?: string | null;
+    carrier?: string | null;
+    trackingNumber?: string | null;
+    notes?: string | null;
+  };
+  shipping?: {
+    name?: string | null;
+    street?: string | null;
+    city?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+    phone?: string | null;
   };
   invoice?: {
     id: string;
@@ -205,6 +249,21 @@ export interface TemplateContext {
     total?: number | null;
   }>;
   product?: any;
+  cancellation?: {
+    date: string;
+    reason: string;
+    refundAmount: number;
+    method: string;
+    notes: string;
+    items?: Array<{
+      index: number;
+      name?: string | null;
+      description?: string | null;
+      quantity?: number | null;
+      unitPrice?: number | null;
+      total?: number | null;
+    }>;
+  };
 }
 
 // Parse template content to extract used variables
@@ -314,6 +373,7 @@ export function buildTemplateContext(
         id: cu.id,
         name: cu.name || `${cu.firstName || ''} ${cu.lastName || ''}`.trim(),
         email: cu.email || null,
+        phone: cu.phone || cu.contactPhone || cu.mobile || null,
         address: defaultAddr
           ? {
               street: defaultAddr.street || defaultAddr.address || undefined,
@@ -352,6 +412,7 @@ export function buildTemplateContext(
           id: inv.customerId || '',
           name: inv.customerName || null,
           email: null,
+          phone: inv.customerPhone || inv.billingPhone || null,
           address: {
             street: inv.billingAddress || undefined,
             city: inv.billingCity || undefined,
@@ -379,7 +440,12 @@ export function buildTemplateContext(
   if (selectedIds.orderId) {
     const o = fullRecords.fullOrder || masterData.orders.find((ord: any) => String(ord.id) === String(selectedIds.orderId));
     if (o) {
-      context.order = o;
+      // Create a copy of the order with additional template-compatible fields
+      context.order = {
+        ...o,
+        // Add 'number' alias for templates that expect order.number instead of order.orderNumber
+        number: o.orderNumber,
+      };
 
       // Map order fields to invoice-like structure if no invoice selected
       if (!context.invoice) {
@@ -399,12 +465,104 @@ export function buildTemplateContext(
       if (!context.items && Array.isArray((o as any).items) && (o as any).items.length > 0) {
         context.items = (o as any).items.map((it: any, idx: number) => ({
           index: it.index ?? idx + 1,
+          // Add 'name' alias for templates that expect item.name
+          name: it.productName || it.name || it.description || null,
           description: it.description || it.name || it.productName || null,
           quantity: it.quantity ?? it.Quantity ?? null,
           unitPrice: it.unitPrice ?? it.UnitPrice ?? it.price ?? null,
           discount: it.discount ?? it.DiscountAmount ?? 0,
           total: it.total ?? it.Total ?? (it.quantity && it.unitPrice ? it.quantity * it.unitPrice : null),
         }));
+      }
+
+      // Auto-populate customer context from order customer data if not already set
+      if (!context.customer && o.customer) {
+        // Build customer name from available fields
+        const customerName = 
+          o.customer.name ||
+          `${o.customer.firstName || ''} ${o.customer.lastName || ''}`.trim() ||
+          o.customer.email ||
+          `Customer ${o.customer.id?.toString().slice(0, 8) || 'Unknown'}`;
+
+        context.customer = {
+          id: o.customer.id || o.customerId || '',
+          name: customerName,
+          email: o.customer.email || null,
+          phone: o.customer.phone || o.customer.contactPhone || o.customer.mobile || null,
+          address: o.customer.address || {
+            street: o.shippingAddress?.street || o.billingAddress?.street || undefined,
+            city: o.shippingAddress?.city || o.billingAddress?.city || undefined,
+            postalCode: o.shippingAddress?.postalCode || o.billingAddress?.postalCode || undefined,
+            country: o.shippingAddress?.country || o.billingAddress?.country || undefined,
+          },
+        };
+      }
+    }
+  }
+
+  // Shipment context (mock data for preview when order is selected)
+  if (selectedIds.orderId && !context.shipment) {
+    const o = fullRecords.fullOrder || masterData.orders.find((ord: any) => String(ord.id) === String(selectedIds.orderId));
+    if (o) {
+      context.shipment = {
+        number: `SHIP-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+        date: new Date().toISOString().split('T')[0], // Current date
+        carrier: 'DHL Express', // Default carrier
+        trackingNumber: `TRACK${Math.floor(100000000 + Math.random() * 900000000)}`, // Random tracking number
+        notes: 'Preview shipment information. Actual tracking will be provided when shipped.',
+      };
+    }
+  }
+
+  // Shipping address context (from order shipping address)
+  if (selectedIds.orderId && !context.shipping) {
+    const o = fullRecords.fullOrder || masterData.orders.find((ord: any) => String(ord.id) === String(selectedIds.orderId));
+    if (o && o.shippingAddress) {
+      context.shipping = {
+        name: o.shippingAddress.name || o.customer?.name || null,
+        street: o.shippingAddress.street || null,
+        city: o.shippingAddress.city || null,
+        postalCode: o.shippingAddress.postalCode || o.shippingAddress.zip || null,
+        country: o.shippingAddress.country || null,
+        phone: o.shippingAddress.phone || o.customer?.phone || null,
+      };
+    }
+  }
+
+  // Cancellation context (mock data for preview when order is selected)
+  if (selectedIds.orderId && !context.cancellation) {
+    const o = fullRecords.fullOrder || masterData.orders.find((ord: any) => String(ord.id) === String(selectedIds.orderId));
+    if (o) {
+      context.cancellation = {
+        date: new Date().toISOString(), // Current date as cancellation date
+        reason: 'Customer requested cancellation', // Default reason
+        refundAmount: o.total ?? o.Total ?? 0, // Full refund by default
+        method: 'Original payment method', // Default method
+        notes: 'This is a preview cancellation. Actual cancellation would be processed through the system.',
+      };
+
+      // Add items from the order to cancellation context
+      const orderItems = o.items || o.orderItems || o.lineItems || o.products || [];
+      if (Array.isArray(orderItems) && orderItems.length > 0) {
+        console.log('DEBUG: Processing order items for cancellation:', orderItems);
+        const cancellationItems = orderItems.map((item: any, index: number) => ({
+          index: index + 1,
+          name: item.productName || item.name || item.description || item.product || 'Product',
+          description: item.description || item.name || item.productName || item.product || null,
+          quantity: item.quantity ?? item.Quantity ?? item.qty ?? 1,
+          unitPrice: item.unitPrice ?? item.UnitPrice ?? item.price ?? item.amount ?? 0,
+          total: item.total ?? item.Total ?? item.subtotal ?? ((item.quantity ?? 1) * (item.unitPrice ?? 0)),
+        }));
+        console.log('DEBUG: Created cancellation items:', cancellationItems);
+        context.cancellation.items = cancellationItems;
+        // Also set items at root level for backward compatibility with templates
+        context.items = cancellationItems;
+        // Try some common alternative variable names
+        context.orderItems = cancellationItems;
+        context.products = cancellationItems;
+        context.productList = cancellationItems;
+      } else {
+        console.log('DEBUG: No items found in order for cancellation:', o);
       }
     }
   }

@@ -1,0 +1,26 @@
+{
+  "build_config": {
+    "github_username": "JCTRoth",
+    "github_token": "ghp_your_personal_access_token_here",
+    "registry_url": "ghcr.io",
+    "image_version": "1.0.0",
+    "parallel_builds": 2
+  },
+  "deployment_config": {
+    "deploy_server": "prod.example.com",
+    "deploy_domain": "erp.example.com",
+    "deploy_username": "root",
+    "deploy_ssh_key": "~/.ssh/id_rsa",
+    "registry_url": "ghcr.io",
+    "registry_username": "JCTRoth",
+    "registry_token": "ghp_your_personal_access_token_here",
+    "image_version": "1.0.0",
+    "letsencrypt_email": "admin@example.com",
+    "db_password": "secure_postgres_password_here"
+  },
+  "ci_cd": {
+    "github_actions_enabled": true,
+    "trigger_on_tag": true,
+    "tag_pattern": "v*"
+  }
+}

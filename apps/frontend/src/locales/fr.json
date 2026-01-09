@@ -362,6 +362,7 @@
   "templates.renderAsHtml": "HTML",
   "templates.renderAsPdf": "PDF",
   "templates.selectContext": "Sélectionner les données du modèle",
+  "templates.selectContextHint": "Choisissez les enregistrements de données pour remplir les variables du modèle",
   "templates.selectCompany": "Entreprise",
   "templates.selectRecord": "Enregistrement",
   "templates.renderPreview": "Rendre l'aperçu",
