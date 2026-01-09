@@ -547,7 +547,7 @@ public class AccountingDbContext : DbContext
                 Reference = "PAYREF123",
                 TransactionId = "TX123456",
                 Notes = "Partial payment",
-                PayerName = "John Doe",
+                PayerName = "Jonas Roth",
                 PayeeName = "ACME Corp",
                 PayerIban = "DE89370400440532013000",
                 PayeeIban = "DE75512108001245126199",

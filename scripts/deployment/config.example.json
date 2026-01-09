@@ -1,6 +1,6 @@
 {
   "build_config": {
-    "github_username": "JCTRoth",
+    "github_username": "XXXXXX",
     "github_token": "ghp_your_personal_access_token_here",
     "registry_url": "ghcr.io",
     "image_version": "1.0.0",

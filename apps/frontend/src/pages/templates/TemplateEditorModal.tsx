@@ -288,7 +288,6 @@ export default function TemplateEditorModal({
                     <TemplateVariablesPanel
                       variables={variables}
                       contextSelected={contextSelected}
-                      mainObjectType={formData.mainObjectType}
                       isEditingTemplate={!!template}
                     />
                   )}

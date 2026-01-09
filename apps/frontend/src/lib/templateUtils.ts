@@ -249,6 +249,30 @@ export interface TemplateContext {
     total?: number | null;
   }>;
   product?: any;
+  orderItems?: Array<{
+    index: number;
+    name?: string | null;
+    description?: string | null;
+    quantity?: number | null;
+    unitPrice?: number | null;
+    total?: number | null;
+  }>;
+  products?: Array<{
+    index: number;
+    name?: string | null;
+    description?: string | null;
+    quantity?: number | null;
+    unitPrice?: number | null;
+    total?: number | null;
+  }>;
+  productList?: Array<{
+    index: number;
+    name?: string | null;
+    description?: string | null;
+    quantity?: number | null;
+    unitPrice?: number | null;
+    total?: number | null;
+  }>;
   cancellation?: {
     date: string;
     reason: string;

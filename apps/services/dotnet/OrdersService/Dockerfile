@@ -4,13 +4,13 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
 
 # Copy project files
-COPY ["apps/services/dotnet/OrdersService/OrdersService.csproj", "OrdersService/"]
+COPY ["OrdersService.csproj", "OrdersService/"]
 
 # Restore dependencies
 RUN dotnet restore "OrdersService/OrdersService.csproj"
 
 # Copy source code
-COPY ["apps/services/dotnet/OrdersService/", "OrdersService/"]
+COPY [".", "OrdersService/"]
 
 # Build
 WORKDIR "/src/OrdersService"

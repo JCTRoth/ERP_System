@@ -9,7 +9,6 @@ import {
   GET_CUSTOMERS,
   GET_PRODUCTS,
   GET_COMPANIES,
-  GET_ORDER_DETAILS,
   GET_SHOP_ORDER_DETAILS,
   GET_INVOICE_DETAILS,
   GET_CUSTOMER_DETAILS,
@@ -111,7 +110,7 @@ export function useTemplatePreview(template: ApiTemplate) {
             });
             if (mounted) updates.fullOrder = data?.order ?? null;
           } catch (orderError) {
-            console.warn('Failed to fetch order details:', orderError.message);
+            console.warn('Failed to fetch order details:', (orderError as Error).message);
             if (mounted) updates.fullOrder = null;
           }
         } else {
@@ -128,7 +127,7 @@ export function useTemplatePreview(template: ApiTemplate) {
             });
             if (mounted) updates.fullInvoice = data?.invoice ?? null;
           } catch (invoiceError) {
-            console.warn('Failed to fetch invoice details:', invoiceError.message);
+            console.warn('Failed to fetch invoice details:', (invoiceError as Error).message);
             if (mounted) updates.fullInvoice = null;
           }
         } else {
@@ -151,7 +150,7 @@ export function useTemplatePreview(template: ApiTemplate) {
               if (mounted) updates.fullCustomer = null;
             }
             // Log the error but don't rethrow - this is not critical for template preview
-            console.warn('Failed to fetch customer details, using fallback data:', customerError.message);
+            console.warn('Failed to fetch customer details, using fallback data:', (customerError as Error).message);
           }
         } else {
           if (mounted) updates.fullCustomer = null;
@@ -167,7 +166,7 @@ export function useTemplatePreview(template: ApiTemplate) {
             });
             if (mounted) updates.fullProduct = data?.product ?? null;
           } catch (productError) {
-            console.warn('Failed to fetch product details:', productError.message);
+            console.warn('Failed to fetch product details:', (productError as Error).message);
             if (mounted) updates.fullProduct = null;
           }
         } else {
@@ -185,7 +184,7 @@ export function useTemplatePreview(template: ApiTemplate) {
             if (mounted) updates.fullCompany = data?.company ?? null;
           } catch (companyError) {
             // Log the error but don't rethrow - this is not critical for template preview
-            console.warn('Failed to fetch company details:', companyError.message);
+            console.warn('Failed to fetch company details:', (companyError as Error).message);
             if (mounted) updates.fullCompany = null;
           }
         } else {

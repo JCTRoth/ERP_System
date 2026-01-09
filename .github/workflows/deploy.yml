@@ -34,7 +34,7 @@ jobs:
       
       - name: Build and Push Images
         run: |
-          ./scripts/build-and-push.sh \
+          ./scripts/deployment/deploy-to-registry.sh \
             --username ${{ github.repository_owner }} \
             --token ${{ secrets.GITHUB_TOKEN }} \
             --version ${{ steps.version.outputs.VERSION }}
@@ -64,10 +64,12 @@ jobs:
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.DEPLOY_SERVER }} >> ~/.ssh/known_hosts
+          # Test SSH connection
+          ssh -i ~/.ssh/deploy_key -o ConnectTimeout=10 ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_SERVER }} "echo 'SSH connection successful'"
       
       - name: Deploy Application
         run: |
-          ./scripts/deploy-production.sh \
+          ./scripts/deployment/deploy-to-server.sh \
             --server ${{ secrets.DEPLOY_SERVER }} \
             --domain ${{ secrets.DEPLOY_DOMAIN }} \
             --username ${{ secrets.DEPLOY_USERNAME }} \

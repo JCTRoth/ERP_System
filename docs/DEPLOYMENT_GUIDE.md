@@ -39,7 +39,7 @@ The deployment process consists of two main steps:
 ### Option A: Interactive Mode
 
 ```bash
-./scripts/build-and-push.sh
+./scripts/deployment/deploy-to-registry.sh
 ```
 
 The script will prompt for:
@@ -50,7 +50,7 @@ The script will prompt for:
 ### Option B: Using Command Line Arguments
 
 ```bash
-./scripts/build-and-push.sh \
+./scripts/deployment/deploy-to-registry.sh \
   --username JCTRoth \
   --token ghp_your_token_here \
   --version 1.0.0
@@ -73,7 +73,7 @@ Create a file named `build-config.json`:
 Then run:
 
 ```bash
-./scripts/build-and-push.sh --config build-config.json
+./scripts/deployment/deploy-to-registry.sh --config build-config.json
 ```
 
 ### Dry Run (Preview Only)
@@ -81,7 +81,7 @@ Then run:
 To see what would be built without actually building:
 
 ```bash
-./scripts/build-and-push.sh --dry-run --username JCTRoth --version 1.0.0
+./scripts/deployment/deploy-to-registry.sh --dry-run --username JCTRoth --version 1.0.0
 ```
 
 ### Parallel Builds
@@ -89,7 +89,7 @@ To see what would be built without actually building:
 Control the number of parallel builds:
 
 ```bash
-./scripts/build-and-push.sh --parallel 4 --username JCTRoth --token ghp_xxx
+./scripts/deployment/deploy-to-registry.sh --parallel 4 --username JCTRoth --token ghp_xxx
 ```
 
 ## Step 3: Deploy to Production
@@ -97,7 +97,7 @@ Control the number of parallel builds:
 ### Option A: Interactive Mode
 
 ```bash
-./scripts/deploy-production.sh
+./scripts/deployment/deploy-to-server.sh
 ```
 
 The script will prompt for:
@@ -110,7 +110,7 @@ The script will prompt for:
 ### Option B: Using Command Line Arguments
 
 ```bash
-./scripts/deploy-production.sh \
+./scripts/deployment/deploy-to-server.sh \
   --server prod.example.com \
   --domain erp.example.com \
   --email admin@example.com \
@@ -141,7 +141,7 @@ Create a file named `deploy-config.json`:
 Then run:
 
 ```bash
-./scripts/deploy-production.sh --config deploy-config.json
+./scripts/deployment/deploy-to-server.sh --config deploy-config.json
 ```
 
 ### Dry Run (Preview Only)
@@ -149,7 +149,7 @@ Then run:
 To see what would be deployed without actually deploying:
 
 ```bash
-./scripts/deploy-production.sh \
+./scripts/deployment/deploy-to-server.sh \
   --server prod.example.com \
   --domain erp.example.com \
   --dry-run
@@ -259,7 +259,7 @@ jobs:
       
       - name: Build and Push Images
         run: |
-          ./scripts/build-and-push.sh \
+          ./scripts/deployment/deploy-to-registry.sh \
             --username JCTRoth \
             --token ${{ secrets.GITHUB_TOKEN }} \
             --version ${{ github.ref_name }}
@@ -276,7 +276,7 @@ jobs:
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           
-          ./scripts/deploy-production.sh \
+          ./scripts/deploy-to-server.sh \
             --server ${{ secrets.DEPLOY_SERVER }} \
             --domain ${{ secrets.DEPLOY_DOMAIN }} \
             --email ${{ secrets.DEPLOY_EMAIL }} \

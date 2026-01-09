@@ -22,11 +22,11 @@ This directory contains scripts for managing the ERP System development and depl
 | Stop all local containers
 | ✅ Production Ready
 
-| link:deploy-and-push.sh[deploy-and-push.sh]
+| link:deploy-to-registry.sh[deploy-to-registry.sh]
 | Build and push containers to GitHub Container Registry
 | ✅ Production Ready
 
-| link:deploy-production.sh[deploy-production.sh]
+| link:deploy-to-server.sh[deploy-to-server.sh]
 | Deploy the system to a production server
 | ✅ Production Ready
 
@@ -160,7 +160,7 @@ Stop all local containers and clean up the system.
 docker compose down -v
 ----
 
-== deploy-and-push.sh
+== deploy-to-registry.sh
 
 Build all ERP containers and push them to GitHub Container Registry.
 
@@ -180,7 +180,7 @@ Build all ERP containers and push them to GitHub Container Registry.
 
 [source,bash]
 ----
-./scripts/deploy-and-push.sh
+./scripts/deployment/deploy-to-registry.sh
 # Prompts for: GitHub username, token, version
 ----
 
@@ -188,7 +188,7 @@ Build all ERP containers and push them to GitHub Container Registry.
 
 [source,bash]
 ----
-./scripts/deploy-and-push.sh \
+./scripts/deployment/deploy-to-registry.sh \
   --username JCTRoth \
   --token ghp_your_token_here \
   --version 1.0.0
@@ -198,21 +198,21 @@ Build all ERP containers and push them to GitHub Container Registry.
 
 [source,bash]
 ----
-./scripts/deploy-and-push.sh --config build-config.json
+./scripts/deployment/deploy-to-registry.sh --config build-config.json
 ----
 
 ==== Dry-run (Preview)
 
 [source,bash]
 ----
-./scripts/deploy-and-push.sh --dry-run --username JCTRoth
+./scripts/deployment/deploy-to-registry.sh --dry-run --username JCTRoth
 ----
 
 ==== Parallel Builds
 
 [source,bash]
 ----
-./scripts/deploy-and-push.sh --parallel 4 --username JCTRoth --token ghp_xxx
+./scripts/deployment/deploy-to-registry.sh --parallel 4 --username JCTRoth --token ghp_xxx
 ----
 
 === Configuration File Example
@@ -242,7 +242,7 @@ Build all ERP containers and push them to GitHub Container Registry.
 * ✅ notification-service (Java)
 * ✅ scripting-service (Java)
 
-== deploy-production.sh
+== deploy-to-server.sh
 
 Deploy the ERP system to a production server with SSL/HTTPS support.
 
@@ -271,7 +271,7 @@ Deploy the ERP system to a production server with SSL/HTTPS support.
 
 [source,bash]
 ----
-./scripts/deploy-production.sh
+./scripts/deployment/deploy-to-server.sh
 # Prompts for: server, domain, email, token, password
 ----
 
@@ -279,7 +279,7 @@ Deploy the ERP system to a production server with SSL/HTTPS support.
 
 [source,bash]
 ----
-./scripts/deploy-production.sh \
+./scripts/deployment/deploy-to-server.sh \
   --server prod.example.com \
   --domain erp.example.com \
   --email admin@example.com \
@@ -291,14 +291,14 @@ Deploy the ERP system to a production server with SSL/HTTPS support.
 
 [source,bash]
 ----
-./scripts/deploy-production.sh --config deploy-config.json
+./scripts/deployment/deploy-to-server.sh --config deploy-config.json
 ----
 
 ==== Dry-run (Preview)
 
 [source,bash]
 ----
-./scripts/deploy-production.sh \
+./scripts/deployment/deploy-to-server.sh \
   --server prod.example.com \
   --domain erp.example.com \
   --dry-run
@@ -382,7 +382,7 @@ Validate the startup script with automated tests.
 
 == Environment Variables Reference
 
-=== Build Script (deploy-and-push.sh)
+=== Build Script (deploy-to-registry.sh)
 
 [source,bash]
 ----
@@ -392,7 +392,7 @@ export REGISTRY_URL="ghcr.io"
 export IMAGE_VERSION="1.0.0"
 ----
 
-=== Deploy Script (deploy-production.sh)
+=== Deploy Script (deploy-to-server.sh)
 
 [source,bash]
 ----
@@ -458,7 +458,7 @@ docker compose logs user-service
 docker compose restart gateway
 ----
 
-=== deploy-and-push.sh
+=== deploy-to-registry.sh
 
 ==== Problem: Authentication fails
 
@@ -471,7 +471,7 @@ docker logout ghcr.io
 echo "ghp_your_token" | docker login ghcr.io -u JCTRoth --password-stdin
 ----
 
-=== deploy-production.sh
+=== deploy-to-server.sh
 
 ==== Problem: SSH connection fails
 
@@ -510,7 +510,7 @@ These scripts are part of the ERP System project and follow the same license.
 For issues or questions:
 
 1. Check the link:../docs/DEPLOYMENT_GUIDE.md[Deployment Guide]
-2. Review script help: `./scripts/deploy-and-push.sh --help`
+2. Review script help: `./scripts/deployment/deploy-to-registry.sh --help`
 3. Check logs: `docker compose logs`
 4. View GitHub Actions workflows: `.github/workflows/`
 

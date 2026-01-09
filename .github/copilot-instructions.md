@@ -22,7 +22,7 @@ This is a modern, full-stack Enterprise Resource Planning (ERP) system built wit
 - Follow schema-first GraphQL development
 
 #### 2. Database Design
-- One PostgreSQL database per microservice
+- One PostgreSQL Schema per microservice
 - Use Entity Framework Core (.NET) or JPA/Hibernate (Java) for ORM
 - Implement proper migrations and seeding
 

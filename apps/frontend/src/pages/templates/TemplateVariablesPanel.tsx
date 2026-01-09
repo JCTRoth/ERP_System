@@ -1,14 +1,12 @@
 interface TemplateVariablesPanelProps {
   variables: Record<string, any>;
   contextSelected?: boolean;
-  mainObjectType?: string;
   isEditingTemplate?: boolean;
 }
 
 export default function TemplateVariablesPanel({
   variables,
   contextSelected = false,
-  mainObjectType = 'order',
   isEditingTemplate = false,
 }: TemplateVariablesPanelProps) {
   // Show helpful message if context not yet selected (unless editing)

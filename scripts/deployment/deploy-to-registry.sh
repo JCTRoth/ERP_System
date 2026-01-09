@@ -6,7 +6,7 @@
 # This script builds all ERP containers and pushes them to a private GHCR.
 # 
 # Usage:
-#   ./scripts/build-and-push.sh [OPTIONS]
+#   ./scripts/deployment/deploy-to-registry.sh [OPTIONS]
 #
 # OPTIONS:
 #   --config FILE        Path to config JSON file
@@ -24,9 +24,9 @@
 #   REGISTRY_URL         Registry URL (alternative to --registry)
 #
 # Examples:
-#   ./scripts/build-and-push.sh --username JCTRoth --token ghp_xxx --version 1.0.0
-#   ./scripts/build-and-push.sh --config deployment.json
-#   CI=true ./scripts/build-and-push.sh  # Auto-use env vars in CI/CD
+#   ./scripts/deployment/deploy-to-registry.sh --username JCTRoth --token ghp_xxx --version 1.0.0
+#   ./scripts/deployment/deploy-to-registry.sh --config deployment.json
+#   CI=true ./scripts/deployment/deploy-to-registry.sh  # Auto-use env vars in CI/CD
 #
 ################################################################################
 
@@ -171,6 +171,7 @@ authenticate_ghcr() {
 
 # Build and push a single service
 build_and_push_service() {
+    set +e  # Don't exit on errors in this function
     local service_name=$1
     local service_path=$2
     local full_image_name="${REGISTRY_URL}/${GITHUB_USERNAME}/erp-${service_name}:${IMAGE_VERSION}"
@@ -189,7 +190,7 @@ build_and_push_service() {
     fi
     
     # Build image
-    if docker build -t "$full_image_name" "$PROJECT_ROOT/$service_path" --progress=plain; then
+    if docker build -t "$full_image_name" "$PROJECT_ROOT/$service_path"; then
         print_status "Built: $service_name"
         
         # Push image
@@ -205,6 +206,7 @@ build_and_push_service() {
         print_error "Failed to build: $service_name"
         return 1
     fi
+    set -e  # Restore exit on error
 }
 
 # Build all services sequentially or in parallel
@@ -219,21 +221,8 @@ build_all_services() {
         local service_name="${service_info%%:*}"
         local service_path="${service_info##*:}"
         
-        # If using parallel builds and haven't hit the limit, start in background
-        if [ "$PARALLEL_BUILDS" -gt 1 ] && [ ${#pids[@]} -lt "$PARALLEL_BUILDS" ]; then
-            build_and_push_service "$service_name" "$service_path" &
-            pids+=($!)
-        else
-            # Wait for a background job to finish if we're at the limit
-            if [ ${#pids[@]} -ge "$PARALLEL_BUILDS" ]; then
-                wait "${pids[0]}"
-                pids=("${pids[@]:1}")
-            fi
-            
-            # Start new job
-            build_and_push_service "$service_name" "$service_path" &
-            pids+=($!)
-        fi
+        # Simple sequential processing
+        build_and_push_service "$service_name" "$service_path"
         
         ((service_count++))
     done

@@ -6,14 +6,14 @@ I've created a complete build and deployment automation system for your ERP appl
 
 ### Scripts
 
-1. **`scripts/build-and-push.sh`** (9.9 KB)
+1. **`scripts/deployment/deploy-to-registry.sh`** (9.9 KB)
    - Build all 11 containers on your local machine
    - Push them to your private GitHub Container Registry
    - Supports CLI args, JSON config, or interactive prompts
    - Parallel build support
    - Dry-run mode for testing
 
-2. **`scripts/deploy-production.sh`** (22 KB)
+2. **`scripts/deployment/deploy-to-server.sh`** (22 KB)
    - Deploy to production server via SSH
    - Automatic Let's Encrypt SSL setup
    - HTTP→HTTPS redirect configuration
@@ -28,7 +28,7 @@ I've created a complete build and deployment automation system for your ERP appl
    - Proper environment variables
    - Health checks and auto-restart policies
 
-4. **`scripts/config.example.json`** (Configuration template)
+4. **`scripts/deployment/config.example.json`** (Configuration template)
    - Example configuration for both build and deploy
    - Copy and customize for your environment
 
@@ -60,31 +60,31 @@ I've created a complete build and deployment automation system for your ERP appl
 
 ```bash
 # Option A: Interactive (prompts for values)
-./scripts/build-and-push.sh
+./scripts/deployment/deploy-to-registry.sh
 
 # Option B: Command-line arguments
-./scripts/build-and-push.sh \
+./scripts/deployment/deploy-to-registry.sh \
   --username JCTRoth \
   --token ghp_your_token_here \
   --version 1.0.0
 
 # Option C: Configuration file
-cp scripts/config.example.json my-config.json
+cp scripts/deployment/config.example.json my-config.json
 # Edit my-config.json with your values
-./scripts/build-and-push.sh --config my-config.json
+./scripts/deployment/deploy-to-registry.sh --config my-config.json
 
 # Preview without building (dry-run)
-./scripts/build-and-push.sh --dry-run --username JCTRoth
+./scripts/deployment/deploy-to-registry.sh --dry-run --username JCTRoth
 ```
 
 ### 2. Deploy to Production
 
 ```bash
 # Option A: Interactive (prompts for values)
-./scripts/deploy-production.sh
+./scripts/deploy-to-server.sh
 
 # Option B: Command-line arguments
-./scripts/deploy-production.sh \
+./scripts/deploy-to-server.sh \
   --server prod.example.com \
   --domain erp.example.com \
   --email admin@example.com \
@@ -92,10 +92,10 @@ cp scripts/config.example.json my-config.json
   --db-password MySecurePassword123
 
 # Option C: Configuration file
-./scripts/deploy-production.sh --config deploy-config.json
+./scripts/deploy-to-server.sh --config deploy-config.json
 
 # Preview deployment (dry-run)
-./scripts/deploy-production.sh \
+./scripts/deploy-to-server.sh \
   --server prod.example.com \
   --domain erp.example.com \
   --dry-run
@@ -158,7 +158,7 @@ ssh -i ~/.ssh/id_rsa root@prod.example.com "docker --version"
 - Detailed status output
 - Comprehensive error handling
 
-### Deployment Script (`deploy-production.sh`)
+### Deployment Script (`deploy-to-server.sh`)
 
 ✅ **Features:**
 - Automated SSH deployment
@@ -223,10 +223,10 @@ ssh -i ~/.ssh/id_rsa root@prod.example.com "docker --version"
 
 ```bash
 # Step 1: Build images
-./scripts/build-and-push.sh --username JCTRoth --token ghp_xxx --version 1.0.0
+./scripts/deployment/deploy-to-registry.sh --username JCTRoth --token ghp_xxx --version 1.0.0
 
 # Step 2: Deploy to production
-./scripts/deploy-production.sh --server prod.example.com --domain erp.example.com
+./scripts/deployment/deploy-to-server.sh --server prod.example.com --domain erp.example.com
 ```
 
 ### Pattern 3: Automated CI/CD with GitHub Actions
@@ -262,8 +262,8 @@ cat > deploy-config.json << 'EOF'
 EOF
 
 # Use them
-./scripts/build-and-push.sh --config build-config.json
-./scripts/deploy-production.sh --config deploy-config.json
+./scripts/deployment/deploy-to-registry.sh --config build-config.json
+./scripts/deployment/deploy-to-server.sh --config deploy-config.json
 ```
 
 ---
@@ -476,10 +476,10 @@ git push origin v1.0.0
 
 ```
 scripts/
-├── build-and-push.sh           # Build and push to GHCR
-├── deploy-production.sh        # Deploy to production
-├── docker-compose.production.yml # Production compose config
-├── config.example.json         # Configuration template
+├── deployment/
+│   ├── deploy-to-registry.sh        # Build and push to GHCR
+│   ├── deploy-to-server.sh          # Deploy to production
+│   └── config.example.json          # Configuration template
 ├── README.md                   # Scripts reference
 ├── start-local.sh             # Local development startup
 ├── stop-local.sh              # Local shutdown
@@ -508,12 +508,12 @@ docs/
 
 3. **Test Build Script**
    ```bash
-   ./scripts/build-and-push.sh --dry-run --username JCTRoth
+   ./scripts/deployment/deploy-to-registry.sh --dry-run --username JCTRoth
    ```
 
 4. **Test Deployment Script**
    ```bash
-   ./scripts/deploy-production.sh --server prod.example.com --dry-run
+   ./scripts/deploy-to-server.sh --server prod.example.com --dry-run
    ```
 
 5. **Build Images** (first time)
@@ -523,7 +523,7 @@ docs/
 
 6. **Deploy to Production**
    ```bash
-   ./scripts/deploy-production.sh --server prod.example.com --domain erp.example.com
+   ./scripts/deploy-to-server.sh --server prod.example.com --domain erp.example.com
    ```
 
 7. **Verify Deployment**

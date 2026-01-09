@@ -283,7 +283,7 @@ public class MasterdataDbContext : DbContext
         );
 
         modelBuilder.Entity<Contact>().HasData(
-            new Contact { Id = Guid.Parse("9b2f2e9e-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), FirstName = "John", LastName = "Doe", Email = "john.doe@example.com", Phone = "+1-555-0123", CreatedAt = DateTime.UtcNow }
+            new Contact { Id = Guid.Parse("9b2f2e9e-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), FirstName = "Jonas", LastName = "Roth", Email = "jonas.roth@example.com", Phone = "+1-555-0123", CreatedAt = DateTime.UtcNow }
         );
 
         modelBuilder.Entity<BankDetail>().HasData(

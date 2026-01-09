@@ -11,7 +11,7 @@
 # - Automated database initialization
 #
 # Usage:
-#   ./scripts/deploy-production.sh [OPTIONS]
+#   ./scripts/deployment/deploy-to-server.sh [OPTIONS]
 #
 # OPTIONS:
 #   --config FILE        Path to config JSON file
@@ -36,9 +36,9 @@
 #   DEPLOY_DB_PASSWORD   PostgreSQL password
 #
 # Examples:
-#   ./scripts/deploy-production.sh --server prod.example.com --domain erp.example.com
-#   ./scripts/deploy-production.sh --config production.json
-#   ./scripts/deploy-production.sh --server 192.168.1.100 --domain erp.local --email admin@example.com
+#   ./scripts/deployment/deploy-to-server.sh --server prod.example.com --domain erp.example.com
+#   ./scripts/deployment/deploy-to-server.sh --config production.json
+#   ./scripts/deployment/deploy-to-server.sh --server 192.168.1.100 --domain erp.local --email admin@example.com
 #
 ################################################################################
 

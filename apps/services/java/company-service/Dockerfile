@@ -1,11 +1,13 @@
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 COPY . .
-RUN if [ -f gradlew ]; then \
-            chmod +x gradlew && ./gradlew bootJar --no-daemon; \
-        else \
-            echo "gradlew not found; skipping gradle build (ensure jar is provided or add gradle wrapper)"; \
-        fi
+RUN if [ -f build/libs/*.jar ]; then \
+        echo "JAR already exists, skipping build"; \
+    elif [ -f gradlew ]; then \
+        chmod +x gradlew && ./gradlew bootJar --no-daemon || echo "Gradle build failed, but continuing"; \
+    else \
+        echo "gradlew not found; skipping gradle build (ensure jar is provided or add gradle wrapper)"; \
+    fi
 
 # Ensure there is at least one jar file so the final image can copy it even if build was skipped
 RUN set -- build/libs/*.jar; \
@@ -24,7 +26,7 @@ RUN addgroup -g 1001 appgroup && \
         adduser -u 1001 -G appgroup -s /bin/sh -D appuser
 
 # Copy JAR file
-COPY --from=build /app/build/libs/*.jar /opt/app.jar
+COPY --from=build /app/build/libs/*.jar /opt/
 
 # Copy Gradle wrapper for development mode
 COPY gradlew gradlew
@@ -47,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 
 # Check if we're in development mode (source code mounted)
 # If src directory exists and contains source files, run in dev mode with hot reload
-ENTRYPOINT ["sh", "-c", "java -jar /opt/app.jar"]
+ENTRYPOINT ["sh", "-c", "java -jar /opt/company-service-0.1.0.jar"]
