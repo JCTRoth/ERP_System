@@ -113,12 +113,14 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   }, [taxCodesData, selectedTaxCodeId]);
 
   // Debug logs
-  console.log('Products data:', productsData);
-  console.log('Products loading:', productsLoading);
-  console.log('Products error:', productsError);
-  console.log('Customers data:', customersData);
-  console.log('Customers loading:', customersLoading);
-  console.log('Customers error:', customersError);
+  useEffect(() => {
+    console.log('Products data:', productsData);
+    console.log('Products loading:', productsLoading);
+    console.log('Products error:', productsError);
+    console.log('Customers data:', customersData);
+    console.log('Customers loading:', customersLoading);
+    console.log('Customers error:', customersError);
+  }, [productsData, productsLoading, productsError, customersData, customersLoading, customersError]);
 
   const addItem = () => {
     setItems([...items, { productId: '', productName: '', quantity: 1, unitPrice: 0 }]);

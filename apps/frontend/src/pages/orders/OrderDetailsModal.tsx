@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
@@ -128,43 +128,48 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, {
     variables: { id: orderId },
     client: shopApolloClient,
-    onCompleted: (data: any) => {
-      if (data?.order?.shippingAddress) {
-        setShippingAddress(data.order.shippingAddress);
-      }
-      // If no billing address is set, use shipping address
-      if (data?.order?.billingAddress) {
-        setBillingAddress(data.order.billingAddress);
-      } else if (data?.order?.shippingAddress) {
-        setBillingAddress(data.order.shippingAddress);
-      }
-    },
-  } as any);
+  });
+
+  // Set address states when data loads
+  useEffect(() => {
+    if (data?.order?.shippingAddress) {
+      setShippingAddress(data.order.shippingAddress);
+    }
+    // If no billing address is set, use shipping address
+    if (data?.order?.billingAddress) {
+      setBillingAddress(data.order.billingAddress);
+    } else if (data?.order?.shippingAddress) {
+      setBillingAddress(data.order.shippingAddress);
+    }
+  }, [data]);
 
   const [updateStatus] = useMutation(UPDATE_ORDER_STATUS, {
-    onCompleted: () => refetch(),
     client: shopApolloClient,
   });
 
   const [updateAddresses] = useMutation(UPDATE_ORDER_ADDRESSES, {
-    onCompleted: () => {
-      setEditingAddresses(false);
-      refetch();
-    },
     client: shopApolloClient,
   });
 
   const order = data?.order;
 
   const handleStatusChange = async (newStatus: string) => {
-    await updateStatus({
-      variables: { 
-        input: { 
-          orderId: orderId, 
-          status: newStatus 
-        } 
-      },
-    } as any);
+    try {
+      const result = await updateStatus({
+        variables: { 
+          input: { 
+            orderId: orderId, 
+            status: newStatus 
+          } 
+        },
+      } as any);
+      if (result.data) {
+        refetch(); // Refetch order details on success
+      }
+    } catch (error: any) {
+      console.error('Error updating order status:', error);
+      alert(`Failed to update order status: ${error.message || 'Unknown error'}`);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -198,15 +203,22 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   };
 
   const handleSaveAddresses = async () => {
-    await updateAddresses({
-      variables: {
-        input: {
+    try {
+      const result = await updateAddresses({
+        variables: {
           orderId,
           shippingAddress,
           billingAddress,
         },
-      },
-    } as any);
+      } as any);
+      if (result.data) {
+        setEditingAddresses(false);
+        refetch();
+      }
+    } catch (error: any) {
+      console.error('Error updating addresses:', error);
+      alert(`Failed to update addresses: ${error.message || 'Unknown error'}`);
+    }
   };
 
   return (

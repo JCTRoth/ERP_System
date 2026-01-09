@@ -238,7 +238,7 @@ public class OrderService : IOrderService
             
         if (order == null) return null;
 
-        var newStatus = Enum.Parse<OrderStatus>(input.Status, true); // case-insensitive parsing
+        var newStatus = Enum.Parse<OrderStatus>(input.Status.Replace("_", ""), true); // case-insensitive parsing, ignore underscores
         var oldStatus = order.Status;
 
         order.Status = newStatus;
