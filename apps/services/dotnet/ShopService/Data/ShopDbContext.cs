@@ -444,6 +444,8 @@ public class ShopDbContext : DbContext
         var electronicsId = Guid.Parse("10000000-0000-0000-0000-000000000001");
         var clothingId = Guid.Parse("10000000-0000-0000-0000-000000000002");
         var booksId = Guid.Parse("10000000-0000-0000-0000-000000000003");
+        var pharmaId = Guid.Parse("10000000-0000-0000-0000-000000000007");
+        var foodId = Guid.Parse("10000000-0000-0000-0000-000000000008");
 
         modelBuilder.Entity<Category>().HasData(
             new Category
@@ -474,6 +476,27 @@ public class ShopDbContext : DbContext
                 Description = "Books and publications",
                 IsActive = true,
                 SortOrder = 3,
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            }
+            ,
+            new Category
+            {
+                Id = pharmaId,
+                Name = "Pharma",
+                Slug = "pharma",
+                Description = "Pharmaceutical and medical supplies",
+                IsActive = true,
+                SortOrder = 7,
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new Category
+            {
+                Id = foodId,
+                Name = "Food",
+                Slug = "food",
+                Description = "Food and grocery items",
+                IsActive = true,
+                SortOrder = 8,
                 CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
@@ -558,8 +581,44 @@ public class ShopDbContext : DbContext
                 Type = CustomerType.Individual,
                 IsActive = true,
                 AcceptsMarketing = true,
+                DefaultShippingAddress = "Demo Street 123",
+                DefaultShippingCity = "Demo City",
+                DefaultShippingPostalCode = "12345",
+                DefaultShippingCountry = "DE",
+                DefaultBillingAddress = "Demo Street 123",
+                DefaultBillingCity = "Demo City",
+                DefaultBillingPostalCode = "12345",
+                DefaultBillingCountry = "DE",
                 CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                 UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
+        // Add a second demo customer representing a company
+        modelBuilder.Entity<Customer>().HasData(
+            new Customer
+            {
+                Id = Guid.Parse("8ec7a010-c34d-4eef-877f-410d25c0606d"),
+                UserId = Guid.Parse("8ec7a010-c34d-4eef-877f-410d25c0606d"),
+                Email = "sales@acme.example.com",
+                FirstName = null,
+                LastName = null,
+                Phone = "+49-30-123456",
+                Company = "ACME GmbH",
+                VatNumber = "DE987654321",
+                Type = CustomerType.Business,
+                IsActive = true,
+                AcceptsMarketing = false,
+                DefaultShippingAddress = "ACME Street 1",
+                DefaultShippingCity = "Berlin",
+                DefaultShippingPostalCode = "10115",
+                DefaultShippingCountry = "DE",
+                DefaultBillingAddress = "ACME Street 1",
+                DefaultBillingCity = "Berlin",
+                DefaultBillingPostalCode = "10115",
+                DefaultBillingCountry = "DE",
+                CreatedAt = new DateTime(2024, 2, 1, 0, 0, 0, DateTimeKind.Utc),
+                UpdatedAt = new DateTime(2024, 2, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
 

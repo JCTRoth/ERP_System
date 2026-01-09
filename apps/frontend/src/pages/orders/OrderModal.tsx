@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
-import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { shopApolloClient } from '../../lib/apollo';
 
@@ -121,6 +121,46 @@ export default function OrderModal({ onClose }: OrderModalProps) {
     console.log('Customers loading:', customersLoading);
     console.log('Customers error:', customersError);
   }, [productsData, productsLoading, productsError, customersData, customersLoading, customersError]);
+
+  // Auto-fill shipping address from customer master data when customer is selected and shipping address is empty
+  useEffect(() => {
+    if (customerId && customersData?.customers?.nodes) {
+      const selectedCustomer = customersData.customers.nodes.find((c: any) => c.id === customerId);
+      
+      if (selectedCustomer && 
+          !shippingName && 
+          !shippingAddress && 
+          !shippingCity && 
+          !shippingPostalCode && 
+          !shippingCountry) {
+            
+        // Fill shipping address from customer's default address
+        if (selectedCustomer.defaultAddress) {
+          setShippingName(selectedCustomer.name || `${selectedCustomer.firstName || ''} ${selectedCustomer.lastName || ''}`.trim());
+          setShippingAddress(selectedCustomer.defaultAddress.street || '');
+          setShippingCity(selectedCustomer.defaultAddress.city || '');
+          setShippingPostalCode(selectedCustomer.defaultAddress.postalCode || selectedCustomer.defaultAddress.zip || '');
+          setShippingCountry(selectedCustomer.defaultAddress.country || '');
+          setShippingPhone(selectedCustomer.phone || selectedCustomer.defaultAddress.phone || '');
+        }
+        // If no default address, try the first address in the addresses array
+        else if (selectedCustomer.addresses && selectedCustomer.addresses.length > 0) {
+          const firstAddress = selectedCustomer.addresses[0];
+          setShippingName(selectedCustomer.name || `${selectedCustomer.firstName || ''} ${selectedCustomer.lastName || ''}`.trim());
+          setShippingAddress(firstAddress.street || '');
+          setShippingCity(firstAddress.city || '');
+          setShippingPostalCode(firstAddress.postalCode || firstAddress.zip || '');
+          setShippingCountry(firstAddress.country || '');
+          setShippingPhone(selectedCustomer.phone || firstAddress.phone || '');
+        }
+        // If no address data, just set the customer name
+        else {
+          setShippingName(selectedCustomer.name || `${selectedCustomer.firstName || ''} ${selectedCustomer.lastName || ''}`.trim());
+          setShippingPhone(selectedCustomer.phone || '');
+        }
+      }
+    }
+  }, [customerId, customersData, shippingName, shippingAddress, shippingCity, shippingPostalCode, shippingCountry]);
 
   const addItem = () => {
     setItems([...items, { productId: '', productName: '', quantity: 1, unitPrice: 0 }]);
@@ -410,6 +450,14 @@ export default function OrderModal({ onClose }: OrderModalProps) {
           {/* Delivery Address */}
           <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
             <h3 className="mb-4 font-semibold text-gray-900 dark:text-white">{t('orders.shippingAddress')}</h3>
+            {shippingName && (
+              <div className="mb-3 rounded bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                <InformationCircleIcon className="inline h-4 w-4" /> 
+                <span className="ml-1">
+                  {t('orders.shippingAddressAutoFilled')}
+                </span>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <input
                 type="text"

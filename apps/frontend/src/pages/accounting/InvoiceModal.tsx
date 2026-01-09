@@ -70,7 +70,7 @@ const GET_ORDERS = gql`
 `;
 
 const GET_ORDER_DETAILS = gql`
-  query GetOrderDetailsForInvoice($id: String!) {
+  query GetOrderDetailsForInvoice($id: UUID!) {
     order(id: $id) {
       id
       orderNumber
@@ -190,7 +190,8 @@ interface InvoiceModalProps {
 export default function InvoiceModal({ invoice, onClose, readOnly = false }: InvoiceModalProps) {
   const { t } = useI18n();
   const isEditing = !!invoice;
-  const isReadOnly = readOnly || (isEditing && invoice?.status !== 'DRAFT');
+  // Allow editing for DRAFT, PENDING, and REVIEW statuses
+  const isReadOnly = readOnly || (isEditing && !['DRAFT', 'PENDING', 'REVIEW'].includes(invoice?.status));
 
   // Helper to determine if form inputs should be disabled
   const isFormDisabled = isReadOnly;
@@ -218,8 +219,8 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
   const { data: ordersData } = useQuery(GET_ORDERS, { client: shopApolloClient });
   const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS);
   const { data: productsData } = useQuery(GET_PRODUCTS, { client: shopApolloClient });
-  const { data: orderDetailsData } = useQuery(GET_ORDER_DETAILS, {
-    variables: { id: formData.orderId },
+  const { data: orderDetailsData, loading: orderDetailsLoading, error: orderDetailsError } = useQuery(GET_ORDER_DETAILS, {
+    variables: { id: formData.orderId ? formatUUID(formData.orderId) : '' },
     skip: !formData.orderId,
     client: shopApolloClient,
   });
@@ -263,6 +264,12 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
   // Auto-populate from order when selected
   useEffect(() => {
     console.log('Order details data:', orderDetailsData);
+    console.log('Order details loading:', orderDetailsLoading);
+    console.log('Order details error:', orderDetailsError);
+    console.log('Form data orderId:', formData.orderId);
+    console.log('Formatted orderId for query:', formData.orderId ? formatUUID(formData.orderId) : '');
+    console.log('Available orders:', ordersData?.orders?.nodes?.length || 0);
+    console.log('Orders loading:', ordersData === undefined);
     if (orderDetailsData?.order) {
       const order = orderDetailsData.order;
       // Find customer name from customersData
@@ -544,9 +551,23 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
       <div className="max-h-[95vh] w-full max-w-7xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold">
-            {isReadOnly ? t('accounting.viewInvoice') : (isEditing ? t('accounting.editInvoice') : t('accounting.createInvoice'))}
-          </h2>
+          <div>
+            <h2 className="text-xl font-bold">
+              {isReadOnly ? t('accounting.viewInvoice') : (isEditing ? t('accounting.editInvoice') : t('accounting.createInvoice'))}
+            </h2>
+            {isEditing && (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {t('accounting.status')}: {invoice?.status}
+                </span>
+                {isReadOnly && invoice?.status !== 'DRAFT' && (
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    ({t('accounting.readOnlyMode')})
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"

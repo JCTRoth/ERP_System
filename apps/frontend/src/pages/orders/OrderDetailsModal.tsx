@@ -5,7 +5,7 @@ import { useI18n } from '../../providers/I18nProvider';
 import { shopApolloClient } from '../../lib/apollo';
 
 const GET_ORDER_DETAILS = gql`
-  query GetOrderDetails($id: String!) {
+  query GetOrderDetails($id: UUID!) {
     order(id: $id) {
       id
       orderNumber
@@ -49,6 +49,14 @@ const GET_ORDER_DETAILS = gql`
       notes
       createdAt
       updatedAt
+      documents {
+        id
+        documentType
+        state
+        pdfUrl
+        generatedAt
+        templateKey
+      }
     }
   }
 `;
@@ -128,6 +136,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, {
     variables: { id: orderId },
     client: shopApolloClient,
+    pollInterval: 5000,
   });
 
   // Set address states when data loads
@@ -518,11 +527,25 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
             <div>
               <h3 className="mb-3 font-semibold">Order Documents</h3>
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
-                {/* Documents List - Will be populated from backend */}
+                {/* Documents List - populated from backend */}
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    No documents created yet for this order.
-                  </p>
+                  {order.documents && order.documents.length > 0 ? (
+                    order.documents.map((doc: any) => (
+                      <div key={doc.id} className="flex items-center justify-between rounded bg-white p-3 dark:bg-gray-800">
+                        <div>
+                          <p className="font-medium">{doc.documentType}{doc.templateKey ? ` (${doc.templateKey})` : ''}</p>
+                          <p className="text-xs text-gray-500">Generated: {new Date(doc.generatedAt).toLocaleString()}</p>
+                        </div>
+                        {doc.pdfUrl ? (
+                          <a href={doc.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Open PDF</a>
+                        ) : (
+                          <span className="text-sm text-gray-500">No file URL</span>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">No documents created yet for this order.</p>
+                  )}
                   {/* Documents will be rendered here when available */}
                   {/* Example structure:
                   <div className="flex items-center justify-between rounded bg-white p-3 dark:bg-gray-800">

@@ -61,7 +61,7 @@ export const GET_COMPANIES = gql`
 
 // Detail queries for fetching full records
 export const GET_ORDER_DETAILS = gql`
-  query GetOrderDetails($id: String!) {
+  query GetOrderDetails($id: UUID!) {
     order(id: $id) {
       id
       orderNumber

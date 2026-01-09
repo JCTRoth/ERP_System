@@ -18,10 +18,21 @@ const GET_PRODUCTS = gql`
         id
         sku
         name
+        description
         price
+        compareAtPrice
+        costPrice
         stockQuantity
         status
         createdAt
+        category {
+          id
+          name
+        }
+        brand {
+          id
+          name
+        }
       }
       pageInfo {
         hasNextPage

@@ -92,6 +92,7 @@ builder.Services
     .AddMutationType<Mutation>()
     .AddSubscriptionType<Subscription>()
     .AddType<ProductType>()
+    .AddType<OrderDocumentType>()
     .AddType<OrderType>()
     .AddType<OrderItemType>()
     .AddType<CartType>()

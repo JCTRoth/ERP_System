@@ -36,14 +36,43 @@ public class ProductResolvers
 {
     public async Task<Category?> GetCategory([Parent] Product product, [Service] ShopDbContext context)
     {
-        if (product.CategoryId == null) return null;
-        return await context.Categories.FindAsync(product.CategoryId);
+        // Parent projection may not include scalar foreign keys (CategoryId) when Hot Chocolate
+        // projects a subset of fields. If CategoryId is missing or empty, try to load it
+        // from the database using the product Id.
+        Guid? categoryId = product.CategoryId;
+        if (categoryId == null || categoryId == Guid.Empty)
+        {
+            categoryId = await context.Products
+                .AsNoTracking()
+                .Where(p => p.Id == product.Id)
+                .Select(p => p.CategoryId)
+                .FirstOrDefaultAsync();
+        }
+
+        if (categoryId == null || categoryId == Guid.Empty)
+            return null;
+
+        return await context.Categories.FindAsync(categoryId.Value);
     }
 
     public async Task<Brand?> GetBrand([Parent] Product product, [Service] ShopDbContext context)
     {
-        if (product.BrandId == null) return null;
-        return await context.Brands.FindAsync(product.BrandId);
+        // Same approach as GetCategory: ensure BrandId is available even when parent
+        // projection omitted scalar fields.
+        Guid? brandId = product.BrandId;
+        if (brandId == null || brandId == Guid.Empty)
+        {
+            brandId = await context.Products
+                .AsNoTracking()
+                .Where(p => p.Id == product.Id)
+                .Select(p => p.BrandId)
+                .FirstOrDefaultAsync();
+        }
+
+        if (brandId == null || brandId == Guid.Empty)
+            return null;
+
+        return await context.Brands.FindAsync(brandId.Value);
     }
 
     public IQueryable<ProductImage> GetImages([Parent] Product product, [Service] ShopDbContext context)
@@ -263,6 +292,11 @@ public class OrderResolvers
             Phone = null
         };
     }
+
+    public IQueryable<OrderDocument> GetDocuments([Parent] Order order, [Service] ShopDbContext context)
+    {
+        return context.OrderDocuments.Where(d => d.OrderId == order.Id).OrderByDescending(d => d.GeneratedAt);
+    }
 }
 
 public class PaymentType : ObjectType<Payment>
@@ -301,5 +335,18 @@ public class CartResolvers
     public IQueryable<CartItem> GetItems([Parent] Cart cart, [Service] ShopDbContext context)
     {
         return context.CartItems.Where(i => i.CartId == cart.Id);
+    }
+}
+
+public class OrderDocumentType : ObjectType<OrderDocument>
+{
+    protected override void Configure(IObjectTypeDescriptor<OrderDocument> descriptor)
+    {
+        descriptor.Field(d => d.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(d => d.DocumentType).Type<NonNullType<StringType>>();
+        descriptor.Field(d => d.State).Type<StringType>();
+        descriptor.Field(d => d.PdfUrl).Type<StringType>();
+        descriptor.Field(d => d.GeneratedAt).Type<NonNullType<DateTimeType>>();
+        descriptor.Field(d => d.TemplateKey).Type<StringType>();
     }
 }
