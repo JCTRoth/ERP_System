@@ -10,7 +10,19 @@
 Order: {order.number}
 Customer: {customer.name} ({customer.email})
 
-- Refund amount: {refund.amount}
+[options="header"]
+|===
+| # | Description | Qty | Refund Amount
+
+{#items}
+| {index}
+| {item.description}
+| {item.quantity}
+| {item.total}
+{#end}
+|===
+
+Refund Total: {refund.amount}
 - Refund reason: {refund.reason}
 - Refunded via: {refund.method}
 

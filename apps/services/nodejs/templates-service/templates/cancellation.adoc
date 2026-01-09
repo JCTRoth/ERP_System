@@ -15,11 +15,11 @@ Reason:
 
 [options="header"]
 |===
-| # | Product | Qty | Unit price | Total
+| # | Description | Qty | Unit price | Total
 
 {#items}
 | {index}
-| {item.name}
+| {item.description}
 | {item.quantity}
 | {item.unitPrice}
 | {item.total}

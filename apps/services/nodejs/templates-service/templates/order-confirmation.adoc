@@ -11,11 +11,11 @@ Order placed by: {customer.name} ({customer.email})
 
 [options="header"]
 |===
-| # | Product | SKU | Qty | Unit price | Total
+| # | Description | SKU | Qty | Unit price | Total
 
 {#items}
 | {index}
-| {item.name}
+| {item.description}
 | {item.sku}
 | {item.quantity}
 | {item.unitPrice}

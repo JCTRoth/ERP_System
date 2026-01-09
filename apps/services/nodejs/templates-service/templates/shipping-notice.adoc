@@ -21,11 +21,11 @@ Tracking: {shipment.trackingNumber}
 
 [options="header"]
 |===
-| # | Product | Qty
+| # | Description | Qty
 
 {#items}
 | {index}
-| {item.name}
+| {item.description}
 | {item.quantity}
 {#end}
 |===
