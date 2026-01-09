@@ -13,6 +13,7 @@ interface Template {
   documentType: string;
   assignedState?: string;
   sendEmail?: boolean;
+  mainObjectType?: string; // NEW: tracks main object context (order, company, etc.)
   companyId: string;
 }
 
@@ -36,9 +37,11 @@ export default function TemplateEditorModal({
     documentType: 'invoice',
     assignedState: '',
     sendEmail: false,
+    mainObjectType: 'order', // NEW: track main object context (order, company, etc.)
   });
   const [saving, setSaving] = useState(false);
   const [showVariables, setShowVariables] = useState(false);
+  const [contextSelected, setContextSelected] = useState(false); // NEW: only show variables after selection
   const { variables, loading } = useTemplateVariables();
 
   // Populate form when editing existing template
@@ -52,7 +55,9 @@ export default function TemplateEditorModal({
         documentType: template.documentType || 'invoice',
         assignedState: template.assignedState || '',
         sendEmail: template.sendEmail || false,
+        mainObjectType: template.mainObjectType || 'order',
       });
+      setContextSelected(true);
     }
   }, [template]);
 
@@ -200,6 +205,32 @@ export default function TemplateEditorModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('templates.mainObjectType') || 'Main Object Type'}
+                  </label>
+                  <select
+                    name="mainObjectType"
+                    value={formData.mainObjectType}
+                    onChange={(e) => {
+                      handleInputChange(e);
+                      setContextSelected(true);
+                    }}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="order">{t('templates.mainObject.order') || 'Order'}</option>
+                    <option value="company" disabled>
+                      {t('templates.mainObject.company') || 'Company (Not Applicable)'}
+                    </option>
+                    <option value="customer" disabled>
+                      {t('templates.mainObject.customer') || 'Customer (Not Applicable)'}
+                    </option>
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {t('templates.mainObjectTypeHint') || 'Choose the primary object this template renders.'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {t('templates.assignedState')}
                   </label>
                   <select
@@ -254,7 +285,12 @@ export default function TemplateEditorModal({
                     {t('templates.viewVariables')}
                   </button>
                   {showVariables && !loading && (
-                    <TemplateVariablesPanel variables={variables} />
+                    <TemplateVariablesPanel
+                      variables={variables}
+                      contextSelected={contextSelected}
+                      mainObjectType={formData.mainObjectType}
+                      isEditingTemplate={!!template}
+                    />
                   )}
                 </div>
               </div>

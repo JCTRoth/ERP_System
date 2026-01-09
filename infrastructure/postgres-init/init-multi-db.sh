@@ -26,6 +26,11 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE DATABASE masterdatadb OWNER erp_masterdata;
     GRANT ALL PRIVILEGES ON DATABASE masterdatadb TO erp_masterdata;
 
+    -- Orders Service Database
+    CREATE USER erp_orders WITH ENCRYPTED PASSWORD '${ERP_ORDERS_PASSWORD:-postgres}';
+    CREATE DATABASE ordersdb OWNER erp_orders;
+    GRANT ALL PRIVILEGES ON DATABASE ordersdb TO erp_orders;
+
     -- Company Service Database
     CREATE USER erp_company WITH ENCRYPTED PASSWORD '${ERP_COMPANY_PASSWORD:-postgres}';
     CREATE DATABASE companydb OWNER erp_company;

@@ -42,6 +42,13 @@ public class Order
     [MaxLength(500)]
     public string? InternalNotes { get; set; }
 
+    // Invoice reference
+    [MaxLength(50)]
+    public string? InvoiceNumber { get; set; }
+
+    // Payment record reference (JSON array of payment record IDs for tracking)
+    public string? PaymentRecordIds { get; set; } // JSON: ["guid1", "guid2"]
+
     // Shipping Address
     [MaxLength(200)]
     public string? ShippingName { get; set; }

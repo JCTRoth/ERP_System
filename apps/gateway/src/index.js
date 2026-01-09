@@ -57,6 +57,7 @@ const subgraphs = [
   { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL || 'http://translation-service:8081/graphql' },
   { name: 'company-service', url: process.env.COMPANY_SERVICE_URL || 'http://company-service:8080/graphql' },
   { name: 'masterdata-service', url: process.env.MASTERDATA_SERVICE_URL || 'http://masterdata-service:5002/graphql/' },
+  { name: 'orders-service', url: process.env.ORDERS_SERVICE_URL || 'http://orders-service:5004/graphql/' },
   { name: 'accounting-service', url: process.env.ACCOUNTING_SERVICE_URL || 'http://accounting-service:5001/graphql/' },
   // Note: shop-service has type conflicts with masterdata-service (Customer/Supplier types and mutations)
   // Access shop-service via /shop/graphql endpoint

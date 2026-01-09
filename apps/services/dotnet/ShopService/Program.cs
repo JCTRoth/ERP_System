@@ -40,6 +40,8 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderJobProcessor, OrderJobProcessor>();
+builder.Services.AddScoped<IOrderPaymentService, OrderPaymentService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ICouponService, CouponService>();
@@ -56,6 +58,9 @@ builder.Services.AddMinio(configureClient => configureClient
     .WithSSL(builder.Configuration.GetValue<bool>("Minio:UseSSL")));
 
 builder.Services.AddScoped<MinioStorageService>();
+
+// Background job processor hosted service
+builder.Services.AddHostedService<OrderJobProcessorHostedService>();
 
 // HTTP Clients for service-to-service communication
 builder.Services.AddHttpClient<TemplatesServiceClient>(client =>

@@ -30,6 +30,7 @@ services:
       ERP_SHOP_PASSWORD_FILE: /run/secrets/postgres_password
       ERP_ACCOUNTING_PASSWORD_FILE: /run/secrets/postgres_password
       ERP_MASTERDATA_PASSWORD_FILE: /run/secrets/postgres_password
+      ERP_ORDERS_PASSWORD_FILE: /run/secrets/postgres_password
       ERP_COMPANY_PASSWORD_FILE: /run/secrets/postgres_password
       ERP_NOTIFICATION_PASSWORD_FILE: /run/secrets/postgres_password
       ERP_TRANSLATION_PASSWORD_FILE: /run/secrets/postgres_password

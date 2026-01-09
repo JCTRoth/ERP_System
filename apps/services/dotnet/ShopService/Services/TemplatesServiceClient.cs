@@ -104,6 +104,7 @@ public class TemplateDto
     public string Language { get; set; } = string.Empty;
     public string DocumentType { get; set; } = string.Empty;
     public string? AssignedState { get; set; }
+    public string MainObjectType { get; set; } = "order";
     public bool IsActive { get; set; }
     public bool SendEmail { get; set; }
 }

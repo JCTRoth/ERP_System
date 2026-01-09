@@ -225,6 +225,8 @@ public class ShopDbContext : DbContext
             entity.Property(e => e.TrackingNumber).HasColumnName("tracking_number");
             entity.Property(e => e.ShippedAt).HasColumnName("shipped_at");
             entity.Property(e => e.DeliveredAt).HasColumnName("delivered_at");
+            entity.Property(e => e.InvoiceNumber).HasColumnName("invoice_number");
+            entity.Property(e => e.PaymentRecordIds).HasColumnName("payment_record_ids");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 

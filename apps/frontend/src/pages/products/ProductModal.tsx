@@ -96,7 +96,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         description: product.description || '',
         price: product.price.toString(),
         compareAtPrice: product.compareAtPrice?.toString() || '',
-        costPrice: product.costPrice.toString(),
+        costPrice: product.costPrice?.toString() || '',
         stockQuantity: product.stockQuantity.toString(),
         categoryId: product.category?.id || '',
         brandId: product.brand?.id || '',

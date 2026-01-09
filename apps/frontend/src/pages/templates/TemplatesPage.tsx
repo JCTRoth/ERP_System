@@ -19,6 +19,7 @@ interface Template {
   language: string;
   documentType: string;
   assignedState?: string;
+  mainObjectType?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

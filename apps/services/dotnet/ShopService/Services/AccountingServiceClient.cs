@@ -113,6 +113,94 @@ public class AccountingServiceClient
             return null;
         }
     }
+
+    /// <summary>
+    /// Confirm a payment record (mark as confirmed in Accounting)
+    /// </summary>
+    public async Task<bool> ConfirmPaymentRecordAsync(Guid paymentRecordId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var mutation = @"
+                mutation ConfirmPaymentRecord($input: ConfirmPaymentRecordInput!) {
+                    confirmPaymentRecord(input: $input) {
+                        id
+                        status
+                    }
+                }";
+
+            var variables = new
+            {
+                input = new
+                {
+                    paymentRecordId
+                }
+            };
+
+            var request = new { query = mutation, variables };
+            var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/graphql", content, cancellationToken);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var result = JsonSerializer.Deserialize<GraphQLResponse<ConfirmPaymentRecordData>>(json);
+
+            if (result?.Errors != null && result.Errors.Length > 0)
+            {
+                _logger.LogError("GraphQL errors confirming payment record: {Errors}", 
+                    string.Join(", ", result.Errors.Select(e => e.Message)));
+                return false;
+            }
+
+            return result?.Data?.ConfirmPaymentRecord?.Status == "Confirmed";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error confirming payment record: {PaymentRecordId}", paymentRecordId);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Get total amount paid from multiple payment records
+    /// </summary>
+    public async Task<decimal> GetTotalPaidFromPaymentRecordsAsync(List<Guid> paymentRecordIds, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = @"
+                query GetPaymentRecordsTotalAmount($ids: [UUID!]!) {
+                    paymentRecords(filter: { ids: $ids }) {
+                        totalAmount
+                    }
+                }";
+
+            var variables = new
+            {
+                ids = paymentRecordIds
+            };
+
+            var request = new { query, variables };
+            var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/graphql", content, cancellationToken);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var result = JsonSerializer.Deserialize<GraphQLResponse<GetPaymentRecordsTotalData>>(json);
+
+            if (result?.Errors != null && result.Errors.Length > 0)
+            {
+                _logger.LogWarning("GraphQL errors getting payment total: {Errors}", 
+                    string.Join(", ", result.Errors.Select(e => e.Message)));
+                return 0;
+            }
+
+            return result?.Data?.PaymentRecords?.TotalAmount ?? 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting total paid from payment records");
+            return 0;
+        }
+    }
 }
 
 public class InvoiceLineItemInput
@@ -138,6 +226,27 @@ public class CreateInvoiceResult
 public class CreateInvoiceData
 {
     public CreateInvoiceResult CreateInvoice { get; set; } = new();
+}
+
+public class ConfirmPaymentRecordData
+{
+    public ConfirmPaymentRecordResult ConfirmPaymentRecord { get; set; } = new();
+}
+
+public class ConfirmPaymentRecordResult
+{
+    public string Id { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+}
+
+public class GetPaymentRecordsTotalData
+{
+    public PaymentRecordsTotalResult PaymentRecords { get; set; } = new();
+}
+
+public class PaymentRecordsTotalResult
+{
+    public decimal TotalAmount { get; set; }
 }
 
 public class GraphQLResponse<T>

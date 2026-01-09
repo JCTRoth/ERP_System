@@ -1,0 +1,19 @@
+# Development stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine
+
+WORKDIR /src
+
+COPY ["apps/services/dotnet/OrdersService/OrdersService.csproj", "OrdersService/"]
+
+RUN dotnet restore "OrdersService/OrdersService.csproj"
+
+COPY ["apps/services/dotnet/OrdersService/", "OrdersService/"]
+
+WORKDIR "/src/OrdersService"
+
+EXPOSE 5004
+
+ENV ASPNETCORE_URLS=http://+:5004
+ENV ASPNETCORE_ENVIRONMENT=Development
+
+ENTRYPOINT ["dotnet", "watch", "run", "--project", "OrdersService.csproj"]

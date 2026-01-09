@@ -9,6 +9,7 @@ export interface Template {
   language: string;
   documentType: string;
   assignedState?: string;
+  mainObjectType?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -21,6 +22,7 @@ export interface TemplateCreateRequest {
   language: string;
   documentType: string;
   assignedState?: string;
+  mainObjectType?: string;
   companyId: string;
   createdBy: string;
 }
@@ -31,6 +33,7 @@ export interface TemplateUpdateRequest {
   language?: string;
   documentType?: string;
   assignedState?: string;
+  mainObjectType?: string;
 }
 
 export interface RenderResult {

@@ -53,6 +53,7 @@ async function initializeDatabase() {
         language VARCHAR(10),
         document_type VARCHAR(50),
         assigned_state VARCHAR(50),
+        main_object_type VARCHAR(50) DEFAULT 'order',
         is_active BOOLEAN DEFAULT true,
         send_email BOOLEAN DEFAULT false,
         metadata JSONB,
@@ -68,6 +69,12 @@ async function initializeDatabase() {
     await client.query(`
       ALTER TABLE templates 
       ADD COLUMN IF NOT EXISTS send_email BOOLEAN DEFAULT false;
+    `);
+    
+    // Add main_object_type column if it doesn't exist (for existing databases)
+    await client.query(`
+      ALTER TABLE templates 
+      ADD COLUMN IF NOT EXISTS main_object_type VARCHAR(50) DEFAULT 'order';
     `);
     console.log('✓ Database schema initialized');
   } catch (err) {
@@ -404,6 +411,7 @@ function formatTemplate(row) {
     language: row.language,
     documentType: row.document_type,
     assignedState: row.assigned_state,
+    mainObjectType: row.main_object_type || 'order',
     isActive: row.is_active,
     sendEmail: row.send_email || false,
     metadata: row.metadata,
@@ -481,6 +489,7 @@ app.post('/api/templates', async (req, res) => {
       language,
       documentType,
       assignedState,
+      mainObjectType,
       companyId,
       createdBy,
       sendEmail,
@@ -490,8 +499,8 @@ app.post('/api/templates', async (req, res) => {
     const now = new Date();
 
     const result = await pool.query(
-      `INSERT INTO templates (id, company_id, key, name, content, language, document_type, assigned_state, is_active, send_email, metadata, created_at, updated_at, created_by, last_modified_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      `INSERT INTO templates (id, company_id, key, name, content, language, document_type, assigned_state, main_object_type, is_active, send_email, metadata, created_at, updated_at, created_by, last_modified_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        RETURNING *`,
       [
         id,
@@ -502,6 +511,7 @@ app.post('/api/templates', async (req, res) => {
         language || 'en',
         documentType,
         assignedState || null,
+        mainObjectType || 'order',
         true,
         sendEmail || false,
         JSON.stringify({ version: 1 }),
@@ -522,7 +532,7 @@ app.post('/api/templates', async (req, res) => {
 // Update template
 app.put('/api/templates/:id', async (req, res) => {
   try {
-    const { name, content, language, documentType, assignedState, sendEmail, lastModifiedBy } = req.body;
+    const { name, content, language, documentType, assignedState, mainObjectType, sendEmail, lastModifiedBy } = req.body;
     const now = new Date();
 
     const updates = [];
@@ -548,6 +558,10 @@ app.put('/api/templates/:id', async (req, res) => {
     if (assignedState !== undefined) {
       updates.push(`assigned_state = $${paramIndex++}`);
       params.push(assignedState);
+    }
+    if (mainObjectType !== undefined) {
+      updates.push(`main_object_type = $${paramIndex++}`);
+      params.push(mainObjectType);
     }
     if (sendEmail !== undefined) {
       updates.push(`send_email = $${paramIndex++}`);
