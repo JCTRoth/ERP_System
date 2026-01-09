@@ -1,24 +1,30 @@
-# Frontend Architecture
+= Frontend Architecture
 
-## Overview
+:toc: auto
+:hardbreaks-option: true
+:source-highlighter: rouge
+:toclevels: 3
+
+== Overview
 
 The frontend application is built with React 18 and TypeScript, using Vite as the build tool.
 
-## Technology Stack
+== Technology Stack
 
-- **React 18** - UI library with concurrent features
-- **TypeScript** - Type-safe JavaScript
-- **Vite** - Next-generation build tool
-- **TailwindCSS** - Utility-first CSS framework
-- **Apollo Client** - GraphQL client
-- **Zustand** - Lightweight state management
-- **React Router** - Client-side routing
-- **@dnd-kit** - Drag-and-drop functionality
-- **Heroicons** - Icon library
+* **React 18** - UI library with concurrent features
+* **TypeScript** - Type-safe JavaScript
+* **Vite** - Next-generation build tool
+* **TailwindCSS** - Utility-first CSS framework
+* **Apollo Client** - GraphQL client
+* **Zustand** - Lightweight state management
+* **React Router** - Client-side routing
+* **@dnd-kit** - Drag-and-drop functionality
+* **Heroicons** - Icon library
 
-## Project Structure
+== Project Structure
 
-```
+[source,text]
+----
 apps/frontend/
 ├── src/
 │   ├── components/        # Reusable UI components
@@ -73,19 +79,20 @@ apps/frontend/
 ├── tsconfig.json
 ├── vite.config.ts
 └── vitest.config.ts
-```
+----
 
-## Key Features
+== Key Features
 
-### Authentication
+=== Authentication
 
 The application uses JWT-based authentication with:
-- Access token (short-lived)
-- Refresh token (long-lived)
-- Automatic token refresh
-- Protected routes
+* Access token (short-lived)
+* Refresh token (long-lived)
+* Automatic token refresh
+* Protected routes
 
-```typescript
+[source,typescript]
+----
 // stores/authStore.ts
 const useAuthStore = create<AuthState>()(
   persist(
@@ -99,42 +106,46 @@ const useAuthStore = create<AuthState>()(
     { name: 'erp-auth' }
   )
 );
-```
+----
 
-### Internationalization
+=== Internationalization
 
 Multi-language support with dynamic loading:
 
-```typescript
+[source,typescript]
+----
 // Using translations
 const { t } = useI18n();
 <h1>{t('dashboard.title')}</h1>
-```
+----
 
-### State Management
+=== State Management
 
 Zustand for lightweight, scalable state:
 
-```typescript
+[source,typescript]
+----
 // Using stores
 const user = useAuthStore((state) => state.user);
 const sidebarOpen = useUIStore((state) => state.sidebarOpen);
-```
+----
 
-### GraphQL Integration
+=== GraphQL Integration
 
 Apollo Client for GraphQL operations:
 
-```typescript
+[source,typescript]
+----
 const { data, loading } = useQuery(GET_PRODUCTS);
 const [createProduct] = useMutation(CREATE_PRODUCT);
-```
+----
 
-## UI Components
+== UI Components
 
-### Common Patterns
+=== Common Patterns
 
-```typescript
+[source,typescript]
+----
 // Page structure
 export default function ProductsPage() {
   const { t } = useI18n();
@@ -148,13 +159,14 @@ export default function ProductsPage() {
     </div>
   );
 }
-```
+----
 
-### Styling
+=== Styling
 
 TailwindCSS with custom design tokens:
 
-```css
+[source,css]
+----
 /* styles/index.css */
 @layer base {
   :root {
@@ -162,23 +174,24 @@ TailwindCSS with custom design tokens:
     --color-sidebar: 30 41 59;
   }
 }
-```
+----
 
-## UI Builder
+== UI Builder
 
 The visual UI builder allows creating custom pages:
 
-- Drag-and-drop interface
-- Component palette with categories
-- Properties panel for customization
-- Code export (React/JSON)
-- Page management
+* Drag-and-drop interface
+* Component palette with categories
+* Properties panel for customization
+* Code export (React/JSON)
+* Page management
 
-## Testing
+== Testing
 
 Using Vitest with React Testing Library:
 
-```typescript
+[source,typescript]
+----
 import { render, screen } from '../test/utils';
 
 describe('LoginPage', () => {
@@ -187,11 +200,12 @@ describe('LoginPage', () => {
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
   });
 });
-```
+----
 
-## Scripts
+== Scripts
 
-```bash
+[source,bash]
+----
 # Development
 npm run dev
 
@@ -212,13 +226,18 @@ npm run lint
 
 # Type checking
 npm run typecheck
-```
+----
 
-## Environment Variables
+== Environment Variables
 
 Create `.env.local` for local development:
 
-```env
+[source,env]
+----
 VITE_GATEWAY_URL=http://localhost:4000
 VITE_APP_TITLE=ERP System
-```
+----
+
+---
+
+*Last updated: January 9, 2026*

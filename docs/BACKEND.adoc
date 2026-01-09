@@ -1,34 +1,43 @@
-# Backend Services Architecture
+= Backend Services Architecture
 
-## Overview
+:toc: auto
+:hardbreaks-option: true
+:source-highlighter: rouge
+:toclevels: 3
+
+== Overview
 
 The ERP system uses a microservices architecture with services written in .NET 8 and Java Spring Boot 3.2. All services expose GraphQL APIs and participate in Apollo Federation.
 
-## .NET Services
+== .NET Services
 
-### Common Patterns
+=== Common Patterns
 
 All .NET services follow these patterns:
 
-- **GraphQL**: HotChocolate 14.0.0 with Apollo Federation
-- **Database**: PostgreSQL with Entity Framework Core 8.0.2
-- **Authentication**: JWT Bearer tokens
-- **Architecture**: Clean architecture with separation of concerns
+* **GraphQL**: HotChocolate 14.0.0 with Apollo Federation
+* **Database**: PostgreSQL with Entity Framework Core 8.0.2
+* **Authentication**: JWT Bearer tokens
+* **Architecture**: Clean architecture with separation of concerns
 
-### UserService
+=== UserService
 
 Handles user authentication and management.
 
-**Port**: 5000
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 5000
+| Features a|
 - User CRUD operations
 - JWT authentication (login, logout, refresh)
 - Password hashing and validation
 - Role and permission management
+|===
 
-**Database Schema**:
-```
+==== Database Schema
+
+[source,text]
+----
 Users
 ├── Id (GUID, PK)
 ├── Email (unique)
@@ -38,15 +47,16 @@ Users
 ├── PreferredLanguage
 ├── CreatedAt
 └── UpdatedAt
-```
+----
 
-### ShopService
+=== ShopService
 
 E-commerce and inventory management.
 
-**Port**: 5003
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 5003
+| Features a|
 - Product catalog management
 - Category and brand hierarchies
 - Inventory tracking
@@ -55,8 +65,7 @@ E-commerce and inventory management.
 - Coupon/discount system
 - Shipping methods
 - Payment processing
-
-**Key Entities**:
+| Key Entities a|
 - Product, Category, Brand
 - Customer, Supplier
 - Order, OrderItem
@@ -64,14 +73,16 @@ E-commerce and inventory management.
 - Inventory, StockMovement
 - Coupon, ShippingMethod
 - Payment
+|===
 
-### AccountingService
+=== AccountingService
 
 Financial accounting and reporting.
 
-**Port**: 5001
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 5001
+| Features a|
 - Chart of accounts (double-entry bookkeeping)
 - Invoice management (AR/AP)
 - Journal entries
@@ -80,22 +91,23 @@ Financial accounting and reporting.
 - Tax rate management
 - Fiscal period tracking
 - Financial reports (Balance Sheet, Income Statement)
-
-**Key Entities**:
+| Key Entities a|
 - Account (Assets, Liabilities, Equity, Revenue, Expenses)
 - Invoice, InvoiceLine
 - JournalEntry, JournalLine
 - PaymentRecord
 - BankAccount
 - TaxRate, FiscalPeriod
+|===
 
-### MasterdataService
+=== MasterdataService
 
 Master data management.
 
-**Port**: 5002
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 5002
+| Features a|
 - Customer master data
 - Supplier master data
 - Employee management
@@ -103,113 +115,127 @@ Master data management.
 - Location management
 - Asset tracking
 - Reference data (currencies, payment terms, UoM)
-
-**Key Entities**:
+| Key Entities a|
 - Customer, Supplier
 - Employee, Department
 - CostCenter, Location
 - Asset, AssetCategory
 - Currency, PaymentTerm
 - UnitOfMeasure
+|===
 
-## Java Services
+== Java Services
 
-### Common Patterns
+=== Common Patterns
 
 All Java services use:
 
-- **GraphQL**: Netflix DGS Framework
-- **Database**: PostgreSQL with Spring Data JPA
-- **Build**: Gradle with Kotlin DSL
+* **GraphQL**: Netflix DGS Framework
+* **Database**: PostgreSQL with Spring Data JPA
+* **Build**: Gradle with Kotlin DSL
 
-### CompanyService
+=== CompanyService
 
 Company and organizational structure management.
 
-**Port**: 8081
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 8081
+| Features a|
 - Company CRUD
 - Multi-tenant support
 - Organizational hierarchy
 - Company settings
+|===
 
-### NotificationService
+=== NotificationService
 
 Notification delivery system.
 
-**Port**: 8082
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 8082
+| Features a|
 - Email notifications
 - Push notifications
 - Notification templates
 - Delivery tracking
 - Queue management
+|===
 
-### TranslationService
+=== TranslationService
 
 Internationalization service.
 
-**Port**: 8083
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 8083
+| Features a|
 - Translation key management
 - Multi-language support
 - Dynamic translation loading
 - Translation export/import
+|===
 
-### ScriptingService
+=== ScriptingService
 
 Custom business logic execution.
 
-**Port**: 8084
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 8084
+| Features a|
 - Script storage and versioning
 - Script execution engine
 - Sandbox environment
 - API integrations
+|===
 
-### EdifactService
+=== EdifactService
 
 EDI/EDIFACT document processing.
 
-**Port**: 8085
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 8085
+| Features a|
 - EDIFACT message parsing
 - Document type support (ORDERS, INVOIC, DESADV)
 - Trading partner management
 - Message validation
 - Conversion mappings
+|===
 
-## Node.js Services
+== Node.js Services
 
-### Common Patterns
+=== Common Patterns
 
 Node.js services follow these patterns:
 
-- **Framework**: Express.js with REST APIs
-- **Database**: PostgreSQL with pg library
-- **Authentication**: JWT Bearer tokens
-- **Documentation**: AsciiDoc processing with asciidoctor.js
+* **Framework**: Express.js with REST APIs
+* **Database**: PostgreSQL with pg library
+* **Authentication**: JWT Bearer tokens
+* **Documentation**: AsciiDoc processing with asciidoctor.js
 
-### TemplatesService
+=== TemplatesService
 
 Document template generation and PDF rendering.
 
-**Port**: 8087
-
-**Features**:
+[cols="20,80"]
+|===
+| Port | 8087
+| Features a|
 - AsciiDoc template processing
 - PDF generation using asciidoctor-pdf
 - Variable substitution
 - Template management (CRUD)
 - REST API endpoints
+|===
 
-**Database Schema**:
-```
+==== Database Schema
+
+[source,text]
+----
 Templates
 ├── id (UUID, PK)
 ├── company_id
@@ -222,13 +248,14 @@ Templates
 ├── is_active
 ├── created_at
 └── updated_at
-```
+----
 
-## GraphQL Federation
+== GraphQL Federation
 
 All services participate in Apollo Federation:
 
-```yaml
+[source,yaml]
+----
 # supergraph-config.yaml
 subgraphs:
   users:
@@ -239,19 +266,18 @@ subgraphs:
     routing_url: http://shop-service:5003/graphql
     schema:
       subgraph_url: http://shop-service:5003/graphql
-  # ...
-```
+----
 
-### Federation Entities
+=== Federation Entities
 
 Services can extend entities from other services:
 
-```graphql
+[source,graphql]
+----
 # UserService
 type User @key(fields: "id") {
   id: ID!
   email: String!
-  # ...
 }
 
 # ShopService (extending User)
@@ -259,23 +285,26 @@ extend type User @key(fields: "id") {
   id: ID! @external
   orders: [Order!]!
 }
-```
+----
 
-## Database Setup
+== Database Setup
 
 Each service has its own PostgreSQL database:
 
-| Service | Database | Port |
-|---------|----------|------|
-| UserService | userdb | 5432 |
-| ShopService | shopdb | 5436 |
-| AccountingService | accountingdb | 5437 |
-| MasterdataService | masterdatadb | 5438 |
-| CompanyService | companydb | 5433 |
-| NotificationService | notificationdb | 5434 |
-| TranslationService | translationdb | 5435 |
+[cols="30,30,40"]
+|===
+| Service | Database | Port
 
-## Authentication Flow
+| UserService | userdb | 5432
+| ShopService | shopdb | 5436
+| AccountingService | accountingdb | 5437
+| MasterdataService | masterdatadb | 5438
+| CompanyService | companydb | 5433
+| NotificationService | notificationdb | 5434
+| TranslationService | translationdb | 5435
+|===
+
+== Authentication Flow
 
 1. User sends credentials to UserService
 2. UserService validates and issues JWT tokens
@@ -283,7 +312,8 @@ Each service has its own PostgreSQL database:
 4. Gateway passes token to all subgraph requests
 5. Each service validates the token
 
-```graphql
+[source,graphql]
+----
 mutation {
   login(email: "user@example.com", password: "password") {
     accessToken
@@ -291,13 +321,14 @@ mutation {
     user { id email }
   }
 }
-```
+----
 
-## Error Handling
+== Error Handling
 
 Standardized error responses:
 
-```json
+[source,json]
+----
 {
   "errors": [
     {
@@ -309,18 +340,22 @@ Standardized error responses:
     }
   ]
 }
-```
+----
 
-## Health Checks
+== Health Checks
 
 All services expose health endpoints:
 
-- `.NET`: `/health` (ASP.NET Health Checks)
-- `Java`: `/actuator/health` (Spring Actuator)
+* **.NET**: `/health` (ASP.NET Health Checks)
+* **Java**: `/actuator/health` (Spring Actuator)
 
-## Metrics
+== Metrics
 
 Prometheus metrics available at:
 
-- `.NET`: `/metrics`
-- `Java`: `/actuator/prometheus`
+* **.NET**: `/metrics`
+* **Java**: `/actuator/prometheus`
+
+---
+
+*Last updated: January 9, 2026*
