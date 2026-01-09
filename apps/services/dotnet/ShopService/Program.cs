@@ -164,9 +164,36 @@ app.MapMetrics();
 // Apply migrations on startup (dev only)
 if (app.Environment.IsDevelopment())
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ShopDbContext>();
-    db.Database.Migrate();
+    app.Logger.LogInformation("Applying database migrations...");
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ShopDbContext>();
+        
+        // Get applied migrations
+        var appliedMigrations = db.Database.GetAppliedMigrations();
+        app.Logger.LogInformation("Applied migrations: {AppliedMigrations}", string.Join(", ", appliedMigrations));
+        
+        // Get pending migrations
+        var pendingMigrations = db.Database.GetPendingMigrations();
+        app.Logger.LogInformation("Pending migrations: {PendingMigrations}", string.Join(", ", pendingMigrations));
+        
+        if (pendingMigrations.Any())
+        {
+            app.Logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
+            db.Database.Migrate();
+            app.Logger.LogInformation("Database migrations applied successfully");
+        }
+        else
+        {
+            app.Logger.LogInformation("No pending migrations to apply");
+        }
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Failed to apply database migrations");
+        throw;
+    }
 }
 
 app.Run();
