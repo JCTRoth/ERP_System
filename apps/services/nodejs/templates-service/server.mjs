@@ -54,6 +54,7 @@ async function initializeDatabase() {
         document_type VARCHAR(50),
         assigned_state VARCHAR(50),
         is_active BOOLEAN DEFAULT true,
+        send_email BOOLEAN DEFAULT false,
         metadata JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -61,6 +62,12 @@ async function initializeDatabase() {
         last_modified_by VARCHAR(255),
         UNIQUE(key, company_id)
       );
+    `);
+    
+    // Add send_email column if it doesn't exist (for existing databases)
+    await client.query(`
+      ALTER TABLE templates 
+      ADD COLUMN IF NOT EXISTS send_email BOOLEAN DEFAULT false;
     `);
     console.log('✓ Database schema initialized');
   } catch (err) {
@@ -280,6 +287,36 @@ function resolveValue(ctx, path) {
     return (ctx.invoice.tax / ctx.invoice.subtotal) * 100;
   }
 
+  // shipment.* -> map to order fields
+  if (segments[0] === 'shipment' && ctx.order) {
+    const shipmentField = segments[1];
+    const mapping = {
+      'number': ctx.order.trackingNumber,
+      'trackingNumber': ctx.order.trackingNumber,
+      'date': ctx.order.shippedAt || ctx.order.date,
+      'carrier': 'Standard Shipping',
+      'notes': ctx.order.notes || ''
+    };
+    if (shipmentField in mapping) {
+      return mapping[shipmentField];
+    }
+  }
+
+  // shipping.* -> map to order.shippingAddress.*
+  if (segments[0] === 'shipping' && ctx.order) {
+    const shippingMapping = {
+      'name': ctx.order.shippingAddress?.name,
+      'street': ctx.order.shippingAddress?.street,
+      'city': ctx.order.shippingAddress?.city,
+      'postalCode': ctx.order.shippingAddress?.postalCode,
+      'country': ctx.order.shippingAddress?.country
+    };
+    const field = segments[1];
+    if (field in shippingMapping && shippingMapping[field] !== undefined) {
+      return shippingMapping[field];
+    }
+  }
+
   return undefined;
 }
 
@@ -368,6 +405,7 @@ function formatTemplate(row) {
     documentType: row.document_type,
     assignedState: row.assigned_state,
     isActive: row.is_active,
+    sendEmail: row.send_email || false,
     metadata: row.metadata,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -379,7 +417,7 @@ function formatTemplate(row) {
 // Get all templates
 app.get('/api/templates', async (req, res) => {
   try {
-    const { companyId, language, documentType } = req.query;
+    const { companyId, language, documentType, assignedState } = req.query;
 
     let query = 'SELECT * FROM templates WHERE 1=1';
     const params = [];
@@ -396,6 +434,10 @@ app.get('/api/templates', async (req, res) => {
     if (documentType) {
       query += ` AND document_type = $${paramIndex++}`;
       params.push(documentType);
+    }
+    if (assignedState) {
+      query += ` AND assigned_state = $${paramIndex++}`;
+      params.push(assignedState);
     }
 
     query += ' ORDER BY name';
@@ -441,14 +483,15 @@ app.post('/api/templates', async (req, res) => {
       assignedState,
       companyId,
       createdBy,
+      sendEmail,
     } = req.body;
 
     const id = uuidv4();
     const now = new Date();
 
     const result = await pool.query(
-      `INSERT INTO templates (id, company_id, key, name, content, language, document_type, assigned_state, is_active, metadata, created_at, updated_at, created_by, last_modified_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      `INSERT INTO templates (id, company_id, key, name, content, language, document_type, assigned_state, is_active, send_email, metadata, created_at, updated_at, created_by, last_modified_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING *`,
       [
         id,
@@ -460,6 +503,7 @@ app.post('/api/templates', async (req, res) => {
         documentType,
         assignedState || null,
         true,
+        sendEmail || false,
         JSON.stringify({ version: 1 }),
         now,
         now,
@@ -478,7 +522,7 @@ app.post('/api/templates', async (req, res) => {
 // Update template
 app.put('/api/templates/:id', async (req, res) => {
   try {
-    const { name, content, language, documentType, assignedState, lastModifiedBy } = req.body;
+    const { name, content, language, documentType, assignedState, sendEmail, lastModifiedBy } = req.body;
     const now = new Date();
 
     const updates = [];
@@ -504,6 +548,10 @@ app.put('/api/templates/:id', async (req, res) => {
     if (assignedState !== undefined) {
       updates.push(`assigned_state = $${paramIndex++}`);
       params.push(assignedState);
+    }
+    if (sendEmail !== undefined) {
+      updates.push(`send_email = $${paramIndex++}`);
+      params.push(sendEmail);
     }
 
     updates.push(`updated_at = $${paramIndex++}`);
@@ -615,10 +663,15 @@ app.post('/api/templates/:id/render', async (req, res) => {
       `;
     }
 
+    // Log missing variables to console instead of returning them
+    if (errors.length > 0) {
+      console.log(`[Template ${template.id}] Missing variables/collections:`, errors);
+    }
+
     res.json({
       html: htmlOutput,
       pdfUrl: `http://localhost:8087/api/templates/${template.id}/pdf`,
-      errors,
+      errors: [], // Don't expose errors in response
     });
   } catch (err) {
     console.error('Error rendering template:', err);

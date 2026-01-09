@@ -29,6 +29,10 @@ public class OrderService : IOrderService
     private readonly ICouponService _couponService;
     private readonly IConfiguration _configuration;
     private readonly IAuditService _auditService;
+    private readonly TemplatesServiceClient _templatesClient;
+    private readonly MinioStorageService _minioStorage;
+    private readonly AccountingServiceClient _accountingClient;
+    private readonly NotificationServiceClient _notificationClient;
 
     public OrderService(
         ShopDbContext context,
@@ -36,7 +40,11 @@ public class OrderService : IOrderService
         IInventoryService inventoryService,
         ICouponService couponService,
         IConfiguration configuration,
-        IAuditService auditService)
+        IAuditService auditService,
+        TemplatesServiceClient templatesClient,
+        MinioStorageService minioStorage,
+        AccountingServiceClient accountingClient,
+        NotificationServiceClient notificationClient)
     {
         _context = context;
         _logger = logger;
@@ -44,6 +52,10 @@ public class OrderService : IOrderService
         _couponService = couponService;
         _configuration = configuration;
         _auditService = auditService;
+        _templatesClient = templatesClient;
+        _minioStorage = minioStorage;
+        _accountingClient = accountingClient;
+        _notificationClient = notificationClient;
     }
 
     public async Task<Order?> GetByIdAsync(Guid id)
@@ -219,7 +231,11 @@ public class OrderService : IOrderService
 
     public async Task<Order?> UpdateStatusAsync(UpdateOrderStatusInput input)
     {
-        var order = await _context.Orders.FindAsync(input.OrderId);
+        var order = await _context.Orders
+            .Include(o => o.Items)
+            .Include(o => o.Documents)
+            .FirstOrDefaultAsync(o => o.Id == input.OrderId);
+            
         if (order == null) return null;
 
         var newStatus = Enum.Parse<OrderStatus>(input.Status, true); // case-insensitive parsing
@@ -259,6 +275,15 @@ public class OrderService : IOrderService
             newStatus.ToString(),
             $"Order status changed from {oldStatus} to {newStatus}"
         );
+
+        // Generate documents for this state (async - fire and forget)
+        _ = Task.Run(async () => await GenerateOrderDocumentsAsync(order, newStatus.ToString().ToLower()));
+
+        // Create invoice when order is confirmed
+        if (newStatus == OrderStatus.Confirmed && oldStatus != OrderStatus.Confirmed)
+        {
+            _ = Task.Run(async () => await CreateInvoiceForOrderAsync(order));
+        }
 
         return order;
     }
@@ -403,5 +428,213 @@ public class OrderService : IOrderService
         }
 
         return $"{prefix}-{sequence:D4}";
+    }
+
+    /// <summary>
+    /// Generate PDF documents for order based on templates assigned to the state
+    /// </summary>
+    private async Task GenerateOrderDocumentsAsync(Order order, string state)
+    {
+        try
+        {
+            // Get customer email for notifications
+            var customer = await _context.Customers.FindAsync(order.CustomerId);
+            
+            // Fetch templates for this state
+            var templates = await _templatesClient.GetTemplatesByStateAsync(state, "1"); // Company ID "1"
+            
+            if (templates == null || !templates.Any())
+            {
+                _logger.LogInformation("No templates found for order state: {State}", state);
+                return;
+            }
+
+            foreach (var template in templates)
+            {
+                try
+                {
+                    // Build context for template rendering
+                    var context = new
+                    {
+                        order = new
+                        {
+                            id = order.Id.ToString(),
+                            number = order.OrderNumber,
+                            date = order.CreatedAt.ToString("yyyy-MM-dd"),
+                            status = order.Status.ToString(),
+                            subtotal = order.Subtotal,
+                            tax = order.TaxAmount,
+                            shipping = order.ShippingAmount,
+                            total = order.Total,
+                            currency = order.Currency,
+                            notes = order.Notes,
+                            trackingNumber = order.TrackingNumber,
+                            items = order.Items.Select(item => new
+                            {
+                                productName = item.ProductName,
+                                sku = item.Sku,
+                                quantity = item.Quantity,
+                                unitPrice = item.UnitPrice,
+                                discountAmount = item.DiscountAmount,
+                                taxAmount = item.TaxAmount,
+                                total = item.Total
+                            }).ToList(),
+                            shippingAddress = new
+                            {
+                                name = order.ShippingName ?? "N/A",
+                                street = order.ShippingAddress ?? "N/A",
+                                city = order.ShippingCity ?? "N/A",
+                                postalCode = order.ShippingPostalCode ?? "N/A",
+                                country = order.ShippingCountry ?? "N/A",
+                                phone = order.ShippingPhone
+                            },
+                            billingAddress = new
+                            {
+                                name = order.BillingName ?? order.ShippingName ?? "N/A",
+                                street = order.BillingAddress ?? order.ShippingAddress ?? "N/A",
+                                city = order.BillingCity ?? order.ShippingCity ?? "N/A",
+                                postalCode = order.BillingPostalCode ?? order.ShippingPostalCode ?? "N/A",
+                                country = order.BillingCountry ?? order.ShippingCountry ?? "N/A"
+                            },
+                            shipment = new
+                            {
+                                number = order.TrackingNumber ?? "TBD",
+                                date = order.ShippedAt?.ToString("yyyy-MM-dd") ?? DateTime.UtcNow.ToString("yyyy-MM-dd"),
+                                carrier = "Standard Shipping",
+                                trackingNumber = order.TrackingNumber ?? "TBD",
+                                notes = ""
+                            }
+                        },
+                        company = new
+                        {
+                            name = "ERP System Company",
+                            address = "123 Business St",
+                            city = "Business City",
+                            postalCode = "12345",
+                            country = "Germany",
+                            email = "info@erp-system.com",
+                            phone = "+49 123 456789"
+                        },
+                        customer = new
+                        {
+                            email = customer?.Email ?? "customer@example.com",
+                            name = $"{customer?.FirstName} {customer?.LastName}".Trim(),
+                            company = customer?.Company
+                        }
+                    };
+
+                    // Generate PDF
+                    var pdfBytes = await _templatesClient.GeneratePdfAsync(template.Id, context);
+                    if (pdfBytes == null || pdfBytes.Length == 0)
+                    {
+                        _logger.LogWarning("Failed to generate PDF for template {TemplateId}", template.Id);
+                        continue;
+                    }
+
+                    // Upload to MinIO
+                    var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+                    var objectKey = $"orders/{order.Id}/{template.Key}-{timestamp}.pdf";
+                    var pdfUrl = await _minioStorage.UploadPdfAsync("1", objectKey, pdfBytes); // Company ID "1"
+
+                    // Save document record
+                    var document = new OrderDocument
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderId = order.Id,
+                        DocumentType = template.DocumentType,
+                        State = state,
+                        PdfUrl = pdfUrl,
+                        GeneratedAt = DateTime.UtcNow,
+                        TemplateId = template.Id,
+                        TemplateKey = template.Key
+                    };
+
+                    _context.OrderDocuments.Add(document);
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("Generated document {DocumentType} for order {OrderNumber}", 
+                        template.DocumentType, order.OrderNumber);
+
+                    // Send email if template configured to send
+                    if (template.SendEmail && customer != null && !string.IsNullOrEmpty(customer.Email))
+                    {
+                        await _notificationClient.SendOrderStatusEmailAsync(
+                            customer.Email,
+                            order.OrderNumber,
+                            order.Status.ToString(),
+                            order.TrackingNumber,
+                            pdfUrl);
+                        
+                        _logger.LogInformation("Sent email notification to {Email} for order {OrderNumber}", 
+                            customer.Email, order.OrderNumber);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error generating document from template {TemplateId} for order {OrderId}", 
+                        template.Id, order.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GenerateOrderDocumentsAsync for order {OrderId}", order.Id);
+        }
+    }
+
+    /// <summary>
+    /// Create invoice automatically when order is confirmed
+    /// </summary>
+    private async Task CreateInvoiceForOrderAsync(Order order)
+    {
+        try
+        {
+            var customer = await _context.Customers.FindAsync(order.CustomerId);
+            if (customer == null)
+            {
+                _logger.LogWarning("Customer not found for order {OrderNumber}, skipping invoice creation", order.OrderNumber);
+                return;
+            }
+
+            var lineItems = order.Items.Select(item => new InvoiceLineItemInput
+            {
+                Description = item.ProductName,
+                Sku = item.Sku,
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                Unit = "pcs",
+                UnitPrice = item.UnitPrice,
+                DiscountAmount = item.DiscountAmount,
+                TaxRate = item.TaxAmount > 0 && item.UnitPrice > 0 
+                    ? (item.TaxAmount / (item.UnitPrice * item.Quantity) * 100) 
+                    : 0,
+                TaxAmount = item.TaxAmount
+            }).ToList();
+
+            var result = await _accountingClient.CreateInvoiceFromOrderAsync(
+                order.Id,
+                order.OrderNumber,
+                customer.Id,
+                $"{customer.FirstName} {customer.LastName}".Trim(),
+                order.Subtotal,
+                order.TaxAmount,
+                order.Total,
+                order.Currency,
+                lineItems);
+
+            if (result != null)
+            {
+                _logger.LogInformation("Created invoice {InvoiceNumber} for order {OrderNumber}", 
+                    result.InvoiceNumber, order.OrderNumber);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to create invoice for order {OrderNumber}", order.OrderNumber);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating invoice for order {OrderId}", order.Id);
+        }
     }
 }

@@ -16,6 +16,7 @@ public class ShopDbContext : DbContext
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Order> Orders { get; set; } = null!;
     public DbSet<OrderItem> OrderItems { get; set; } = null!;
+    public DbSet<OrderDocument> OrderDocuments { get; set; } = null!;
     public DbSet<Customer> Customers { get; set; } = null!;
     public DbSet<Cart> Carts { get; set; } = null!;
     public DbSet<CartItem> CartItems => Set<CartItem>();
@@ -260,6 +261,25 @@ public class ShopDbContext : DbContext
                   .WithMany(p => p.OrderItems)
                   .HasForeignKey(e => e.ProductId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // OrderDocument configuration
+        modelBuilder.Entity<OrderDocument>(entity =>
+        {
+            entity.ToTable("order_documents");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.OrderId).HasColumnName("order_id");
+            entity.Property(e => e.DocumentType).HasColumnName("document_type");
+            entity.Property(e => e.State).HasColumnName("state");
+            entity.Property(e => e.PdfUrl).HasColumnName("pdf_url");
+            entity.Property(e => e.GeneratedAt).HasColumnName("generated_at");
+            entity.Property(e => e.TemplateId).HasColumnName("template_id");
+            entity.Property(e => e.TemplateKey).HasColumnName("template_key");
+
+            entity.HasOne(e => e.Order)
+                  .WithMany(o => o.Documents)
+                  .HasForeignKey(e => e.OrderId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Customer configuration
@@ -525,14 +545,14 @@ public class ShopDbContext : DbContext
         modelBuilder.Entity<Customer>().HasData(
             new Customer
             {
-                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
-                UserId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), // Same as Id for now
-                Email = "john.doe@example.com",
-                FirstName = "John",
-                LastName = "Doe",
-                Phone = "+1-555-0123",
-                Company = "Example Corp",
-                VatNumber = "US123456789",
+                Id = Guid.Parse("7ec7a010-c34d-4eef-877f-410d25c0606d"),
+                UserId = Guid.Parse("7ec7a010-c34d-4eef-877f-410d25c0606d"), // Same as Id for now
+                Email = "jonas.roth@mailbase.info",
+                FirstName = "Jonas",
+                LastName = "Roth",
+                Phone = "+1-555-0101",
+                Company = "Mailbase.info",
+                VatNumber = "DE123456789",
                 Type = CustomerType.Individual,
                 IsActive = true,
                 AcceptsMarketing = true,
@@ -598,7 +618,7 @@ public class ShopDbContext : DbContext
             {
                 Id = orderId,
                 OrderNumber = "ORD-1001",
-                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
+                CustomerId = Guid.Parse("7ec7a010-c34d-4eef-877f-410d25c0606d"),
                 Status = OrderStatus.Confirmed,
                 Subtotal = 200.00m,
                 TaxAmount = 38.00m,

@@ -278,7 +278,8 @@ public class MasterdataDbContext : DbContext
 
         // Seed a sample address, contact and bank detail linked to customer
         modelBuilder.Entity<Address>().HasData(
-            new Address { Id = Guid.Parse("9a2f2e9e-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), AddressLine1 = "123 Demo Street", City = "Demo City", PostalCode = "12345", Country = "DE", IsDefault = true, CreatedAt = DateTime.UtcNow }
+            new Address { Id = Guid.Parse("9a2f2e9e-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), AddressLine1 = "123 Demo Street", City = "Demo City", PostalCode = "12345", Country = "DE", IsDefault = true, CreatedAt = DateTime.UtcNow },
+            new Address { Id = Guid.Parse("9a2f2e9e-8548-431f-9f03-9186942bb49f"), CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), Type = AddressType.Shipping, AddressLine1 = "456 Shipping Lane", AddressLine2 = "Suite 200", City = "Shipping City", PostalCode = "67890", Country = "DE", IsDefault = false, CreatedAt = DateTime.UtcNow }
         );
 
         modelBuilder.Entity<Contact>().HasData(

@@ -92,6 +92,8 @@ public class Order
 
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
+    public ICollection<OrderDocument> Documents { get; set; } = new List<OrderDocument>();
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }

@@ -7,14 +7,14 @@ subgraphs:
       subgraph_url: http://user-service:5000/graphql
 
   company-service:
-    routing_url: http://company-service:8081/graphql
+    routing_url: http://company-service:8080/graphql
     schema:
-      subgraph_url: http://company-service:8081/graphql
+      subgraph_url: http://company-service:8080/graphql
 
   translation-service:
-    routing_url: http://translation-service:8083/graphql
+    routing_url: http://translation-service:8081/graphql
     schema:
-      subgraph_url: http://translation-service:8083/graphql
+      subgraph_url: http://translation-service:8081/graphql
 
   shop-service:
     routing_url: http://shop-service:5003/graphql

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import TemplateVariablesPanel from './TemplateVariablesPanel';
@@ -12,6 +12,7 @@ interface Template {
   language: string;
   documentType: string;
   assignedState?: string;
+  sendEmail?: boolean;
   companyId: string;
 }
 
@@ -34,14 +35,35 @@ export default function TemplateEditorModal({
     language: 'en',
     documentType: 'invoice',
     assignedState: '',
+    sendEmail: false,
   });
   const [saving, setSaving] = useState(false);
   const [showVariables, setShowVariables] = useState(false);
   const { variables, loading } = useTemplateVariables();
 
+  // Populate form when editing existing template
+  useEffect(() => {
+    if (template) {
+      setFormData({
+        name: template.name || '',
+        key: template.key || '',
+        content: template.content || '',
+        language: template.language || 'en',
+        documentType: template.documentType || 'invoice',
+        assignedState: template.assignedState || '',
+        sendEmail: template.sendEmail || false,
+      });
+    }
+  }, [template]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: checked }));
   };
 
   const handleEditorChange = (value: string | undefined) => {
@@ -202,6 +224,24 @@ export default function TemplateEditorModal({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Send Email Checkbox */}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="sendEmail"
+                    name="sendEmail"
+                    checked={formData.sendEmail}
+                    onChange={handleCheckboxChange}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-blue-600"
+                  />
+                  <label
+                    htmlFor="sendEmail"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {t('templates.sendEmail') || 'Send Email on Generation'}
+                  </label>
                 </div>
 
                 {/* Variables Panel */}

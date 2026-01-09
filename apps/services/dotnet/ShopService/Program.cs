@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Prometheus;
+using Minio;
 using ShopService.Data;
 using ShopService.Services;
 using ShopService.GraphQL;
@@ -45,6 +46,38 @@ builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+
+// MinIO S3 client
+builder.Services.AddMinio(configureClient => configureClient
+    .WithEndpoint(builder.Configuration.GetValue<string>("Minio:Endpoint") ?? "minio:9000")
+    .WithCredentials(
+        builder.Configuration.GetValue<string>("Minio:AccessKey") ?? "minioadmin",
+        builder.Configuration.GetValue<string>("Minio:SecretKey") ?? "minioadmin")
+    .WithSSL(builder.Configuration.GetValue<bool>("Minio:UseSSL")));
+
+builder.Services.AddScoped<MinioStorageService>();
+
+// HTTP Clients for service-to-service communication
+builder.Services.AddHttpClient<TemplatesServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("Services:TemplatesService") 
+        ?? "http://templates-service:8087");
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+
+builder.Services.AddHttpClient<AccountingServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("Services:Gateway") 
+        ?? "http://gateway:4000");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+builder.Services.AddHttpClient<NotificationServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("Services:Gateway") 
+        ?? "http://gateway:4000");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // GraphQL
 builder.Services
