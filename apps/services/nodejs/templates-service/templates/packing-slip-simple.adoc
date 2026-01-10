@@ -1,6 +1,6 @@
 // Simple Packing Slip Template
 // For use when orders are marked as DELIVERED
-= PACKING SLIP {order.number}
+= Packing Slip {order.number}
 :doctype: book
 :icons: font
 :author: {company.name}

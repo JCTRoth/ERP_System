@@ -1,6 +1,6 @@
 // Order Cancellation Template
 // Professional format for order cancellations with refund information
-= ORDER CANCELLATION {order.number}
+= Order Cancellation {order.number}
 :doctype: book
 :icons: font
 :author: {company.name}

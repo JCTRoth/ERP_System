@@ -1,6 +1,6 @@
 // Compact Invoice Template
 // All financial information on one page for efficient processing
-= INVOICE {order.number}
+= Invoice {order.number}
 :doctype: book
 :icons: font
 :author: {company.name}

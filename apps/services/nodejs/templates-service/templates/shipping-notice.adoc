@@ -1,6 +1,6 @@
 // Shipping Notice Template
 // Notification to customer that their order has shipped
-= SHIPPING NOTICE {shipment.number}
+= Shipping Notice {shipment.number}
 :doctype: book
 :icons: font
 :author: {company.name}

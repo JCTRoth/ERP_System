@@ -1,7 +1,7 @@
 // Standard Order Confirmation Template
 // Uses core template variables for order confirmation emails
 // Variables: {order.*}, {customer.*}, {company.*}, {shipment.*}, {shipping.*}, {#order.items}
-= ORDER CONFIRMATION {order.number}
+= Order Confirmation {order.number}
 :doctype: book
 :icons: font
 :author: {company.name}

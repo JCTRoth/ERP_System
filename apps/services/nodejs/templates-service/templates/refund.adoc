@@ -1,6 +1,6 @@
 // Refund Notice Template
 // Professional format for customer refund notifications
-= REFUND NOTICE {refund.number}
+= Refund Notice {refund.number}
 :doctype: book
 :icons: font
 :author: {company.name}

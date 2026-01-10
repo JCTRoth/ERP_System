@@ -1,7 +1,7 @@
 // Standard Invoice Template
 // Uses core template variables with proper formatting
 // Variables: {order.*}, {customer.*}, {company.*}, {invoice.*}, {#order.items}
-= INVOICE {order.number}
+= Invoice {order.number}
 :doctype: book
 :icons: font
 :toc: macro

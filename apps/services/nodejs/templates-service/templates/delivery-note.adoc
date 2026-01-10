@@ -1,6 +1,6 @@
 // Delivery Note Template
 // For use when orders are marked as DELIVERED
-= DELIVERY NOTE {order.number}
+= Delivery Note {order.number}
 :doctype: book
 :icons: font
 :author: {company.name}

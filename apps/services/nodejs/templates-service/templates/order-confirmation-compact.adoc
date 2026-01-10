@@ -1,6 +1,6 @@
 // Compact Order Confirmation Template
 // All information on one page for efficient printing
-= ORDER CONFIRMATION {order.number}
+= Order Confirmation {order.number}
 :doctype: book
 :icons: font
 :author: {company.name}
