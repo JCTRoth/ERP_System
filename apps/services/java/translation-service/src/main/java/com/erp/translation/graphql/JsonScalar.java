@@ -43,10 +43,13 @@ public class JsonScalar implements Coercing<Object, Object> {
     }
 
     @Override
-    public Object parseLiteral(Value<?> input, CoercedVariables variables, 
+    public Object parseLiteral(Object input, CoercedVariables variables, 
                                 GraphQLContext graphQLContext, Locale locale) 
             throws CoercingParseLiteralException {
-        return parseLiteralValue(input);
+        if (input instanceof Value) {
+            return parseLiteralValue((Value<?>) input);
+        }
+        throw new CoercingParseLiteralException("Unexpected input type: " + input.getClass());
     }
 
     private Object parseLiteralValue(Value<?> input) {

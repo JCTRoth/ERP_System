@@ -174,7 +174,8 @@ build_and_push_service() {
     set +e  # Don't exit on errors in this function
     local service_name=$1
     local service_path=$2
-    local full_image_name="${REGISTRY_URL}/${GITHUB_USERNAME}/erp-${service_name}:${IMAGE_VERSION}"
+    local lowercase_username=$(echo "$GITHUB_USERNAME" | tr '[:upper:]' '[:lower:]')
+    local full_image_name="${REGISTRY_URL}/${lowercase_username}/erp-${service_name}:${IMAGE_VERSION}"
     
     print_info "Building: $service_name"
     

@@ -53,12 +53,23 @@ public class LanguageConfigService {
         return languages.stream().anyMatch(lang -> lang.getCode().equals(code));
     }
 
-    @Getter
     public static class LanguageConfig {
         private String code;
         private String name;
         private String flag;
-        private boolean isDefault;
+        private boolean defaultLanguage;
+
+        public String getCode() {
+            return code;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getFlag() {
+            return flag;
+        }
 
         public void setCode(String code) {
             this.code = code;
@@ -73,7 +84,11 @@ public class LanguageConfigService {
         }
 
         public void setDefault(boolean aDefault) {
-            isDefault = aDefault;
+            this.defaultLanguage = aDefault;
+        }
+
+        public boolean isDefault() {
+            return defaultLanguage;
         }
     }
 }

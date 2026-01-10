@@ -8,7 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="HotChocolate.AspNetCore" Version="14.0.0" />
+  <PackageReference Include="HotChocolate" Version="14.0.0" />
+  <PackageReference Include="HotChocolate.AspNetCore" Version="14.0.0" />
     <PackageReference Include="HotChocolate.Data.EntityFramework" Version="14.0.0" />
     <PackageReference Include="HotChocolate.Types.Scalars" Version="14.0.0" />
     <PackageReference Include="HotChocolate.ApolloFederation" Version="14.0.0" />
