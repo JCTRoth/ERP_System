@@ -4,6 +4,29 @@ import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { shopApolloClient } from '../../lib/apollo';
 
+// Helper function to format document titles
+const formatDocumentTitle = (documentType: string, templateKey?: string) => {
+  // Convert camelCase to PascalCase (CamelCase)
+  const toCamelCase = (str: string) => {
+    return str
+      .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space before capital letters
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join('');
+  };
+
+  const baseTitle = toCamelCase(documentType);
+
+  // Add template variant if it's not the default
+  if (templateKey && templateKey.includes('-compact')) {
+    return `${baseTitle}Compact`;
+  } else if (templateKey && templateKey.includes('-simple')) {
+    return `${baseTitle}Simple`;
+  }
+
+  return baseTitle;
+};
+
 const GET_ORDER_DETAILS = gql`
   query GetOrderDetails($id: UUID!) {
     order(id: $id) {
@@ -528,21 +551,23 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
               <h3 className="mb-3 font-semibold">Order Documents</h3>
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
                 {/* Documents List - populated from backend */}
-                <div className="space-y-2">
+                <div className="max-h-80 overflow-y-scroll space-y-2">
                   {order.documents && order.documents.length > 0 ? (
-                    order.documents.map((doc: any) => (
-                      <div key={doc.id} className="flex items-center justify-between rounded bg-white p-3 dark:bg-gray-800">
-                        <div>
-                          <p className="font-medium">{doc.documentType}{doc.templateKey ? ` (${doc.templateKey})` : ''}</p>
-                          <p className="text-xs text-gray-500">Generated: {new Date(doc.generatedAt).toLocaleString()}</p>
+                    [...order.documents]
+                      .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime())
+                      .map((doc: any) => (
+                        <div key={doc.id} className="flex items-center justify-between rounded bg-white p-3 dark:bg-gray-800">
+                          <div>
+                            <p className="font-medium">{formatDocumentTitle(doc.documentType, doc.templateKey)}</p>
+                            <p className="text-xs text-gray-500">Generated: {new Date(doc.generatedAt).toLocaleString()}</p>
+                          </div>
+                          {doc.pdfUrl ? (
+                            <a href={doc.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Open PDF</a>
+                          ) : (
+                            <span className="text-sm text-gray-500">No file URL</span>
+                          )}
                         </div>
-                        {doc.pdfUrl ? (
-                          <a href={doc.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Open PDF</a>
-                        ) : (
-                          <span className="text-sm text-gray-500">No file URL</span>
-                        )}
-                      </div>
-                    ))
+                      ))
                   ) : (
                     <p className="text-sm text-gray-600 dark:text-gray-400">No documents created yet for this order.</p>
                   )}
