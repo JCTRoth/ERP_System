@@ -1,35 +1,106 @@
-= Order Cancellation
-:doctype: article
+// Order Cancellation Template
+// Professional format for order cancellations with refund information
+= ORDER CANCELLATION {order.number}
+:doctype: book
 :icons: font
 :author: {company.name}
 :revnumber: {order.number}
 :revdate: {cancellation.date}
+:revremark: CANCELLED
 
-== Cancellation for Order {order.number}
+// Company Header
+[.text-center]
+== {company.name}
 
-Customer: {customer.name} ({customer.email})
+[.text-center]
+{company.address} + 
+{company.city}, {company.postalCode} + 
+{company.country}
 
-Reason:
+[.text-center]
+📧 {company.email} | 📞 {company.phone || ''}
 
-{cancellation.reason}
+'''
 
-[options="header"]
+// Cancellation Information
+[cols="2,2", frame="none", grid="none"]
+.Cancellation Details
 |===
-| # | Description | Qty | Unit price | Total
+| *Order Number:*
+| {order.number}
 
-{#items}
+| *Cancellation Date:*
+| {cancellation.date}
+
+| *Customer:*
+| {customer.name}
+
+| *Customer Email:*
+| {customer.email}
+
+| *Reason:*
+| {cancellation.reason}
+|===
+
+// Cancelled Items
+== Cancelled Items
+
+[cols="1,3,1,1,1", options="header"]
+|===
+| # | Description | SKU | Quantity | Total
+
+{#order.items}
 | {index}
-| {description}
-| {quantity}
-| {unitPrice}
-| {total}
-{/items}
+| {item.name || item.description || 'Product/Service'}
+| {item.sku || item.productSku || 'N/A'}
+| {item.quantity}
+| {item.total}
+{#end}
+
+| *Total Items:*
+| {order.items.length || 0}
 |===
 
-== Refund
+// Refund Information
+== Refund Information
 
-- Refund amount: {cancellation.refundAmount}
-- Refund method: {cancellation.method}
+[cols="2,1", frame="none", grid="none"]
+|===
+| *Refund Amount:*
+| {cancellation.refundAmount}
 
-== Notes
+| *Refund Method:*
+| {cancellation.method}
+
+| *Refund Status:*
+| Processed
+
+| *Refund Date:*
+| {cancellation.date}
+|===
+
+// Additional Notes
+{#cancellation.notes}
+== Additional Notes
+
 {cancellation.notes}
+
+{#end}
+
+// Footer
+[.text-center]
+{company.name} | Order Cancellation | Page {page-number} of {page-count}
+
+// Terms and Conditions
+<<<
+
+== Terms and Conditions
+
+* Cancellation fees may apply
+* Refund processing time: 3-5 business days
+* Original payment method will be credited
+* Non-refundable items are not eligible for refunds
+
+// End of Document
+[.text-right]
+{company.name} © {cancellation.date}

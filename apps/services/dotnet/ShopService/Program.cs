@@ -55,7 +55,8 @@ builder.Services.AddMinio(configureClient => configureClient
     .WithCredentials(
         builder.Configuration.GetValue<string>("Minio:AccessKey") ?? "minioadmin",
         builder.Configuration.GetValue<string>("Minio:SecretKey") ?? "minioadmin")
-    .WithSSL(builder.Configuration.GetValue<bool>("Minio:UseSSL")));
+    .WithSSL(builder.Configuration.GetValue<bool>("Minio:UseSSL"))
+    .WithRegion("us-east-1"));
 
 builder.Services.AddScoped<MinioStorageService>();
 
@@ -68,8 +69,7 @@ builder.Services.AddHttpClient<TemplatesServiceClient>(client =>
     client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("Services:TemplatesService") 
         ?? "http://templates-service:8087");
     client.Timeout = TimeSpan.FromMinutes(5); // allow longer PDF generation time
-})
-.AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(new[] { TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(10) }));
+});
 
 builder.Services.AddHttpClient<AccountingServiceClient>(client =>
 {

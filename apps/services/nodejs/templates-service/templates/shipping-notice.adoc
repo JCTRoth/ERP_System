@@ -1,34 +1,108 @@
-= Shipping Notice
-:doctype: article
+// Shipping Notice Template
+// Notification to customer that their order has shipped
+= SHIPPING NOTICE {shipment.number}
+:doctype: book
 :icons: font
 :author: {company.name}
 :revnumber: {shipment.number}
 :revdate: {shipment.date}
+:revremark: SHIPPED
 
-== Shipment {shipment.number}
+// Company Header
+[.text-center]
+== {company.name}
 
-Parcel for order: {order.number}
+[.text-center]
+{company.address} + 
+{company.city}, {company.postalCode} + 
+{company.country}
 
-Ship to:
+[.text-center]
+📧 {company.email} | 📞 {company.phone || ''}
 
-{shipping.name}
-{shipping.street}
-{shipping.city}, {shipping.postalCode}
-{shipping.country}
+'''
 
-Carrier: {shipment.carrier}
-Tracking: {shipment.trackingNumber}
-
-[options="header"]
+// Shipping Information
+[cols="2,2", frame="none", grid="none"]
+.Shipping Details
 |===
-| # | Description | Qty
+| *Shipment Number:*
+| {shipment.number || 'Not Available'}
 
-{#items}
+| *Ship Date:*
+| {shipment.date || order.date}
+
+| *Order Number:*
+| {order.number}
+
+| *Carrier:*
+| {shipment.carrier || order.carrier || 'Standard Shipping'}
+
+| *Tracking Number:*
+| {shipment.trackingNumber || order.trackingNumber || 'Not Available'}
+
+| *Estimated Delivery:*
+| {shipment.date || order.shippedAt || order.date}
+|===
+
+// Shipping Address
+== Shipping Address
+
+{shipping.name || customer.name} + 
+{shipping.street} + 
+{shipping.city}, {shipping.postalCode} + 
+{shipping.country} + 
+📞 {customer.phone}
+
+// Shipped Items
+== Shipped Items
+
+[cols="1,3,1", options="header"]
+|===
+| # | Description | Quantity
+
+{#order.items}
 | {index}
-| {description}
-| {quantity}
-{/items}
+| {item.name || item.description || 'Product/Service'}
+| {item.quantity}
+{#end}
+
+| *Total Items:*
+| {order.items.length || 0}
 |===
 
-== Notes
-{shipment.notes}
+// Shipping Notes
+{#shipment.notes}
+== Shipping Notes
+
+{shipment.notes || 'No additional shipping notes provided.'}
+
+{#end}
+
+// Customer Instructions
+== Customer Instructions
+
+Your order #{order.number} has been shipped via {shipment.carrier}!
+
+* Track your package: {shipment.trackingNumber}
+* Estimated delivery: {shipment.date}
+* Contact us: {company.email} or {company.phone}
+* Delivery hours: Monday-Friday, 9AM-5PM
+
+// Footer
+[.text-center]
+{company.name} | Shipping Notice | Page {page-number} of {page-count}
+
+// Terms and Conditions
+<<<
+
+== Terms and Conditions
+
+* Shipping times are estimates, not guaranteed
+* Delivery attempts will be made 3 times
+* Package may be left at discretion of carrier
+* Contact us immediately for any delivery issues
+
+// End of Document
+[.text-right]
+{company.name} © {shipment.date}

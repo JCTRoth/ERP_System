@@ -248,6 +248,10 @@ public class OrderType : ObjectType<Order>
         descriptor.Field("customer")
             .Type<UserType>()
             .ResolveWith<OrderResolvers>(r => r.GetCustomer(default!, default!));
+        
+        descriptor.Field(o => o.Documents)
+            .Type<NonNullType<ListType<NonNullType<OrderDocumentType>>>>()
+            .ResolveWith<OrderResolvers>(r => r.GetDocuments(default!, default!));
     }
 }
 

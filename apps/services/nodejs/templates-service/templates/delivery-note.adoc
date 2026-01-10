@@ -1,0 +1,147 @@
+// Delivery Note Template
+// For use when orders are marked as DELIVERED
+= DELIVERY NOTE {order.number}
+:doctype: book
+:icons: font
+:author: {company.name}
+:revnumber: {order.number}
+:revdate: {order.date}
+:revremark: DELIVERED
+
+// Company Header
+[.text-center]
+== {company.name}
+
+[.text-center]
+{company.address} + 
+{company.city}, {company.postalCode} + 
+{company.country}
+
+[.text-center]
+📧 {company.email} | 📞 {company.phone || ''} | 🌐 {company.website || ''}
+
+'''
+
+// Delivery Information
+[cols="2,2", frame="none", grid="none"]
+.Delivery Details
+|===
+| *Delivery Note #:*
+| {order.number}
+
+| *Delivery Date:*
+| {order.date}
+
+| *Order Status:*
+| {order.status}
+
+| *Carrier:*
+| {shipment.carrier || 'Standard Shipping'}
+
+| *Tracking #:*
+| {shipment.trackingNumber || order.trackingNumber || 'N/A'}
+
+| *Shipped From:*
+| {company.name}
+|===
+
+// Customer Information
+[cols="2,2", frame="none", grid="none"]
+.Customer Information
+|===
+| *Delivered To:*
+| *Billing Information:*
+
+| {shipping.name || customer.name}
+| {customer.name}
+
+| {shipping.street}
+| {customer.billing.street || ''}
+
+| {shipping.city}, {shipping.postalCode}
+| {customer.billing.city || ''}, {customer.billing.postalCode || ''}
+
+| {shipping.country}
+| {customer.billing.country || ''}
+
+| 📞 {customer.phone}
+| 📧 {customer.email}
+|===
+
+// Delivered Items
+== Delivered Items
+
+[cols="1,3,1,1,1", options="header"]
+|===
+| # | Description | SKU | Quantity | Notes
+
+{#items}
+| {index}
+| {description}
+| {sku}
+| {quantity}
+| {notes || ''}
+{/items}
+
+| *Total Items:*
+| {items.length || 0}
+|===
+
+// Delivery Summary
+[cols="2,1", frame="none", grid="none"]
+.Delivery Summary
+|===
+| *Total Items Delivered:*
+| {items.length || 0}
+
+| *Total Quantity:*
+| {items.reduce((sum, item) => sum + (item.quantity || 0), 0)}
+
+| *Delivery Method:*
+| {shipment.carrier || 'Standard Shipping'}
+
+| *Estimated Weight:*
+| {order.weight || 'N/A'} kg
+|===
+
+// Shipping Information
+== Shipping Information
+
+*Shipped Via:* {shipment.carrier || 'Standard Shipping'} + 
+*Tracking Number:* {shipment.trackingNumber || order.trackingNumber || 'N/A'} + 
+*Ship Date:* {shipment.date || order.shippedAt || order.date} + 
+*Estimated Delivery:* {shipment.date || order.shippedAt || order.date}
+
+// Notes and Instructions
+{#order.notes}
+== Special Delivery Notes
+
+{order.notes}
+
+{#end}
+
+// Proof of Delivery
+== Proof of Delivery
+
+*Delivered By:* _______________________ + 
+*Received By:* _______________________ + 
+*Signature:* _______________________ + 
+*Date:* _______________________
+
+// Footer
+[.text-center]
+{company.name} | Delivery Note | Page {page-number} of {page-count}
+
+// Terms and Conditions
+<<<
+
+== Terms and Conditions
+
+* Customer should inspect goods upon delivery
+* Report any damages or discrepancies within 48 hours
+* This delivery note serves as proof of receipt
+* Returns must be authorized and follow our return policy
+
+// End of Document
+[.text-right]
+{company.name} © {order.date}

@@ -1,0 +1,84 @@
+// Compact Invoice Template
+// All financial information on one page for efficient processing
+= INVOICE {order.number}
+:doctype: book
+:icons: font
+:author: {company.name}
+:revnumber: {order.number}
+:revdate: {order.date}
+:revremark: {order.status}
+
+// Compact Header - Single line with company and invoice info
+[.text-center]
+= {company.name} | INVOICE #{order.number} | Date: {order.date} | Status: {order.status}
+
+// Customer and Company Info - Compact 2-column layout
+[cols="2,2", frame="none", grid="none"]
+|===
+| *Bill To:* {customer.name}
+| *From:* {company.name}
+
+| {customer.billing.street}
+| {company.address}
+
+| {customer.billing.city}, {customer.billing.postalCode}
+| {company.city}, {company.postalCode}
+
+| {customer.billing.country}
+| {company.country}
+
+| 📧 {customer.email}
+| 📧 {company.email}
+
+| 📞 {customer.phone}
+| 📞 {company.phone}
+|===
+
+// Items Table - Compact with essential financial columns
+[cols="1,3,1,1,1", options="header"]
+.Items
+|===
+| # | Description | SKU | Qty | Amount
+
+{#order.items}
+| {index}
+| {item.name || item.description}
+| {item.sku || 'N/A'}
+| {item.quantity}
+| {item.total}
+{#end}
+
+| *Items:* {order.items.length || 0}
+| *Subtotal:* {order.subtotal}
+| *Tax ({invoice.taxRate}%):* {order.tax}
+| *Shipping:* {order.shipping}
+| *DISCOUNT:* -{order.discount}
+| *TOTAL DUE:* {order.total}
+|===
+
+// Payment Information - Compact single line
+[.text-center]
+*Payment Due:* {order.dueDate} | *Method:* {order.paymentMethod} | *Terms:* Net 30 Days | *Currency:* {order.currency}
+
+// Shipping Information - Compact single line
+[.text-center]
+*Tracking:* {shipment.trackingNumber || 'N/A'} | *Carrier:* {shipment.carrier || 'Standard'} | *Ship Date:* {shipment.date || order.date}
+
+// Bank Details - Compact format
+[.text-center]
+*Bank:* {company.bankName} | *Account:* {company.bankAccount} | *SWIFT:* {company.bankSwift} | *IBAN:* {company.bankIban}
+
+// Terms and Notes - Compact
+[.text-center]
+*Thank you for your business! Payment due in 30 days. Questions? {company.email} | {company.phone}*
+
+// Footer - Compact single line
+[.text-center]
+{company.name} | INVOICE #{order.number} | Page {page-number} of {page-count} | {company.website}
+
+// Force single page with page break prevention
+<<<
+
+// Compact Terms and Conditions
+[.text-xs]
+*Payment due in 30 days. Late fees apply. All amounts in {order.currency}. Disputes must be reported within 7 days.*

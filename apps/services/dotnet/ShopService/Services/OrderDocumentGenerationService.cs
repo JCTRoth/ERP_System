@@ -26,6 +26,7 @@ public interface IOrderJobProcessor
     Task EnqueueDocumentGenerationAsync(Guid orderId, string state);
     Task EnqueueInvoiceCreationAsync(Guid orderId);
     Task ProcessPendingJobsAsync(CancellationToken cancellationToken = default);
+    Task GenerateDocumentsForOrderAsync(Guid orderId, string state);
 }
 
 public class OrderJobProcessor : IOrderJobProcessor
@@ -92,17 +93,38 @@ public class OrderJobProcessor : IOrderJobProcessor
         _logger.LogInformation("Enqueued invoice creation job for order {OrderId}", orderId);
     }
 
+    public async Task GenerateDocumentsForOrderAsync(Guid orderId, string state)
+    {
+        var job = new OrderJobPayload
+        {
+            OrderId = orderId,
+            JobType = "GenerateDocuments",
+            State = state,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await ProcessDocumentGenerationAsync(job);
+    }
+
     public async Task ProcessPendingJobsAsync(CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("ProcessPendingJobsAsync called");
+
         while (!cancellationToken.IsCancellationRequested)
         {
+            _logger.LogDebug("Checking for pending jobs...");
+
             OrderJobPayload? job = null;
 
             lock (_queueLock)
             {
                 if (_jobQueue.Count == 0)
+                {
+                    _logger.LogDebug("No jobs in queue");
                     break;
+                }
                 job = _jobQueue.Dequeue();
+                _logger.LogInformation("Dequeued job: {JobType} for order {OrderId}", job.JobType, job.OrderId);
             }
 
             if (job == null)
@@ -148,6 +170,8 @@ public class OrderJobProcessor : IOrderJobProcessor
 
     private async Task ProcessDocumentGenerationAsync(OrderJobPayload job)
     {
+        _logger.LogInformation("Processing document generation job for order {OrderId}, state {State}", job.OrderId, job.State);
+
         var order = await _context.Orders
             .Include(o => o.Items)
             .Include(o => o.Documents)

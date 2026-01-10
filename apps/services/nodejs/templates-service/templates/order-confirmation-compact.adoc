@@ -1,0 +1,72 @@
+// Compact Order Confirmation Template
+// All information on one page for efficient printing
+= ORDER CONFIRMATION {order.number}
+:doctype: book
+:icons: font
+:author: {company.name}
+:revnumber: {order.number}
+:revdate: {order.date}
+:revremark: {order.status}
+
+// Compact Header - Single line
+[.text-center]
+= {company.name} | ORDER CONFIRMATION #{order.number} | {order.date}
+
+// Customer and Order Info - Compact 2-column layout
+[cols="2,2", frame="none", grid="none"]
+|===
+| *Ship To:* {customer.name}
+| *Order:* #{order.number}
+
+| {customer.billing.street}
+| *Date:* {order.date}
+
+| {customer.billing.city}, {customer.billing.postalCode}
+| *Status:* {order.status}
+
+| {customer.billing.country}
+| *Payment:* {order.paymentMethod}
+
+| 📧 {customer.email}
+| *Shipping:* {shipment.carrier}
+
+| 📞 {customer.phone}
+| *Tracking:* {shipment.trackingNumber}
+|===
+
+// Items Table - Compact with essential columns only
+[cols="1,3,1,1", options="header"]
+.Items
+|===
+| # | Description | Qty | Total
+
+{#order.items}
+| {index}
+| {item.name || item.description}
+| {item.quantity}
+| {item.total}
+{#end}
+
+| *Items:* {order.items.length} | *Subtotal:* {order.subtotal}
+| *Tax:* {order.tax} | *Shipping:* {order.shipping}
+| *TOTAL:* {order.total}
+|===
+
+// Shipping and Payment - Compact single line
+[.text-center]
+*Shipping:* {shipment.carrier} {shipment.trackingNumber} | *Payment:* {order.paymentMethod} | *Delivery:* {shipment.date}
+
+// Terms - Compact bullet points
+[.text-center]
+*Thank you for your order! Questions? {company.email} | {company.phone}*
+
+// Footer - Compact single line
+[.text-center]
+{company.name} © {order.date} | Page {page-number} of {page-count}
+
+// Force single page with page break prevention
+<<<
+
+// Compact Terms and Conditions
+[.text-xs]
+*All sales final. Shipping times are estimates. Prices include applicable taxes. See website for full terms.*

@@ -280,7 +280,17 @@ public class OrderService : IOrderService
         );
 
         // Enqueue document generation for this state (reliable background processing)
-        await _jobProcessor.EnqueueDocumentGenerationAsync(order.Id, newStatus.ToString().ToLower());
+        // await _jobProcessor.EnqueueDocumentGenerationAsync(order.Id, newStatus.ToString().ToLower());
+        
+        // Directly generate documents for testing
+        try
+        {
+            await _jobProcessor.GenerateDocumentsForOrderAsync(order.Id, newStatus.ToString().ToLower());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating documents for order {OrderId}", order.Id);
+        }
 
         // Enqueue invoice creation when order is confirmed
         if (newStatus == OrderStatus.Confirmed && oldStatus != OrderStatus.Confirmed)

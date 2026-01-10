@@ -455,6 +455,7 @@ export function buildTemplateContext(
           unitPrice: it.unitPrice ?? it.UnitPrice ?? it.price ?? null,
           discount: it.discountAmount ?? it.discount ?? 0,
           total: it.total ?? it.Total ?? null,
+          sku: it.sku || it.SKU || it.productSku || null,
         }));
       }
     }
@@ -496,6 +497,7 @@ export function buildTemplateContext(
           unitPrice: it.unitPrice ?? it.UnitPrice ?? it.price ?? null,
           discount: it.discount ?? it.DiscountAmount ?? 0,
           total: it.total ?? it.Total ?? (it.quantity && it.unitPrice ? it.quantity * it.unitPrice : null),
+          sku: it.sku || it.SKU || it.productSku || null,
         }));
       }
 
@@ -573,6 +575,7 @@ export function buildTemplateContext(
           index: index + 1,
           name: item.productName || item.name || item.description || item.product || 'Product',
           description: item.description || item.name || item.productName || item.product || null,
+          sku: item.sku || item.SKU || item.productSku || null,
           quantity: item.quantity ?? item.Quantity ?? item.qty ?? 1,
           unitPrice: item.unitPrice ?? item.UnitPrice ?? item.price ?? item.amount ?? 0,
           total: item.total ?? item.Total ?? item.subtotal ?? ((item.quantity ?? 1) * (item.unitPrice ?? 0)),

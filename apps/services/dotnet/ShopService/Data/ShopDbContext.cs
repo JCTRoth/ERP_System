@@ -305,6 +305,10 @@ public class ShopDbContext : DbContext
             entity.Property(e => e.DefaultBillingCity).HasColumnName("default_billing_city");
             entity.Property(e => e.DefaultBillingPostalCode).HasColumnName("default_billing_postal_code");
             entity.Property(e => e.DefaultBillingCountry).HasColumnName("default_billing_country");
+            entity.Property(e => e.Type).HasColumnName("type");
+            entity.Property(e => e.IsActive).HasColumnName("is_active");
+            entity.Property(e => e.AcceptsMarketing).HasColumnName("accepts_marketing");
+            entity.Property(e => e.Notes).HasColumnName("notes");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
         });

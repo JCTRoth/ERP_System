@@ -162,6 +162,8 @@ async function loadTemplatesFromFiles() {
       invoice: 'invoice',
       'order-confirmation': 'orderConfirmation',
       'shipping-notice': 'shippingNotice',
+      'delivery-note': 'deliveryNote',
+      'packing-slip-simple': 'packingSlip',
       cancellation: 'cancellation',
       refund: 'refund',
     };
@@ -174,6 +176,8 @@ async function loadTemplatesFromFiles() {
       assignedState = 'confirmed';
     } else if (documentType === 'shippingNotice') {
       assignedState = 'shipped';
+    } else if (documentType === 'deliveryNote' || documentType === 'packingSlip') {
+      assignedState = 'delivered';
     } else if (documentType === 'cancellation') {
       assignedState = 'cancelled';
     } else if (documentType === 'refund') {
@@ -420,6 +424,7 @@ function renderWithoutMustache(src, ctx, errorsList) {
   const loopRegex = /\{#([a-zA-Z0-9_.]+)\}([\s\S]*?)\{#end\}/g;
   out = out.replace(loopRegex, (m, name, block) => {
     const arr = name.split('.').reduce((acc, k) => (acc && acc[k] ? acc[k] : null), ctx);
+    console.log('DEBUG: Loop processing - name:', name, 'arr:', arr);
     if (!Array.isArray(arr)) {
       errorsList.push(`Missing collection: ${name}`);
       return '';
@@ -435,6 +440,7 @@ function renderWithoutMustache(src, ctx, errorsList) {
         if (p === 'index') return String(idx + 1);
 
         const resolved = resolveValue({ ...ctx, item, invoice: ctx.invoice }, p);
+        console.log('DEBUG: Loop variable resolution - path:', p, 'resolved:', resolved);
         if (resolved === undefined) {
           errorsList.push(`Missing variable: ${match}`);
           return match;
@@ -726,6 +732,14 @@ app.post('/api/templates/:id/render', async (req, res) => {
     console.log('DEBUG: Template context keys:', Object.keys(context));
     console.log('DEBUG: Template context items length:', Array.isArray(context.items) ? context.items.length : 'not an array');
     console.log('DEBUG: Template context order.items length:', context.order?.items?.length);
+    
+    // Debug: log first few items if available
+    if (Array.isArray(context.items) && context.items.length > 0) {
+      console.log('DEBUG: First item:', context.items[0]);
+    }
+    if (context.order?.items?.length > 0) {
+      console.log('DEBUG: First order item:', context.order.items[0]);
+    }
 
     // Use robust fallback renderer directly to avoid Mustache parsing issues
     let renderedAdoc;

@@ -13,12 +13,17 @@ public class MinioStorageService
     private readonly IMinioClient _minioClient;
     private readonly ILogger<MinioStorageService> _logger;
     private readonly string _bucketPrefix;
+    private readonly string _publicUrl;
+    private readonly IConfiguration _configuration;
 
     public MinioStorageService(IMinioClient minioClient, ILogger<MinioStorageService> logger, IConfiguration configuration)
     {
         _minioClient = minioClient;
         _logger = logger;
         _bucketPrefix = configuration.GetValue<string>("Minio:BucketPrefix") ?? "documents";
+        _publicUrl = configuration.GetValue<string>("Minio:PublicUrl");
+        _configuration = configuration;
+        _logger.LogInformation("MinioStorageService initialized with PublicUrl: {PublicUrl}", _publicUrl);
     }
 
     /// <summary>
@@ -91,11 +96,36 @@ public class MinioStorageService
             _logger.LogInformation("Uploaded PDF to MinIO: {BucketName}/{ObjectKey}", bucketName, objectKey);
 
             // Generate presigned URL (valid for 7 days)
-            var presignedUrl = await _minioClient.PresignedGetObjectAsync(
-                new PresignedGetObjectArgs()
-                    .WithBucket(bucketName)
-                    .WithObject(objectKey)
-                    .WithExpiry(60 * 60 * 24 * 7)); // 7 days in seconds
+            // Use a temporary client with the public URL for URL generation
+            string presignedUrl;
+            if (!string.IsNullOrEmpty(_publicUrl))
+            {
+                var publicUrl = _publicUrl;
+                var endpoint = publicUrl.Replace("http://", "").Replace("https://", "");
+                _logger.LogInformation("Creating temporary MinIO client with endpoint: {Endpoint}", endpoint);
+                var tempClient = new MinioClient()
+                    .WithEndpoint(endpoint)
+                    .WithCredentials(
+                        _configuration.GetValue<string>("Minio:AccessKey") ?? "minioadmin",
+                        _configuration.GetValue<string>("Minio:SecretKey") ?? "minioadmin")
+                    .WithSSL(false)
+                    .Build();
+
+                presignedUrl = await tempClient.PresignedGetObjectAsync(
+                    new PresignedGetObjectArgs()
+                        .WithBucket(bucketName)
+                        .WithObject(objectKey)
+                        .WithExpiry(60 * 60 * 24 * 7)); // 7 days in seconds
+                _logger.LogInformation("Generated presigned URL with public endpoint: {Url}", presignedUrl);
+            }
+            else
+            {
+                presignedUrl = await _minioClient.PresignedGetObjectAsync(
+                    new PresignedGetObjectArgs()
+                        .WithBucket(bucketName)
+                        .WithObject(objectKey)
+                        .WithExpiry(60 * 60 * 24 * 7)); // 7 days in seconds
+            }
 
             return presignedUrl;
         }
@@ -119,11 +149,34 @@ public class MinioStorageService
         
         try
         {
-            var presignedUrl = await _minioClient.PresignedGetObjectAsync(
-                new PresignedGetObjectArgs()
-                    .WithBucket(bucketName)
-                    .WithObject(objectKey)
-                    .WithExpiry(expiryInHours * 3600));
+            // Use a temporary client with the public URL for URL generation
+            string presignedUrl;
+            if (!string.IsNullOrEmpty(_publicUrl))
+            {
+                var publicUrl = _publicUrl;
+                var tempClient = new MinioClient()
+                    .WithEndpoint(publicUrl.Replace("http://", "").Replace("https://", ""))
+                    .WithCredentials(
+                        _configuration.GetValue<string>("Minio:AccessKey") ?? "minioadmin",
+                        _configuration.GetValue<string>("Minio:SecretKey") ?? "minioadmin")
+                    .WithSSL(publicUrl.StartsWith("https"))
+                    .WithRegion("us-east-1")
+                    .Build();
+
+                presignedUrl = await tempClient.PresignedGetObjectAsync(
+                    new PresignedGetObjectArgs()
+                        .WithBucket(bucketName)
+                        .WithObject(objectKey)
+                        .WithExpiry(expiryInHours * 3600));
+            }
+            else
+            {
+                presignedUrl = await _minioClient.PresignedGetObjectAsync(
+                    new PresignedGetObjectArgs()
+                        .WithBucket(bucketName)
+                        .WithObject(objectKey)
+                        .WithExpiry(expiryInHours * 3600));
+            }
 
             return presignedUrl;
         }
