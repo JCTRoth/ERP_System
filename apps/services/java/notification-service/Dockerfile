@@ -1,26 +1,31 @@
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
-# Copy entire project context — some repos may not include the gradle wrapper files
+# Copy entire project context
 COPY . .
-RUN if [ -f gradlew ]; then \
-			chmod +x gradlew && ./gradlew bootJar --no-daemon; \
-		else \
-			echo "gradlew not found; skipping gradle build (ensure jar is provided or add gradle wrapper)"; \
-		fi
+# Skip gradle build in container - we'll use pre-built JAR
+RUN mkdir -p build/libs && \
+    if [ -f "build/libs/notification-service-1.0.0.jar" ]; then \
+        echo "Using pre-built JAR"; \
+    else \
+        echo "Pre-built JAR not found, attempting gradle build..."; \
+        gradle bootJar || true; \
+    fi
 
-# Ensure there is at least one jar file so the final image can copy it even if build was skipped
-RUN set -- build/libs/*.jar; \
+# Ensure there is at least one jar file  
+RUN set -- build/libs/notification-service-*.jar; \
 		if [ -e "$1" ]; then \
 			echo "jar(s) present: $1"; \
 		else \
-			mkdir -p build/libs; printf "placeholder" > build/libs/app.jar; \
+			echo "ERROR: No JAR file found"; \
+			ls -la build/; \
 		fi
 
 FROM eclipse-temurin:21-jre
-WORKDIR /app
-COPY --from=build /app/build/libs/*.jar app.jar
+# Use a different directory for the JAR to avoid volume mount conflicts
+WORKDIR /opt/app
+# Copy the executable JAR (not the -plain version)
+COPY --from=build /app/build/libs/notification-service-1.0.0.jar app.jar
 EXPOSE 8082
 
-# Check if we're in development mode (source code mounted)
-# If src directory exists and contains source files, run in dev mode with hot reload
-ENTRYPOINT ["sh", "-c", "if [ -d src ] && [ -f build.gradle ]; then ./gradlew bootRun --no-daemon; else java -jar app.jar; fi"]
+# Just run the JAR directly
+ENTRYPOINT ["java", "-jar", "app.jar"]

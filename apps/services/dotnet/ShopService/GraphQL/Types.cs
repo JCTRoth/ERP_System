@@ -267,7 +267,7 @@ public class OrderResolvers
         return context.Payments.Where(p => p.OrderId == order.Id);
     }
     
-    // Customer resolver - fetches from ShopService database
+    // Customer resolver - fetches real customer data from ShopService database
     public User? GetCustomer([Parent] Order order, [Service] ShopDbContext context)
     {
         // Sometimes the parent Order instance given to the resolver is a projected object
@@ -285,15 +285,22 @@ public class OrderResolvers
             return null;
         }
 
-        // For now, return a lightweight User object based on the CustomerId.
-        // This can be enhanced to query a dedicated customer service/database for full details.
+        // Fetch the actual customer data from the Customers table
+        var customer = context.Customers.AsNoTracking().FirstOrDefault(c => c.Id == customerId);
+        
+        if (customer == null)
+        {
+            return null;
+        }
+
+        // Return User object populated with real customer data
         return new User
         {
-            Id = customerId,
-            FirstName = "Customer",
-            LastName = string.Empty,
-            Email = "customer@example.com",
-            Phone = null
+            Id = customer.Id,
+            FirstName = customer.FirstName ?? string.Empty,
+            LastName = customer.LastName ?? string.Empty,
+            Email = customer.Email,
+            Phone = customer.Phone
         };
     }
 

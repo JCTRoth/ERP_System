@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES, useI18n } from '@/providers/I18nProvider';
 import { useAuthStore } from '@/stores/authStore';
 import { useUIStore } from '@/stores/uiStore.ts';
@@ -9,7 +9,7 @@ import {
   UserIcon,
 } from '@heroicons/react/24/outline';
 
-type SettingsTab = 'general' | 'developer' | 'interface' | 'account';
+type SettingsTab = 'general' | 'developer' | 'interface' | 'smtpServer' | 'account';
 
 export default function SettingsPage() {
   const { t, language, setLanguage } = useI18n();
@@ -21,11 +21,140 @@ export default function SettingsPage() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [smtpConfig, setSmtpConfig] = useState({
+    smtpHost: '',
+    smtpPort: 587,
+    smtpUsername: '',
+    smtpPassword: '',
+    emailFrom: '',
+    emailFromName: '',
+    useTls: true,
+    useSsl: false,
+  });
+  const [smtpSource, setSmtpSource] = useState<'database' | 'environment'>('environment');
+  const [smtpLoading, setSmtpLoading] = useState(false);
+  const [smtpMessage, setSmtpMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Load SMTP configuration when SMTP tab is selected
+  useEffect(() => {
+    if (activeTab === 'smtpServer') {
+      console.log('SMTP tab selected, loading configuration...');
+      loadSmtpConfiguration();
+    }
+  }, [activeTab]);
+
+  // Debug: Log when smtpConfig changes
+  useEffect(() => {
+    console.log('smtpConfig state changed:', smtpConfig);
+  }, [smtpConfig]);
+
+  // Debug: Log when SMTP tab is rendered
+  useEffect(() => {
+    if (activeTab === 'smtpServer') {
+      console.log('SMTP tab rendered with config:', smtpConfig);
+    }
+  }, [activeTab, smtpConfig]);
+
+  const loadSmtpConfiguration = async () => {
+    try {
+      console.log('Loading SMTP configuration from API...');
+      setSmtpLoading(true);
+      const response = await fetch('http://localhost:8082/api/smtp-configuration');
+      const data = await response.json();
+      console.log('SMTP API response:', data);
+      
+      if (data.config) {
+        console.log('Setting SMTP config:', data.config);
+        const newConfig = {
+          smtpHost: data.config.smtpHost || '',
+          smtpPort: data.config.smtpPort || 587,
+          smtpUsername: data.config.smtpUsername || '',
+          smtpPassword: data.config.smtpPassword === '***' ? '' : (data.config.smtpPassword || ''),
+          emailFrom: data.config.emailFrom || '',
+          emailFromName: data.config.emailFromName || '',
+          useTls: data.config.useTls ?? true,
+          useSsl: data.config.useSsl ?? false,
+        };
+        console.log('New config object:', newConfig);
+        setSmtpConfig(newConfig);
+        setSmtpSource(data.source);
+        console.log('SMTP config set successfully');
+      } else {
+        console.log('No config in API response');
+      }
+    } catch (error) {
+      console.error('Failed to load SMTP configuration:', error);
+      setSmtpMessage({ type: 'error', text: t('settings.configurationFailed') });
+    } finally {
+      setSmtpLoading(false);
+    }
+  };
+
+  const handleSmtpSave = async () => {
+    try {
+      setSmtpLoading(true);
+      setSmtpMessage(null);
+      
+      const response = await fetch('http://localhost:8082/api/smtp-configuration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(smtpConfig),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success !== false) {
+        setSmtpMessage({ type: 'success', text: t('settings.configurationSaved') });
+        setSmtpSource('database');
+        // Reload configuration to get updated values
+        setTimeout(() => loadSmtpConfiguration(), 1000);
+      } else {
+        const errorMsg = data.message || data.error || t('settings.configurationFailed');
+        setSmtpMessage({ type: 'error', text: errorMsg });
+        console.error('Save error:', data);
+      }
+    } catch (error) {
+      console.error('Failed to save SMTP configuration:', error);
+      const errorText = error instanceof Error ? error.message : t('settings.configurationFailed');
+      setSmtpMessage({ type: 'error', text: `Network error: ${errorText}` });
+    } finally {
+      setSmtpLoading(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    try {
+      setSmtpLoading(true);
+      setSmtpMessage(null);
+      
+      const response = await fetch('http://localhost:8082/api/smtp-configuration/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(smtpConfig),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSmtpMessage({ type: 'success', text: t('settings.connectionSuccess') });
+      } else {
+        const errorMsg = data.message || t('settings.connectionFailed');
+        setSmtpMessage({ type: 'error', text: errorMsg });
+      }
+    } catch (error) {
+      console.error('Failed to test SMTP connection:', error);
+      const errorText = error instanceof Error ? error.message : t('settings.connectionFailed');
+      setSmtpMessage({ type: 'error', text: `Network error: ${errorText}` });
+    } finally {
+      setSmtpLoading(false);
+    }
+  };
 
   const tabs = [
     { id: 'general' as const, label: t('settings.general') || 'General', icon: Cog6ToothIcon },
     ...(isAdmin() ? [{ id: 'developer' as const, label: t('settings.developer') || 'Development', icon: CodeBracketIcon }] : []),
-    { id: 'interface' as const, label: t('settings.interface') || 'Interface', icon: ServerIcon },
+    { id: 'interface' as const, label: t('settings.interface') || 'Interfaces', icon: ServerIcon },
+    { id: 'smtpServer' as const, label: t('settings.smtpServer') || 'SMTP Server', icon: ServerIcon },
     { id: 'account' as const, label: t('settings.account') || 'Account', icon: UserIcon },
   ];
 
@@ -259,6 +388,162 @@ export default function SettingsPage() {
                     </a>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SMTP Server Tab */}
+        {activeTab === 'smtpServer' && (
+          <div className="card p-6">
+            <h2 className="mb-4 text-lg font-semibold">{t('settings.smtpConfiguration')}</h2>
+            <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+              {t('settings.smtpConfigurationDesc')}
+            </p>
+            
+            {smtpLoading && (
+              <div className="mb-4 text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary-600 border-r-transparent"></div>
+              </div>
+            )}
+
+            {smtpMessage && (
+              <div className={`mb-4 rounded-lg p-4 ${
+                smtpMessage.type === 'success' 
+                  ? 'bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-200'
+                  : 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-200'
+              }`}>
+                {smtpMessage.text}
+              </div>
+            )}
+
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/30">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>{t('common.status')}:</strong> {smtpSource === 'database' 
+                  ? t('settings.useDatabaseConfiguration')
+                  : t('settings.useEnvironmentVariables')}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="label">{t('settings.smtpHost')} *</label>
+                  <input
+                    type="text"
+                    value={smtpConfig.smtpHost}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, smtpHost: e.target.value })}
+                    className="input w-full"
+                    placeholder="smtp.example.com"
+                    disabled={smtpLoading}
+                  />
+                </div>
+                
+                <div>
+                  <label className="label">{t('settings.smtpPort')} *</label>
+                  <input
+                    type="number"
+                    value={smtpConfig.smtpPort}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, smtpPort: parseInt(e.target.value) || 587 })}
+                    className="input w-full"
+                    placeholder="587"
+                    disabled={smtpLoading}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="label">{t('settings.smtpUsername')}</label>
+                  <input
+                    type="text"
+                    value={smtpConfig.smtpUsername}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, smtpUsername: e.target.value })}
+                    className="input w-full"
+                    placeholder="username@example.com"
+                    disabled={smtpLoading}
+                  />
+                </div>
+                
+                <div>
+                  <label className="label">{t('settings.smtpPassword')}</label>
+                  <input
+                    type="password"
+                    value={smtpConfig.smtpPassword}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, smtpPassword: e.target.value })}
+                    className="input w-full"
+                    placeholder="••••••••"
+                    disabled={smtpLoading}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="label">{t('settings.emailFrom')} *</label>
+                  <input
+                    type="email"
+                    value={smtpConfig.emailFrom}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, emailFrom: e.target.value })}
+                    className="input w-full"
+                    placeholder="noreply@example.com"
+                    disabled={smtpLoading}
+                  />
+                </div>
+                
+                <div>
+                  <label className="label">{t('settings.emailFromName')}</label>
+                  <input
+                    type="text"
+                    value={smtpConfig.emailFromName}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, emailFromName: e.target.value })}
+                    className="input w-full"
+                    placeholder="ERP System"
+                    disabled={smtpLoading}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={smtpConfig.useTls}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, useTls: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    disabled={smtpLoading}
+                  />
+                  <span className="text-sm">Use TLS (STARTTLS)</span>
+                </label>
+                
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={smtpConfig.useSsl}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, useSsl: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    disabled={smtpLoading}
+                  />
+                  <span className="text-sm">Use SSL</span>
+                </label>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleTestConnection}
+                  disabled={smtpLoading || !smtpConfig.smtpHost || !smtpConfig.emailFrom}
+                  className="btn-secondary"
+                >
+                  {t('settings.testConnection')}
+                </button>
+                
+                <button
+                  onClick={handleSmtpSave}
+                  disabled={smtpLoading || !smtpConfig.smtpHost || !smtpConfig.emailFrom}
+                  className="btn-primary"
+                >
+                  {t('settings.saveConfiguration')}
+                </button>
               </div>
             </div>
           </div>
