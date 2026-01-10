@@ -113,7 +113,8 @@ network_checks() {
         "15432:PostgreSQL"
         "3001:Grafana"
         "9090:Prometheus"
-        "9001:MinIO"
+        "9000:MinIO"
+        "9001:MinIO-Console"
     )
 
     print_info "Checking port availability (${#required_ports[@]} ports)..."
@@ -154,6 +155,11 @@ start_infrastructure() {
 
     print_status "PostgreSQL container created"
     
+    # Start MinIO (S3-compatible storage) so services depending on object storage are available
+    print_info "Starting MinIO..."
+    docker compose -f "$COMPOSE_FILE" up -d minio >/dev/null 2>&1
+    print_status "MinIO container created"
+    
     # Wait for database to be ready
     print_info "Waiting for PostgreSQL to accept connections..."
     local max_attempts=30
@@ -163,10 +169,22 @@ start_infrastructure() {
         local container_id
         container_id=$(docker compose -f "$COMPOSE_FILE" ps -q postgres 2>/dev/null || true)
 
+        # Also check MinIO readiness
+        local minio_id
+        minio_id=$(docker compose -f "$COMPOSE_FILE" ps -q minio 2>/dev/null || true)
+
         if [ -n "$container_id" ]; then
             if docker exec "$container_id" pg_isready -U postgres >/dev/null 2>&1; then
                 print_status "PostgreSQL is ready"
-                return 0
+                # Check MinIO readiness if started
+                if [ -n "$minio_id" ]; then
+                    if docker exec "$minio_id" mc alias set local http://localhost:9000 minioadmin minioadmin >/dev/null 2>&1; then
+                        print_status "MinIO is reachable"
+                        return 0
+                    fi
+                else
+                    return 0
+                fi
             fi
         fi
 
@@ -195,6 +213,7 @@ start_services() {
         "accounting-service"
         "orders-service"
         "templates-service"
+        "minio"
     )
 
     print_info "Starting ${#services[@]} services..."
@@ -258,6 +277,7 @@ verify_services() {
         "AccountingService:5001"
         "MasterdataService:5002"
         "OrdersService:5004"
+        "MinIO:9001"
     )
 
     local healthy=0

@@ -3,8 +3,6 @@ package com.erp.translation.graphql;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.graphql.dgs.DgsScalar;
-import graphql.GraphQLContext;
-import graphql.execution.CoercedVariables;
 import graphql.language.*;
 import graphql.schema.Coercing;
 import graphql.schema.CoercingParseLiteralException;
@@ -21,14 +19,12 @@ public class JsonScalar implements Coercing<Object, Object> {
     private ObjectMapper objectMapper;
 
     @Override
-    public Object serialize(Object dataFetcherResult, GraphQLContext graphQLContext, Locale locale) 
-            throws CoercingSerializeException {
+    public Object serialize(Object dataFetcherResult) throws CoercingSerializeException {
         return dataFetcherResult;
     }
 
     @Override
-    public Object parseValue(Object input, GraphQLContext graphQLContext, Locale locale) 
-            throws CoercingParseValueException {
+    public Object parseValue(Object input) throws CoercingParseValueException {
         if (input instanceof Map || input instanceof List) {
             return input;
         }
@@ -43,9 +39,7 @@ public class JsonScalar implements Coercing<Object, Object> {
     }
 
     @Override
-    public Object parseLiteral(Object input, CoercedVariables variables, 
-                                GraphQLContext graphQLContext, Locale locale) 
-            throws CoercingParseLiteralException {
+    public Object parseLiteral(Object input) throws CoercingParseLiteralException {
         if (input instanceof Value) {
             return parseLiteralValue((Value<?>) input);
         }
