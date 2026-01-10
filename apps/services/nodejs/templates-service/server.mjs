@@ -534,6 +534,9 @@ app.get('/api/templates', async (req, res) => {
     if (assignedState) {
       query += ` AND assigned_state = $${paramIndex++}`;
       params.push(assignedState);
+      // When querying by assigned state (ShopService use case), only return active templates
+      query += ` AND is_active = $${paramIndex++}`;
+      params.push(true);
     }
 
     query += ' ORDER BY name';
@@ -581,6 +584,7 @@ app.post('/api/templates', async (req, res) => {
       companyId,
       createdBy,
       sendEmail,
+      isActive,
     } = req.body;
 
     const id = uuidv4();
@@ -600,7 +604,7 @@ app.post('/api/templates', async (req, res) => {
         documentType,
         assignedState || null,
         mainObjectType || 'order',
-        true,
+        isActive ?? true,
         sendEmail || false,
         JSON.stringify({ version: 1 }),
         now,
@@ -620,7 +624,7 @@ app.post('/api/templates', async (req, res) => {
 // Update template
 app.put('/api/templates/:id', async (req, res) => {
   try {
-    const { name, content, language, documentType, assignedState, mainObjectType, sendEmail, lastModifiedBy } = req.body;
+    const { name, content, language, documentType, assignedState, mainObjectType, sendEmail, isActive, lastModifiedBy } = req.body;
     const now = new Date();
 
     const updates = [];
@@ -654,6 +658,10 @@ app.put('/api/templates/:id', async (req, res) => {
     if (sendEmail !== undefined) {
       updates.push(`send_email = $${paramIndex++}`);
       params.push(sendEmail);
+    }
+    if (isActive !== undefined) {
+      updates.push(`is_active = $${paramIndex++}`);
+      params.push(isActive);
     }
 
     updates.push(`updated_at = $${paramIndex++}`);

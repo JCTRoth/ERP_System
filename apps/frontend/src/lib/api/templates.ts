@@ -25,6 +25,8 @@ export interface TemplateCreateRequest {
   mainObjectType?: string;
   companyId: string;
   createdBy: string;
+  isActive?: boolean;
+  sendEmail?: boolean;
 }
 
 export interface TemplateUpdateRequest {
@@ -34,6 +36,8 @@ export interface TemplateUpdateRequest {
   documentType?: string;
   assignedState?: string;
   mainObjectType?: string;
+  isActive?: boolean;
+  sendEmail?: boolean;
 }
 
 export interface RenderResult {

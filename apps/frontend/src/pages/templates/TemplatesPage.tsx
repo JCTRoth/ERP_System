@@ -127,6 +127,9 @@ export default function TemplatesPage() {
           language: data.language,
           documentType: data.documentType,
           assignedState: data.assignedState,
+          mainObjectType: data.mainObjectType,
+          sendEmail: data.sendEmail,
+          isActive: data.isActive,
         });
       } else {
         // Create new

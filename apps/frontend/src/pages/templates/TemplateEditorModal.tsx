@@ -14,6 +14,7 @@ interface Template {
   assignedState?: string;
   sendEmail?: boolean;
   mainObjectType?: string; // NEW: tracks main object context (order, company, etc.)
+  isActive?: boolean; // NEW: tracks template active status
   companyId: string;
 }
 
@@ -38,6 +39,7 @@ export default function TemplateEditorModal({
     assignedState: '',
     sendEmail: false,
     mainObjectType: 'order', // NEW: track main object context (order, company, etc.)
+    isActive: true, // NEW: track template active status
   });
   const [saving, setSaving] = useState(false);
   const [showVariables, setShowVariables] = useState(false);
@@ -56,6 +58,7 @@ export default function TemplateEditorModal({
         assignedState: template.assignedState || '',
         sendEmail: template.sendEmail || false,
         mainObjectType: template.mainObjectType || 'order',
+        isActive: (template as any).isActive ?? true,
       });
       setContextSelected(true);
     }
@@ -272,6 +275,24 @@ export default function TemplateEditorModal({
                     className="text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
                     {t('templates.sendEmail') || 'Send Email on Generation'}
+                  </label>
+                </div>
+
+                {/* Active Checkbox */}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    name="isActive"
+                    checked={formData.isActive}
+                    onChange={handleCheckboxChange}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-blue-600"
+                  />
+                  <label
+                    htmlFor="isActive"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {t('templates.isActive') || 'Active'}
                   </label>
                 </div>
 

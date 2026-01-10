@@ -197,6 +197,9 @@ public class OrderJobProcessor : IOrderJobProcessor
                 return;
             }
 
+            // Filter out inactive templates
+            templates = templates.Where(t => t.IsActive).ToList();
+
             foreach (var template in templates)
             {
                 try
