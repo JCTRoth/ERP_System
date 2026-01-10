@@ -67,8 +67,9 @@ builder.Services.AddHttpClient<TemplatesServiceClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("Services:TemplatesService") 
         ?? "http://templates-service:8087");
-    client.Timeout = TimeSpan.FromSeconds(60);
-});
+    client.Timeout = TimeSpan.FromMinutes(5); // allow longer PDF generation time
+})
+.AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(new[] { TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(10) }));
 
 builder.Services.AddHttpClient<AccountingServiceClient>(client =>
 {

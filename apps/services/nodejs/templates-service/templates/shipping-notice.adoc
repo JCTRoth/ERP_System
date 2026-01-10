@@ -25,9 +25,9 @@ Tracking: {shipment.trackingNumber}
 
 {#items}
 | {index}
-| {item.description}
-| {item.quantity}
-{#end}
+| {description}
+| {quantity}
+{/items}
 |===
 
 == Notes

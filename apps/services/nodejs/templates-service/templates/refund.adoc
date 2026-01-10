@@ -16,10 +16,10 @@ Customer: {customer.name} ({customer.email})
 
 {#items}
 | {index}
-| {item.description}
-| {item.quantity}
-| {item.total}
-{#end}
+| {description}
+| {quantity}
+| {total}
+{/items}
 |===
 
 Refund Total: {refund.amount}

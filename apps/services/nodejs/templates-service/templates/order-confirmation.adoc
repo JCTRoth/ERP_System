@@ -1,50 +1,161 @@
-= Order Confirmation
-:doctype: article
+// Standard Order Confirmation Template
+// Uses core template variables for order confirmation emails
+// Variables: {order.*}, {customer.*}, {company.*}, {shipment.*}, {shipping.*}, {#order.items}
+= ORDER CONFIRMATION {order.number}
+:doctype: book
 :icons: font
 :author: {company.name}
 :revnumber: {order.number}
 :revdate: {order.date}
+:revremark: {order.status}
 
-== Order {order.number}
+// Company Header
+[.text-center]
+== {company.name}
 
-Order placed by: {customer.name} ({customer.email})
+[.text-center]
+{company.address} + 
+{company.city}, {company.postalCode} + 
+{company.country}
 
-[options="header"]
+[.text-center]
+📧 {company.email} | 📞 {company.phone} | 🌐 {company.website}
+
+'''
+
+// Customer Greeting
+Dear {customer.name},
+
+Thank you for your order with {company.name}! We're excited to process your purchase and will notify you as soon as your items ship.
+
+// Order Summary Box
+[cols="2,2", frame="none", grid="none"]
+.Order Summary
 |===
-| # | Description | SKU | Qty | Unit price | Total
+| *Order Number:*
+| {order.number}
+
+| *Order Date:*
+| {order.date}
+
+| *Status:*
+| {order.status}
+
+| *Payment Method:*
+| {order.paymentMethod}
+
+| *Shipping Method:*
+| {shipment.carrier} ({order.shipping})
+
+| *Estimated Delivery:*
+| {shipment.date}
+|===
+
+// Items Table
+[cols="1,3,1,1,1,1,1,1", options="header"]
+.Your Items
+|===
+| # | Item | SKU | Quantity | Unit Price | Discount | Tax | Total
 
 {#items}
 | {index}
-| {item.description}
-| {item.sku}
-| {item.quantity}
-| {item.unitPrice}
-| {item.total}
-{#end}
+| {description}
+| {sku}
+| {quantity}
+| ${unitPrice}
+| ${discount}
+| ${tax}
+| ${total}
+{/items}
 
 |===
 
-== Totals
+// Order Totals
+[cols="3,1", frame="none", grid="none"]
+.Totals
+|===
+| *Subtotal:*
+| {order.subtotal}
 
-- Subtotal: {order.subtotal}
-- Tax: {order.tax}
-- Shipping: {order.shipping}
-- Discount: {order.discount}
-- Total: {order.total}
+| *Tax ({invoice.taxRate}%):*
+| {order.tax}
 
-== Billing & Shipping
+| *Shipping:*
+| {order.shipping}
 
-=== Billing
-{order.billing.name}
-{order.billing.street}
-{order.billing.city}, {order.billing.postalCode}
-{order.billing.country}
+| *Discount:*
+| -{order.discount}
 
-=== Shipping
-{order.shipping.name}
-{order.shipping.street}
-{order.shipping.city}, {order.shipping.postalCode}
-{order.shipping.country}
+| **ORDER TOTAL:**
+| **{order.total}**
+|===
 
-== Notes
+// Shipping and Billing Information
+[cols="2", frame="none", grid="none"]
+|===
+| *Shipping Address:*
+| *Billing Address:*
+
+| {shipping.name}
+| {customer.billing.name}
+
+| {shipping.street}
+| {customer.billing.street}
+
+| {shipping.city}, {shipping.postalCode}
+| {customer.billing.city}, {customer.billing.postalCode}
+
+| {shipping.country}
+| {customer.billing.country}
+
+| 📞 {customer.phone}
+| 📧 {customer.email}
+|===
+
+// Shipping Information
+== Shipping Information
+
+Your order will be shipped via {shipment.carrier} with tracking number: *{shipment.trackingNumber}*.
+
+We will send you an email with tracking information as soon as your order ships.
+
+// Order Notes (conditional)
+{#order.notes}
+== Special Instructions
+
 {order.notes}
+
+{#end}
+
+// Customer Service Information
+== Need Help?
+
+Our customer service team is available to assist you:
+
+* 📞 Phone: {company.phone}
+* 📧 Email: {company.email}
+* 🕒 Hours: Monday-Friday, 9AM-5PM
+
+Order Reference: {order.number}
+
+// Footer
+[.text-center]
+Thank you for shopping with {company.name}! 🛒
+
+[.text-center]
+{company.name} © {order.date}
+
+// Page Break
+<<<
+
+// Terms and Conditions
+== Terms and Conditions
+
+* Prices include all applicable taxes
+* Shipping times are estimates and not guaranteed
+* Returns accepted within 30 days of delivery
+* See our website for full terms and conditions
+
+// End of Document
+[.text-right]
+Page {page-number} of {page-count}

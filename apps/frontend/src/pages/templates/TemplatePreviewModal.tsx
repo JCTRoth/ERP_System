@@ -39,8 +39,58 @@ export default function TemplatePreviewModal({
               </button>
             </div>
 
+            {/* Info Bar - Template Variables Reference */}
+            <div className="border-b border-gray-200 bg-gray-50 px-6 py-3 dark:border-gray-700 dark:bg-gray-700">
+              <div className="flex items-center gap-3">
+                <InformationCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {t('templates.variableInfoTitle') || 'Template Variables Available'}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {t('templates.variableInfoSubtitle') || 'Use variables like {order.number}, {customer.name}, etc.'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const variableDoc = `
+== Template Variables Reference ==
+
+Order: {order.number}, {order.date}, {order.total}
+Customer: {customer.name}, {customer.email}
+Company: {company.name}, {company.address}
+Items Loop: {#order.items}{name} - {price}{#end}
+
+Full docs: See README for complete variable list`;
+                    alert(variableDoc);
+                  }}
+                  className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {t('templates.viewAllVariables') || 'View All Variables'}
+                </button>
+              </div>
+              {/* Quick variable examples */}
+              <div className="mt-2 flex gap-4 overflow-x-auto pb-1">
+                <span className="whitespace-nowrap rounded bg-white px-2 py-1 text-xs text-gray-600 shadow-sm dark:bg-gray-800 dark:text-gray-400">
+                  {'{order.number}'}
+                </span>
+                <span className="whitespace-nowrap rounded bg-white px-2 py-1 text-xs text-gray-600 shadow-sm dark:bg-gray-800 dark:text-gray-400">
+                  {'{customer.name}'}
+                </span>
+                <span className="whitespace-nowrap rounded bg-white px-2 py-1 text-xs text-gray-600 shadow-sm dark:bg-gray-800 dark:text-gray-400">
+                  {'{company.name}'}
+                </span>
+                <span className="whitespace-nowrap rounded bg-white px-2 py-1 text-xs text-gray-600 shadow-sm dark:bg-gray-800 dark:text-gray-400">
+                  {'{order.total}'}
+                </span>
+                <span className="whitespace-nowrap rounded bg-white px-2 py-1 text-xs text-gray-600 shadow-sm dark:bg-gray-800 dark:text-gray-400">
+                  {'{#order.items}'}
+                </span>
+              </div>
+            </div>
+
             {/* Content */}
-            <div className="max-h-[70vh] space-y-4 overflow-y-auto p-6">
+            <div className="max-h-[65vh] space-y-4 overflow-y-auto p-6">
               {/* Loading State */}
               {state.dataLoading && (
                 <div className="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-12 dark:border-gray-700 dark:bg-gray-700">

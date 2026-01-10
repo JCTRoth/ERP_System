@@ -37,9 +37,9 @@ public class OrderJobProcessor : IOrderJobProcessor
     private readonly AccountingServiceClient _accountingClient;
     private readonly NotificationServiceClient _notificationClient;
 
-    // In-memory queue (in production, use Hangfire, MassTransit, or Azure Service Bus)
-    private readonly Queue<OrderJobPayload> _jobQueue = new Queue<OrderJobPayload>();
-    private readonly object _queueLock = new object();
+    // Static queue shared across all instances
+    private static readonly Queue<OrderJobPayload> _jobQueue = new Queue<OrderJobPayload>();
+    private static readonly object _queueLock = new object();
 
     public OrderJobProcessor(
         ShopDbContext context,
@@ -177,8 +177,33 @@ public class OrderJobProcessor : IOrderJobProcessor
             {
                 try
                 {
+                    // Build items list and shipping alias to increase template compatibility
+                    var itemsList = order.Items.Select((item, index) => new
+                    {
+                        index = index + 1,
+                        description = item.ProductName,
+                        sku = item.Sku,
+                        productId = item.ProductId,
+                        quantity = item.Quantity,
+                        unitPrice = item.UnitPrice,
+                        discount = item.DiscountAmount,
+                        tax = item.TaxAmount,
+                        total = item.Total
+                    }).ToList();
+
+                    var shippingAlias = new
+                    {
+                        address = order.ShippingAddress ?? "",
+                        city = order.ShippingCity ?? "",
+                        postalCode = order.ShippingPostalCode ?? "",
+                        country = order.ShippingCountry ?? "",
+                        method = order.ShippingMethod?.Name ?? "",
+                        cost = order.ShippingAmount
+                    };
+
                     var context = new
                     {
+                        // Keep original invoice property for backward compatibility
                         invoice = new
                         {
                             id = order.Id.ToString(),
@@ -191,16 +216,29 @@ public class OrderJobProcessor : IOrderJobProcessor
                             total = order.Total,
                             currency = order.Currency,
                             notes = order.Notes,
-                            items = order.Items.Select((item, index) => new
-                            {
-                                index = index + 1,
-                                description = item.ProductName,
-                                quantity = item.Quantity,
-                                unitPrice = item.UnitPrice,
-                                discount = item.DiscountAmount,
-                                total = item.Total
-                            }).ToList()
+                            items = itemsList
                         },
+
+                        // Add order-shaped payload expected by many templates
+                        order = new
+                        {
+                            id = order.Id.ToString(),
+                            number = order.OrderNumber,
+                            date = order.CreatedAt.ToString("yyyy-MM-dd"),
+                            status = order.Status.ToString(),
+                            subtotal = order.Subtotal,
+                            tax = order.TaxAmount,
+                            shipping = order.ShippingAmount,
+                            total = order.Total,
+                            currency = order.Currency,
+                            notes = order.Notes,
+                            items = itemsList
+                        },
+
+                        // Top-level aliases many templates look for
+                        items = itemsList,
+                        shipping = shippingAlias,
+
                         company = new
                         {
                             name = "ERP System Company",
@@ -214,6 +252,7 @@ public class OrderJobProcessor : IOrderJobProcessor
                         customer = new
                         {
                             name = $"{customer?.FirstName} {customer?.LastName}".Trim(),
+                            email = customer?.Email ?? string.Empty,
                             address = new
                             {
                                 street = order.ShippingAddress ?? "N/A",
@@ -223,6 +262,17 @@ public class OrderJobProcessor : IOrderJobProcessor
                             }
                         }
                     };
+
+                    try
+                    {
+                        var serializedContext = System.Text.Json.JsonSerializer.Serialize(context, new System.Text.Json.JsonSerializerOptions { WriteIndented = false });
+                        var preview = serializedContext.Length > 1000 ? serializedContext.Substring(0, 1000) + "..." : serializedContext;
+                        _logger.LogInformation("TemplatesService payload preview for template {TemplateKey} (id: {TemplateId}): {Preview}", template.Key, template.Id, preview);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to serialize templates payload for logging");
+                    }
 
                     var pdfBytes = await _templatesClient.GeneratePdfAsync(template.Id, context);
                     if (pdfBytes == null || pdfBytes.Length == 0)

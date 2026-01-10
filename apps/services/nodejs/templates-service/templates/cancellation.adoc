@@ -19,11 +19,11 @@ Reason:
 
 {#items}
 | {index}
-| {item.description}
-| {item.quantity}
-| {item.unitPrice}
-| {item.total}
-{#end}
+| {description}
+| {quantity}
+| {unitPrice}
+| {total}
+{/items}
 |===
 
 == Refund

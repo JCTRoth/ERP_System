@@ -93,11 +93,13 @@ const availableVariables = {
     date: 'ISO8601 timestamp',
     status: 'string',
     customer: 'object',
-    items: 'array',
+    items: 'array',  // This will be populated from order items or line items
     subtotal: 'number',
     tax: 'number',
     shipping: 'number',
     total: 'number',
+    trackingNumber: 'string',
+    shippedAt: 'ISO8601 timestamp',
   },
   company: {
     name: 'string',
@@ -107,6 +109,35 @@ const availableVariables = {
     country: 'string',
     email: 'string',
     phone: 'string',
+    taxId: 'string',
+    bankName: 'string',
+    bankAccount: 'string',
+    bankSwift: 'string',
+    bankIban: 'string',
+    website: 'string',
+  },
+  customer: {
+    name: 'string',
+    email: 'string',
+    phone: 'string',
+    billing: 'object',
+    shipping: 'object',
+  },
+  items: 'array',  // Direct items array for compatibility
+  invoice: {
+    taxRate: 'number',  // Calculated field
+  },
+  shipment: {
+    trackingNumber: 'string',
+    carrier: 'string',
+    date: 'ISO8601 timestamp',
+  },
+  shipping: {
+    name: 'string',
+    street: 'string',
+    city: 'string',
+    postalCode: 'string',
+    country: 'string',
   },
 };
 
@@ -292,6 +323,57 @@ function resolveValue(ctx, path) {
   // invoice.taxRate -> compute from invoice.tax and invoice.subtotal
   if (path === 'invoice.taxRate' && ctx.invoice && typeof ctx.invoice.tax === 'number' && typeof ctx.invoice.subtotal === 'number' && ctx.invoice.subtotal !== 0) {
     return (ctx.invoice.tax / ctx.invoice.subtotal) * 100;
+  }
+
+  // order.items -> map to items array (for template compatibility)
+  if (path === 'order.items') {
+    // Try direct items array first
+    if (Array.isArray(ctx.items)) {
+      return ctx.items;
+    }
+    // Try order.items if available
+    if (Array.isArray(ctx.order?.items)) {
+      return ctx.order.items;
+    }
+    // Try lineItems as fallback
+    if (Array.isArray(ctx.order?.lineItems)) {
+      return ctx.order.lineItems;
+    }
+    // Try orderItems as fallback
+    if (Array.isArray(ctx.order?.orderItems)) {
+      return ctx.order.orderItems;
+    }
+    // Return empty array if no items found
+    return [];
+  }
+
+  // order.items[index].property -> handle item property access
+  if (segments[0] === 'order' && segments[1] === 'items' && segments.length > 2) {
+    // Get items array using the same logic as above
+    const items = (
+      Array.isArray(ctx.items) ? ctx.items :
+      Array.isArray(ctx.order?.items) ? ctx.order.items :
+      Array.isArray(ctx.order?.lineItems) ? ctx.order.lineItems :
+      Array.isArray(ctx.order?.orderItems) ? ctx.order.orderItems :
+      []
+    );
+    
+    const itemIndex = parseInt(segments[2]);
+    if (!isNaN(itemIndex) && itemIndex >= 0 && itemIndex < items.length) {
+      const item = items[itemIndex];
+      const property = segments.slice(3).join('.');
+      if (item && property in item) {
+        return item[property];
+      }
+      // Try common aliases for product name
+      if (property === 'name' && !item.name) {
+        return item.productName || item.description || item.title || `Item ${itemIndex + 1}`;
+      }
+      // Try common aliases for SKU
+      if (property === 'sku' && !item.sku) {
+        return item.productSku || item.code || item.id || 'N/A';
+      }
+    }
   }
 
   // shipment.* -> map to order fields
@@ -639,6 +721,11 @@ app.post('/api/templates/:id/render', async (req, res) => {
         return String(value);
       });
     }
+
+    // Debug: log context keys for debugging
+    console.log('DEBUG: Template context keys:', Object.keys(context));
+    console.log('DEBUG: Template context items length:', Array.isArray(context.items) ? context.items.length : 'not an array');
+    console.log('DEBUG: Template context order.items length:', context.order?.items?.length);
 
     // Use robust fallback renderer directly to avoid Mustache parsing issues
     let renderedAdoc;
