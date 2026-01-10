@@ -268,14 +268,14 @@ public class OrderResolvers
     }
     
     // Customer resolver - fetches real customer data from ShopService database
+    // The ShopService Customer table is synchronized with MasterdataService for consistency
     public User? GetCustomer([Parent] Order order, [Service] ShopDbContext context)
     {
-        // Sometimes the parent Order instance given to the resolver is a projected object
-        // that doesn't include scalar values like CustomerId. Try to read it from the parent
-        // first and, if empty, load the value from the database using the order Id.
+        // Get the CustomerId from the parent Order
         var customerId = order.CustomerId;
         if (customerId == Guid.Empty)
         {
+            // If CustomerId is empty on the parent, try loading from DB
             var dbOrder = context.Orders.AsNoTracking().Where(o => o.Id == order.Id).Select(o => o.CustomerId).FirstOrDefault();
             customerId = dbOrder;
         }
@@ -285,15 +285,17 @@ public class OrderResolvers
             return null;
         }
 
-        // Fetch the actual customer data from the Customers table
+        // Fetch the customer data from the Customers table (synced with MasterdataService)
         var customer = context.Customers.AsNoTracking().FirstOrDefault(c => c.Id == customerId);
         
         if (customer == null)
         {
+            // Customer not found in local table, return null (avoid crashes)
             return null;
         }
 
-        // Return User object populated with real customer data
+        // Return User object populated with customer data
+        // This data is kept in sync with MasterdataService
         return new User
         {
             Id = customer.Id,

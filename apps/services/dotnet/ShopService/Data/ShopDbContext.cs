@@ -305,7 +305,9 @@ public class ShopDbContext : DbContext
             entity.Property(e => e.DefaultBillingCity).HasColumnName("default_billing_city");
             entity.Property(e => e.DefaultBillingPostalCode).HasColumnName("default_billing_postal_code");
             entity.Property(e => e.DefaultBillingCountry).HasColumnName("default_billing_country");
-            entity.Property(e => e.Type).HasColumnName("type");
+            entity.Property(e => e.Type)
+                .HasColumnName("type")
+                .HasConversion<string>();
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.AcceptsMarketing).HasColumnName("accepts_marketing");
             entity.Property(e => e.Notes).HasColumnName("notes");
@@ -570,12 +572,13 @@ public class ShopDbContext : DbContext
             }
         );
 
-        // Seed customers
+        // Seed customers (synced with MasterdataService)
+        // Reference the same customer ID from MasterdataService for consistency
         modelBuilder.Entity<Customer>().HasData(
             new Customer
             {
-                Id = Guid.Parse("7ec7a010-c34d-4eef-877f-410d25c0606d"),
-                UserId = Guid.Parse("7ec7a010-c34d-4eef-877f-410d25c0606d"), // Same as Id for now
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), // Same ID as MasterdataService customer
+                UserId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
                 Email = "jonas.roth@mailbase.info",
                 FirstName = "Jonas",
                 LastName = "Roth",
@@ -585,11 +588,11 @@ public class ShopDbContext : DbContext
                 Type = CustomerType.Individual,
                 IsActive = true,
                 AcceptsMarketing = true,
-                DefaultShippingAddress = "Demo Street 123",
+                DefaultShippingAddress = "123 Demo Street",
                 DefaultShippingCity = "Demo City",
                 DefaultShippingPostalCode = "12345",
                 DefaultShippingCountry = "DE",
-                DefaultBillingAddress = "Demo Street 123",
+                DefaultBillingAddress = "123 Demo Street",
                 DefaultBillingCity = "Demo City",
                 DefaultBillingPostalCode = "12345",
                 DefaultBillingCountry = "DE",
@@ -683,7 +686,7 @@ public class ShopDbContext : DbContext
             {
                 Id = orderId,
                 OrderNumber = "ORD-1001",
-                CustomerId = Guid.Parse("7ec7a010-c34d-4eef-877f-410d25c0606d"),
+                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), // Reference the correct customer from MasterdataService
                 Status = OrderStatus.Confirmed,
                 Subtotal = 200.00m,
                 TaxAmount = 38.00m,

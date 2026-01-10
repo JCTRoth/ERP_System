@@ -38,23 +38,9 @@ export default function SettingsPage() {
   // Load SMTP configuration when SMTP tab is selected
   useEffect(() => {
     if (activeTab === 'smtpServer') {
-      console.log('SMTP tab selected, loading configuration...');
       loadSmtpConfiguration();
     }
   }, [activeTab]);
-
-  // Debug: Log when smtpConfig changes
-  useEffect(() => {
-    console.log('smtpConfig state changed:', smtpConfig);
-  }, [smtpConfig]);
-
-  // Debug: Log when SMTP tab is rendered
-  useEffect(() => {
-    if (activeTab === 'smtpServer') {
-      console.log('SMTP tab rendered with config:', smtpConfig);
-    }
-  }, [activeTab, smtpConfig]);
-
   const loadSmtpConfiguration = async () => {
     try {
       console.log('Loading SMTP configuration from API...');
