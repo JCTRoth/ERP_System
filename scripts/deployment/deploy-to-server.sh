@@ -26,9 +26,7 @@
 #   --image-version TAG  Image version to deploy (default: latest)
 #   --email EMAIL        Email for Let's Encrypt notifications
 #   --db-password PASS   PostgreSQL password
-#   --sudo-password PASS Sudo password for remote server
 #   --dry-run            Show deployment plan without executing
-#   --non-interactive    Skip confirmation prompt
 #   --help               Show this help message
 #
 # Environment Variables:
@@ -70,12 +68,10 @@ DEPLOY_SSH_KEY="${DEPLOY_SSH_KEY:-$HOME/.ssh/id_rsa}"
 REGISTRY_URL="${REGISTRY_URL:-ghcr.io}"
 REGISTRY_USERNAME="${REGISTRY_USERNAME:-jctroth}"
 REGISTRY_TOKEN="${REGISTRY_TOKEN:-}"
-SUDO_PASSWORD="${SUDO_PASSWORD:-}"
 IMAGE_VERSION="${IMAGE_VERSION:-latest}"
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 DRY_RUN=false
-NON_INTERACTIVE=false
 CONFIG_FILE=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -253,9 +249,6 @@ setup_sudoers() {
     print_warning "Sudo appears to require password input"
     print_info "For automated deployment, configure passwordless sudo on the server:"
     print_info "  sudo visudo -f /etc/sudoers.d/erp-deployment"
-    print_info ""
-    print_info "Then add:"
-    print_info "  containeruser ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /bin/mkdir, /bin/chown, /bin/chmod, /usr/bin/certbot, /usr/bin/apt-get, /usr/sbin/ufw, /usr/sbin/iptables, /usr/bin/systemctl, /bin/bash"
 }
 
 # Setup server infrastructure using container-host-setup.sh utilities
@@ -292,8 +285,7 @@ setup_server_infrastructure() {
     fi
 }
 
-# Execute SSH command on remote server with sudo password support
-# After setup_sudoers() runs, this uses passwordless sudo (NOPASSWD)
+# Execute SSH command on remote server
 ssh_exec() {
     local command=$1
     
@@ -303,18 +295,17 @@ ssh_exec() {
         return 0
     fi
     
-    # After setup_sudoers runs, sudo is configured with NOPASSWD
-    # So we can just run the command with sudo without needing to pass password
+    # No sudo needed - deployment is in home directory
     if command -v sshpass &> /dev/null; then
-        sshpass -p "$SUDO_PASSWORD" ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
+        sshpass -p "$SSH_PASSWORD" ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
             -o StrictHostKeyChecking=no \
             "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
-            "sudo bash -c '$command'"
+            "bash -c '$command'"
     else
         ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
             -o StrictHostKeyChecking=no \
             "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
-            "sudo bash -c '$command'"
+            "bash -c '$command'"
     fi
 }
 
@@ -812,16 +803,8 @@ main() {
                 DB_PASSWORD="$2"
                 shift 2
                 ;;
-            --sudo-password)
-                SUDO_PASSWORD="$2"
-                shift 2
-                ;;
             --dry-run)
                 DRY_RUN=true
-                shift
-                ;;
-            --non-interactive)
-                NON_INTERACTIVE=true
                 shift
                 ;;
             --help)
@@ -849,7 +832,7 @@ main() {
     
     # Confirm deployment
     echo ""
-    if [ "$DRY_RUN" = false ] && [ "$NON_INTERACTIVE" = false ]; then
+    if [ "$DRY_RUN" = false ]; then
         read -p "Proceed with deployment to $DEPLOY_SERVER? (yes/no): " confirm
         if [ "$confirm" != "yes" ]; then
             print_info "Deployment cancelled"
@@ -859,35 +842,6 @@ main() {
     
     # Validate SSH
     validate_ssh || exit 1
-    
-    # Configure sudoers for automated deployment (must be before any ssh_exec calls)
-    if [ -n "$SUDO_PASSWORD" ]; then
-        setup_sudoers
-        
-        # Check if sudo works without password
-        if ! sshpass -p "$SUDO_PASSWORD" ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
-            -o StrictHostKeyChecking=no \
-            "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
-            "sudo -n whoami >/dev/null 2>&1" 2>/dev/null; then
-            print_error ""
-            print_error "====================================="
-            print_error "SUDO CONFIGURATION REQUIRED"
-            print_error "====================================="
-            print_error ""
-            print_error "Passwordless sudo (NOPASSWD) must be configured on the server."
-            print_error ""
-            print_error "Please run this command on the server as an admin user:"
-            print_error "  echo 'containeruser ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /bin/mkdir, /bin/chown, /bin/chmod, /usr/bin/certbot, /usr/bin/apt-get, /usr/sbin/ufw, /usr/sbin/iptables, /usr/bin/systemctl, /bin/bash' | sudo tee /etc/sudoers.d/erp-deployment"
-            print_error "  sudo chmod 0440 /etc/sudoers.d/erp-deployment"
-            print_error ""
-            print_error "Then verify with: sudo -n whoami"
-            print_error ""
-            print_error "For more information, see: SUDO_SETUP.md"
-            print_error "====================================="
-            print_error ""
-            exit 1
-        fi
-    fi
     
     # Setup server infrastructure (Docker, Nginx, Firewall, SSH hardening)
     setup_server_infrastructure || exit 1
