@@ -1,8 +1,20 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS base
+# Multi-stage build for UserService
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS base
 WORKDIR /app
 EXPOSE 5000
 
-# For development, we need write access to mounted volumes, so run as root
-# Check if we're in development mode (source code mounted)
-# If UserService.csproj exists, we're in dev mode, otherwise run published app
-ENTRYPOINT ["sh", "-c", "if [ -f UserService.csproj ]; then dotnet watch run --urls http://0.0.0.0:5000; else dotnet UserService.dll; fi"]
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+WORKDIR /src
+COPY ["UserService.csproj", "."]
+RUN dotnet restore "./UserService.csproj"
+COPY . .
+RUN dotnet build "UserService.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "UserService.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENV ASPNETCORE_HTTP_PORTS=5000
+ENTRYPOINT ["dotnet", "UserService.dll"]

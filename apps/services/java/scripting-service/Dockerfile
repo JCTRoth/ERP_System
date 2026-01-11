@@ -1,14 +1,20 @@
-FROM eclipse-temurin:21-jdk AS build
+FROM gradle:8.5-jdk21 AS build
 WORKDIR /app
-# Copy entire project context — some repos may not include the gradle wrapper files
+# Copy entire project context
 COPY . .
-RUN if [ -f gradlew ]; then \
-			chmod +x gradlew && ./gradlew bootJar --no-daemon; \
+# Build with Gradle (assuming gradle is available or install it)
+RUN ls -la build/libs/ 2>/dev/null || echo "No build/libs directory found"
+RUN if ls build/libs/*.jar 1> /dev/null 2>&1; then \
+			echo "JAR already exists, skipping build"; \
 		else \
-			echo "gradlew not found; skipping gradle build (ensure jar is provided or add gradle wrapper)"; \
+			if [ -f gradlew ]; then \
+				chmod +x gradlew && ./gradlew bootJar --no-daemon; \
+			else \
+				gradle bootJar --no-daemon; \
+			fi \
 		fi
 
-# Ensure there is at least one jar file so the final image can copy it even if build was skipped
+# Ensure there is at least one jar file
 RUN set -- build/libs/*.jar; \
 		if [ -e "$1" ]; then \
 			echo "jar(s) present: $1"; \
@@ -21,6 +27,5 @@ WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
 EXPOSE 8083
 
-# Check if we're in development mode (source code mounted)
-# If src directory exists and contains source files, run in dev mode with hot reload
-ENTRYPOINT ["sh", "-c", "if [ -d src ] && [ -f build.gradle ]; then chmod +x gradlew && ./gradlew bootRun --no-daemon; else java -jar app.jar; fi"]
+# Run the JAR directly (production mode)
+ENTRYPOINT ["java", "-jar", "app.jar"]

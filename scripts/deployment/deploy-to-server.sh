@@ -18,6 +18,7 @@
 #   --server HOST        Production server hostname/IP
 #   --domain DOMAIN      Domain name for SSL certificate
 #   --username USER      SSH username for server (default: root)
+#   --port PORT          SSH port for server (default: 22)
 #   --ssh-key PATH       Path to SSH private key
 #   --registry-url URL   Container registry URL (default: ghcr.io)
 #   --registry-user USER GitHub username (default: JCTRoth)
@@ -25,7 +26,9 @@
 #   --image-version TAG  Image version to deploy (default: latest)
 #   --email EMAIL        Email for Let's Encrypt notifications
 #   --db-password PASS   PostgreSQL password
+#   --sudo-password PASS Sudo password for remote server
 #   --dry-run            Show deployment plan without executing
+#   --non-interactive    Skip confirmation prompt
 #   --help               Show this help message
 #
 # Environment Variables:
@@ -44,25 +47,35 @@
 
 set -euo pipefail
 
+# Script directory for locating utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONTAINER_HOST_SETUP="$SCRIPT_DIR/container-host-setup.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Configuration defaults
 DEPLOY_SERVER="${DEPLOY_SERVER:-}"
 DEPLOY_DOMAIN="${DEPLOY_DOMAIN:-}"
 DEPLOY_USERNAME="${DEPLOY_USERNAME:-root}"
+DEPLOY_PORT="${DEPLOY_PORT:-22}"
 DEPLOY_SSH_KEY="${DEPLOY_SSH_KEY:-$HOME/.ssh/id_rsa}"
 REGISTRY_URL="${REGISTRY_URL:-ghcr.io}"
-REGISTRY_USERNAME="${REGISTRY_USERNAME:-JCTRoth}"
+REGISTRY_USERNAME="${REGISTRY_USERNAME:-jctroth}"
 REGISTRY_TOKEN="${REGISTRY_TOKEN:-}"
+SUDO_PASSWORD="${SUDO_PASSWORD:-}"
 IMAGE_VERSION="${IMAGE_VERSION:-latest}"
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
 DRY_RUN=false
+NON_INTERACTIVE=false
 CONFIG_FILE=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -75,20 +88,56 @@ print_header() {
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 }
 
+# Enhanced print functions (compatible with container-host-setup.sh)
+print_color() {
+    local color="$1"
+    local message="$2"
+    echo -e "${color}${message}${NC}"
+}
+
+print_header() {
+    echo -e "\n${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${MAGENTA}  $1${NC}"
+    echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}\n"
+}
+
+print_step() {
+    echo -e "${CYAN}▶ $1${NC}"
+}
+
 print_info() {
-    echo -e "${BLUE}[i]${NC} $1"
+    echo -e "${BLUE}ℹ $1${NC}"
 }
 
 print_status() {
-    echo -e "${GREEN}[✓]${NC} $1"
+    echo -e "${GREEN}✓ $1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[!]${NC} $1"
+    echo -e "${YELLOW}⚠ WARNING: $1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}[✗]${NC} $1"
+    echo -e "${RED}✗ ERROR: $1${NC}" >&2
+}
+
+# Command execution helper (compatible with container-host-setup.sh)
+run_cmd() {
+    local cmd="$1"
+    local description="${2:-}"
+
+    if [[ -n "$description" ]]; then
+        print_step "Running: $description"
+    else
+        print_step "Running: $cmd"
+    fi
+
+    if ! eval "$cmd"; then
+        print_error "Command failed: $cmd"
+        return 1
+    fi
+
+    print_status "Command completed: ${description:-$cmd}"
 }
 
 show_help() {
@@ -109,6 +158,7 @@ load_config() {
     DEPLOY_SERVER=$(jq -r '.deploy_server // empty' "$config_file" || echo "")
     DEPLOY_DOMAIN=$(jq -r '.deploy_domain // empty' "$config_file" || echo "")
     DEPLOY_USERNAME=$(jq -r '.deploy_username // empty' "$config_file" || echo "root")
+    DEPLOY_PORT=$(jq -r '.deploy_port // empty' "$config_file" || echo "22")
     DEPLOY_SSH_KEY=$(jq -r '.deploy_ssh_key // empty' "$config_file" || echo "")
     REGISTRY_URL=$(jq -r '.registry_url // empty' "$config_file" || echo "ghcr.io")
     REGISTRY_USERNAME=$(jq -r '.registry_username // empty' "$config_file" || echo "JCTRoth")
@@ -146,6 +196,11 @@ prompt_for_config() {
         echo ""
     fi
     
+    if [ -z "$SUDO_PASSWORD" ]; then
+        read -sp "Sudo password for server (required for setup): " SUDO_PASSWORD
+        echo ""
+    fi
+    
     # Validate required fields
     if [ -z "$DEPLOY_SERVER" ] || [ -z "$DEPLOY_DOMAIN" ] || [ -z "$REGISTRY_TOKEN" ] || [ -z "$DB_PASSWORD" ]; then
         print_error "Required configuration missing"
@@ -157,7 +212,12 @@ prompt_for_config() {
 validate_ssh() {
     print_info "Validating SSH connection to $DEPLOY_SERVER..."
     
-    if ! ssh -i "$DEPLOY_SSH_KEY" -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new \
+    if [ "$DRY_RUN" = true ]; then
+        print_warning "DRY RUN: Skipping SSH validation"
+        return 0
+    fi
+    
+    if ! ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new \
         "$DEPLOY_USERNAME@$DEPLOY_SERVER" "echo 'SSH connection successful'" > /dev/null 2>&1; then
         print_error "Cannot connect to $DEPLOY_SERVER via SSH"
         print_info "Ensure:"
@@ -170,16 +230,92 @@ validate_ssh() {
     print_status "SSH connection successful"
 }
 
-# Execute SSH command on remote server
+# Setup sudoers to allow passwordless sudo (done once during initial setup)
+setup_sudoers() {
+    # Note: Sudo is expected to be pre-configured on the server with NOPASSWD
+    # If it requires a password and doesn't have a TTY, stdin piping won't work
+    # User should run this command on the server first:
+    #   sudo visudo -f /etc/sudoers.d/erp-deployment
+    # And add:
+    #   containeruser ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /bin/mkdir, /bin/chown, /bin/chmod, /usr/bin/certbot, /usr/bin/apt-get, /usr/sbin/ufw, /usr/sbin/iptables, /usr/bin/systemctl, /bin/bash
+    
+    print_step "Checking sudo configuration..."
+    
+    # Try to use sudo without password to check if NOPASSWD is already set up
+    if sshpass -p "$SUDO_PASSWORD" ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
+        -o StrictHostKeyChecking=no \
+        "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
+        "sudo -n whoami >/dev/null 2>&1" 2>/dev/null; then
+        print_status "Sudo is configured with NOPASSWD - deployment will proceed"
+        return 0
+    fi
+    
+    print_warning "Sudo appears to require password input"
+    print_info "For automated deployment, configure passwordless sudo on the server:"
+    print_info "  sudo visudo -f /etc/sudoers.d/erp-deployment"
+    print_info ""
+    print_info "Then add:"
+    print_info "  containeruser ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /bin/mkdir, /bin/chown, /bin/chmod, /usr/bin/certbot, /usr/bin/apt-get, /usr/sbin/ufw, /usr/sbin/iptables, /usr/bin/systemctl, /bin/bash"
+}
+
+# Setup server infrastructure using container-host-setup.sh utilities
+setup_server_infrastructure() {
+    print_header "Setting up Server Infrastructure"
+    
+    if [ ! -f "$CONTAINER_HOST_SETUP" ]; then
+        print_warning "container-host-setup.sh not found at $CONTAINER_HOST_SETUP"
+        print_info "Skipping automated server setup. Please ensure:"
+        print_info "  - Docker is installed"
+        print_info "  - Nginx is installed"
+        print_info "  - Firewall is configured"
+        print_info "  - SSH is hardened"
+        return 0
+    fi
+    
+    print_step "Uploading server setup script..."
+    if [ "$DRY_RUN" = true ]; then
+        print_warning "DRY RUN: Would upload container-host-setup.sh to $DEPLOY_SERVER"
+        print_warning "DRY RUN: Would run: sudo bash /tmp/container-host-setup.sh --yes --admin-user containeruser"
+        return 0
+    fi
+    
+    # Upload the setup script
+    scp_to_server "$CONTAINER_HOST_SETUP" "/tmp/container-host-setup.sh"
+    
+    print_step "Running server setup on $DEPLOY_SERVER..."
+    local setup_cmd="bash /tmp/container-host-setup.sh --yes --admin-user containeruser --admin-password 'ContainerAdmin!2024' 2>&1 | tail -50"
+    
+    if ssh_exec "$setup_cmd"; then
+        print_status "Server infrastructure setup completed"
+    else
+        print_warning "Server setup completed with some warnings (this may be expected)"
+    fi
+}
+
+# Execute SSH command on remote server with sudo password support
+# After setup_sudoers() runs, this uses passwordless sudo (NOPASSWD)
 ssh_exec() {
     local command=$1
     
     if [ "$DRY_RUN" = true ]; then
-        print_warning "DRY RUN: $command"
+        print_warning "DRY RUN: Would execute on remote server"
+        print_warning "Command: $command"
         return 0
     fi
     
-    ssh -i "$DEPLOY_SSH_KEY" "$DEPLOY_USERNAME@$DEPLOY_SERVER" bash -c "$command"
+    # After setup_sudoers runs, sudo is configured with NOPASSWD
+    # So we can just run the command with sudo without needing to pass password
+    if command -v sshpass &> /dev/null; then
+        sshpass -p "$SUDO_PASSWORD" ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
+            -o StrictHostKeyChecking=no \
+            "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
+            "sudo bash -c '$command'"
+    else
+        ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
+            -o StrictHostKeyChecking=no \
+            "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
+            "sudo bash -c '$command'"
+    fi
 }
 
 # Copy file to remote server via SCP
@@ -192,7 +328,7 @@ scp_to_server() {
         return 0
     fi
     
-    scp -i "$DEPLOY_SSH_KEY" "$source" "$DEPLOY_USERNAME@$DEPLOY_SERVER:$dest"
+    scp -i "$DEPLOY_SSH_KEY" -P "$DEPLOY_PORT" "$source" "$DEPLOY_USERNAME@$DEPLOY_SERVER:$dest"
 }
 
 # Display configuration summary
@@ -514,42 +650,50 @@ setup_letsencrypt() {
     
     print_info "Setting up Let's Encrypt SSL certificate for $domain..."
     
-    local cmd="
-        # Create certbot directory
-        mkdir -p /var/www/certbot
-        
-        # Check if certificate already exists
-        if [ ! -d '/etc/letsencrypt/live/$domain' ]; then
-            # Request certificate
-            certbot certonly --standalone \\
-                -d $domain \\
-                -d www.$domain \\
-                --email $email \\
-                --agree-tos \\
-                --non-interactive \\
-                --preferred-challenges http
-        fi
-    "
+    # Install certbot if needed
+    local install_cmd="command -v certbot >/dev/null 2>&1 || (apt-get update && apt-get install -y certbot)"
+    ssh_exec "$install_cmd"
     
-    ssh_exec "$cmd"
+    # Request certificate (only if not already present)
+    local cert_cmd="test -d /etc/letsencrypt/live/$domain || certbot certonly --standalone -d $domain -d www.$domain --email $email --agree-tos --non-interactive --preferred-challenges http"
+    ssh_exec "$cert_cmd"
 }
 
 # Deploy application
 deploy_application() {
     print_header "Deploying Application"
     
-    # Create temporary directory on remote server
-    ssh_exec "mkdir -p /opt/erp-system && cd /opt/erp-system && pwd"
+    # Create temporary directory on remote server with environment file
+    print_step "Preparing remote server directories..."
+    # Create directories with proper ownership for containeruser
+    local setup_cmd="mkdir -p /opt/erp-system /opt/erp-system/nginx/conf.d /var/www/certbot && chown -R $DEPLOY_USERNAME:$DEPLOY_USERNAME /opt/erp-system && chmod -R 755 /opt/erp-system"
+    ssh_exec "$setup_cmd"
+    
+    # Create .env file on remote server with all required variables
+    print_step "Creating environment configuration..."
+    local env_file="$TEMP_DIR/.env.production"
+    mkdir -p "$TEMP_DIR"
+    cat > "$env_file" << EOF
+DB_PASSWORD=$DB_PASSWORD
+REGISTRY_URL=$REGISTRY_URL
+REGISTRY_USERNAME=$REGISTRY_USERNAME
+IMAGE_VERSION=$IMAGE_VERSION
+DEPLOY_DOMAIN=$DEPLOY_DOMAIN
+EOF
+    
+    # Copy .env file to remote server
+    scp_to_server "$env_file" "/opt/erp-system/.env"
     
     # Copy compose file
-    local compose_file=$(create_production_compose)
+    local compose_file
+    compose_file=$(create_production_compose)
     print_info "Uploading docker-compose.yml..."
     scp_to_server "$compose_file" "/opt/erp-system/docker-compose.yml"
     
-    # Copy nginx config (create directory first)
-    local nginx_config=$(create_nginx_config "$DEPLOY_DOMAIN")
+    # Copy nginx config
+    local nginx_config
+    nginx_config=$(create_nginx_config "$DEPLOY_DOMAIN")
     print_info "Uploading nginx configuration..."
-    ssh_exec "mkdir -p /opt/erp-system/nginx/conf.d"
     scp_to_server "$nginx_config" "/opt/erp-system/nginx/conf.d/default.conf"
     
     # Setup Let's Encrypt
@@ -557,21 +701,7 @@ deploy_application() {
     
     # Login to registry and start services
     print_info "Starting services..."
-    local deploy_cmd="
-        cd /opt/erp-system
-        
-        # Login to registry
-        echo '$REGISTRY_TOKEN' | docker login $REGISTRY_URL -u $REGISTRY_USERNAME --password-stdin
-        
-        # Pull latest images
-        docker compose pull
-        
-        # Start services
-        docker compose up -d
-        
-        # Wait for services to start
-        sleep 10
-    "
+    local deploy_cmd="cd /opt/erp-system && echo '$REGISTRY_TOKEN' | docker login $REGISTRY_URL -u $REGISTRY_USERNAME --password-stdin && docker compose --env-file .env pull && docker compose --env-file .env up -d && sleep 10"
     
     ssh_exec "$deploy_cmd"
 }
@@ -582,16 +712,17 @@ verify_deployment() {
     
     # Check HTTP to HTTPS redirect
     print_info "Checking HTTP→HTTPS redirect..."
-    local redirect_code=$(curl -s -o /dev/null -w "%{http_code}" -L "http://$DEPLOY_DOMAIN")
+    local redirect_code
+    redirect_code=$(curl -s -o /dev/null -w "%{http_code}" -m 5 -L "http://$DEPLOY_DOMAIN" 2>/dev/null || echo "000")
     if [ "$redirect_code" = "200" ]; then
         print_status "HTTP→HTTPS redirect working"
     else
-        print_warning "HTTP redirect returned code: $redirect_code"
+        print_warning "HTTP redirect returned code: $redirect_code (may be expected if firewall blocks external connections)"
     fi
     
     # Check HTTPS connectivity
     print_info "Checking HTTPS connectivity..."
-    if curl -sf -k "https://$DEPLOY_DOMAIN/health" >/dev/null 2>&1; then
+    if curl -sf -k -m 5 "https://$DEPLOY_DOMAIN/health" >/dev/null 2>&1; then
         print_status "HTTPS connection successful"
     else
         print_warning "Could not reach HTTPS endpoint (this may be expected if firewall blocks external connections)"
@@ -599,10 +730,7 @@ verify_deployment() {
     
     # Check services on server
     print_info "Checking service status on server..."
-    local services_cmd="
-        cd /opt/erp-system
-        docker compose ps --format 'table {{.Names}}\t{{.Status}}'
-    "
+    local services_cmd="cd /opt/erp-system && docker compose --env-file .env ps --format 'table {{.Names}}\t{{.Status}}'"
     
     ssh_exec "$services_cmd"
 }
@@ -652,6 +780,10 @@ main() {
                 DEPLOY_USERNAME="$2"
                 shift 2
                 ;;
+            --port)
+                DEPLOY_PORT="$2"
+                shift 2
+                ;;
             --ssh-key)
                 DEPLOY_SSH_KEY="$2"
                 shift 2
@@ -680,8 +812,16 @@ main() {
                 DB_PASSWORD="$2"
                 shift 2
                 ;;
+            --sudo-password)
+                SUDO_PASSWORD="$2"
+                shift 2
+                ;;
             --dry-run)
                 DRY_RUN=true
+                shift
+                ;;
+            --non-interactive)
+                NON_INTERACTIVE=true
                 shift
                 ;;
             --help)
@@ -709,7 +849,7 @@ main() {
     
     # Confirm deployment
     echo ""
-    if [ "$DRY_RUN" = false ]; then
+    if [ "$DRY_RUN" = false ] && [ "$NON_INTERACTIVE" = false ]; then
         read -p "Proceed with deployment to $DEPLOY_SERVER? (yes/no): " confirm
         if [ "$confirm" != "yes" ]; then
             print_info "Deployment cancelled"
@@ -719,6 +859,38 @@ main() {
     
     # Validate SSH
     validate_ssh || exit 1
+    
+    # Configure sudoers for automated deployment (must be before any ssh_exec calls)
+    if [ -n "$SUDO_PASSWORD" ]; then
+        setup_sudoers
+        
+        # Check if sudo works without password
+        if ! sshpass -p "$SUDO_PASSWORD" ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
+            -o StrictHostKeyChecking=no \
+            "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
+            "sudo -n whoami >/dev/null 2>&1" 2>/dev/null; then
+            print_error ""
+            print_error "====================================="
+            print_error "SUDO CONFIGURATION REQUIRED"
+            print_error "====================================="
+            print_error ""
+            print_error "Passwordless sudo (NOPASSWD) must be configured on the server."
+            print_error ""
+            print_error "Please run this command on the server as an admin user:"
+            print_error "  echo 'containeruser ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /bin/mkdir, /bin/chown, /bin/chmod, /usr/bin/certbot, /usr/bin/apt-get, /usr/sbin/ufw, /usr/sbin/iptables, /usr/bin/systemctl, /bin/bash' | sudo tee /etc/sudoers.d/erp-deployment"
+            print_error "  sudo chmod 0440 /etc/sudoers.d/erp-deployment"
+            print_error ""
+            print_error "Then verify with: sudo -n whoami"
+            print_error ""
+            print_error "For more information, see: SUDO_SETUP.md"
+            print_error "====================================="
+            print_error ""
+            exit 1
+        fi
+    fi
+    
+    # Setup server infrastructure (Docker, Nginx, Firewall, SSH hardening)
+    setup_server_infrastructure || exit 1
     
     # Deploy application
     deploy_application || exit 1

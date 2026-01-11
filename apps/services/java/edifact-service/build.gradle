@@ -26,11 +26,8 @@ dependencies {
     implementation 'com.netflix.graphql.dgs:graphql-dgs-spring-boot-starter'
     implementation 'com.netflix.graphql.dgs:graphql-dgs-extended-scalars'
     
-    // Smooks for EDIFACT parsing
-    implementation 'org.smooks:smooks-core:2.0.0-RC4'
-    implementation 'org.smooks:smooks-edi-cartridge:2.0.0-RC4'
-    implementation 'org.smooks:smooks-edifact-cartridge:2.0.0-RC4'
-    implementation 'org.smooks:smooks-javabean-cartridge:2.0.0-RC4'
+    // Smooks for EDIFACT parsing - commented out due to API changes
+    // implementation 'org.smooks:smooks:2.2.1'
     
     // MinIO for file storage
     implementation 'io.minio:minio:8.5.7'

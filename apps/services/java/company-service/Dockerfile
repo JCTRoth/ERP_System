@@ -1,12 +1,13 @@
-FROM eclipse-temurin:21-jdk AS build
+FROM gradle:8.5-jdk21 AS build
 WORKDIR /app
 COPY . .
-RUN if [ -f build/libs/*.jar ]; then \
+RUN ls -la build/libs/ 2>/dev/null || echo "No build/libs directory found"
+RUN if ls build/libs/*.jar 1> /dev/null 2>&1; then \
         echo "JAR already exists, skipping build"; \
     elif [ -f gradlew ]; then \
-        chmod +x gradlew && ./gradlew bootJar --no-daemon || echo "Gradle build failed, but continuing"; \
+        chmod +x gradlew && ./gradlew bootJar --no-daemon; \
     else \
-        echo "gradlew not found; skipping gradle build (ensure jar is provided or add gradle wrapper)"; \
+        gradle bootJar --no-daemon; \
     fi
 
 # Ensure there is at least one jar file so the final image can copy it even if build was skipped

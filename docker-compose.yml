@@ -6,16 +6,9 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
 
-x-security-opts: &default-security
-  security_opt:
-    - no-new-privileges:true
-  read_only: true
-  tmpfs:
-    - /tmp:size=100M,mode=1777
-
 services:
   # ==========================================================================
-  # Database (consolidated single PostgreSQL instance)
+  # Database
   # ==========================================================================
   postgres:
     image: postgres:16-alpine
@@ -23,20 +16,7 @@ services:
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
-      # Per-service user passwords (loaded from environment or secrets)
-      ERP_USER_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_SHOP_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_ACCOUNTING_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_MASTERDATA_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_ORDERS_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_COMPANY_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_NOTIFICATION_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_TRANSLATION_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_TEMPLATES_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_EDIFACT_PASSWORD_FILE: /run/secrets/postgres_password
-      ERP_SCRIPTING_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_PASSWORD: securepassword123
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infrastructure/postgres-init:/docker-entrypoint-initdb.d:ro
@@ -46,16 +26,8 @@ services:
       timeout: 5s
       retries: 5
     logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    read_only: false
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-    user: postgres
     networks:
       - backend
-    secrets:
-      - postgres_password
     deploy:
       resources:
         limits:
@@ -66,79 +38,144 @@ services:
           memory: 2G
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
 
   # ==========================================================================
-  # Kafka
+  # .NET Services
   # ==========================================================================
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: erp-zookeeper
+  user-service:
+    image: ghcr.io/jctroth/erp-user-service:latest
+    container_name: erp-user-service
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-      ZOOKEEPER_MAX_CLIENT_CNXNS: 60
-    volumes:
-      - zookeeper-data:/var/lib/zookeeper/data
-      - zookeeper-logs:/var/lib/zookeeper/log
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://*:5000
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_user;Username=erp_user;Password=securepassword123
+      JWT__Secret: your-jwt-secret-key-here-make-it-long-and-secure
+      JWT__Issuer: erp-system
+      JWT__Audience: erp-clients
+    depends_on:
+      postgres:
+        condition: service_healthy
     logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    read_only: false
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-    user: zookeeper
     networks:
       - backend
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '1.0'
           memory: 512M
         reservations:
-          cpus: '0.25'
+          cpus: '0.5'
           memory: 256M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
 
-  kafka:
-    image: confluentinc/cp-kafka:7.5.0
-    container_name: erp-kafka
-    depends_on:
-      - zookeeper
+  shop-service:
+    image: ghcr.io/jctroth/erp-shop-service:latest
+    container_name: erp-shop-service
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_LOG_RETENTION_HOURS: 168
-      KAFKA_LOG_SEGMENT_BYTES: 1073741824
-      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-    volumes:
-      - kafka-data:/var/lib/kafka/data
-    healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:29092"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_shop;Username=erp_shop;Password=securepassword123
+    depends_on:
+      postgres:
+        condition: service_healthy
     logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    read_only: false
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-    user: kafka
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  accounting-service:
+    image: ghcr.io/jctroth/erp-accounting-service:latest
+    container_name: erp-accounting-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_accounting;Username=erp_accounting;Password=securepassword123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  masterdata-service:
+    image: ghcr.io/jctroth/erp-masterdata-service:latest
+    container_name: erp-masterdata-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_masterdata;Username=erp_masterdata;Password=securepassword123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  orders-service:
+    image: ghcr.io/jctroth/erp-orders-service:latest
+    container_name: erp-orders-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_orders;Username=erp_orders;Password=securepassword123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  # ==========================================================================
+  # Java Services
+  # ==========================================================================
+  company-service:
+    image: ghcr.io/jctroth/erp-company-service:latest
+    container_name: erp-company-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_company
+      SPRING_DATASOURCE_USERNAME: erp_company
+      SPRING_DATASOURCE_PASSWORD: securepassword123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
     networks:
       - backend
     deploy:
@@ -151,162 +188,126 @@ services:
           memory: 512M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
 
-  # ==========================================================================
-  # MinIO (S3-compatible storage for logos)
-  # ==========================================================================
-  minio:
-    image: minio/minio:latest
-    container_name: erp-minio
-    command: server /data --console-address ":9001"
+  edifact-service:
+    image: ghcr.io/jctroth/erp-edifact-service:latest
+    container_name: erp-edifact-service
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
-      MINIO_PROMETHEUS_AUTH_TYPE: public
-      MINIO_BROWSER: "off"
-    volumes:
-      - minio-data:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_edifact
+      SPRING_DATASOURCE_USERNAME: erp_edifact
+      SPRING_DATASOURCE_PASSWORD: securepassword123
+    depends_on:
+      postgres:
+        condition: service_healthy
     logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    read_only: false
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-    user: minio
-    networks:
-      - backend
-    secrets:
-      - minio_root_password
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-
-  # ==========================================================================
-  # Monitoring
-  # ==========================================================================
-  prometheus:
-    image: prom/prometheus:v2.47.0
-    container_name: erp-prometheus
-    volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
-      - '--storage.tsdb.retention.time=30d'
-      - '--storage.tsdb.retention.size=5GB'
-    logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-    user: nobody
     networks:
       - backend
     deploy:
       resources:
         limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
           cpus: '0.5'
           memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
 
-  grafana:
-    image: grafana/grafana:10.2.0
-    container_name: erp-grafana
+  notification-service:
+    image: ghcr.io/jctroth/erp-notification-service:latest
+    container_name: erp-notification-service
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD_FILE: /run/secrets/grafana_password
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_AUTH_BASIC_ENABLED: "true"
-      GF_SECURITY_COOKIE_SECURE: "true"
-      GF_SECURITY_COOKIE_SAMESITE: "lax"
-      GF_SECURITY_ALLOW_EMBEDDING: "false"
-      GF_SECURITY_X_FRAME_OPTIONS: "deny"
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_notification
+      SPRING_DATASOURCE_USERNAME: erp_notification
+      SPRING_DATASOURCE_PASSWORD: securepassword123
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: 587
+      SMTP_USERNAME: your-email@example.com
+      SMTP_PASSWORD: your-smtp-password
     depends_on:
-      - prometheus
+      postgres:
+        condition: service_healthy
     logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-    user: grafana
     networks:
       - backend
-    secrets:
-      - grafana_password
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '1.0'
           memory: 512M
         reservations:
-          cpus: '0.25'
+          cpus: '0.5'
           memory: 256M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
+
+  translation-service:
+    image: ghcr.io/jctroth/erp-translation-service:latest
+    container_name: erp-translation-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_translation
+      SPRING_DATASOURCE_USERNAME: erp_translation
+      SPRING_DATASOURCE_PASSWORD: securepassword123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  scripting-service:
+    image: ghcr.io/jctroth/erp-scripting-service:latest
+    container_name: erp-scripting-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_scripting
+      SPRING_DATASOURCE_USERNAME: erp_scripting
+      SPRING_DATASOURCE_PASSWORD: securepassword123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
 
   # ==========================================================================
-  # Nginx (reverse proxy for local development)
+  # Node.js Services
   # ==========================================================================
-  nginx:
-    image: nginx:alpine
-    container_name: erp-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+  templates-service:
+    image: ghcr.io/jctroth/erp-templates-service:latest
+    container_name: erp-templates-service
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://erp_templates:securepassword123@postgres:5432/erp_templates
     depends_on:
-      - frontend
-      - gateway
+      postgres:
+        condition: service_healthy
     logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-      - /var/cache/nginx:size=100M,mode=1777
-      - /var/run:size=10M,mode=1777
-    user: nginx
     networks:
-      - default
       - backend
     deploy:
       resources:
@@ -318,41 +319,22 @@ services:
           memory: 128M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-      placement:
-        constraints:
-          - node.role == manager
 
   # ==========================================================================
-  # Application Services (placeholders - build from source)
+  # Gateway & Frontend
   # ==========================================================================
   gateway:
-    build:
-      context: ./apps/gateway
-      dockerfile: Dockerfile
+    image: ghcr.io/jctroth/erp-gateway:latest
     container_name: erp-gateway
+    ports:
+      - "4000:4000"
     environment:
       NODE_ENV: production
       PORT: 4000
-      JWT_SECRET_FILE: /run/secrets/jwt_secret
-      CORS_ORIGIN: https://${DOMAIN:-erp.example.com}
-    depends_on:
-      - kafka
-    profiles:
-      - app
+      JWT_SECRET: your-jwt-secret-key-here-make-it-long-and-secure
     logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-    user: node
     networks:
       - backend
-    secrets:
-      - jwt_secret
     deploy:
       resources:
         limits:
@@ -363,36 +345,17 @@ services:
           memory: 256M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 5
-        window: 120s
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
 
   frontend:
-    build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/jctroth/erp-frontend:latest
     container_name: erp-frontend
     ports:
-      - "3000:3000"
+      - "3000:80"
     environment:
       VITE_API_URL: http://gateway:4000/graphql
       VITE_API_WS_URL: ws://gateway:4000/graphql
-    profiles:
-      - app
     logging: *default-logging
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=100M,mode=1777
-    user: nginx
     networks:
-      - default
       - backend
     deploy:
       resources:
@@ -404,46 +367,40 @@ services:
           memory: 128M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
+
+  # ==========================================================================
+  # Nginx Reverse Proxy (commented out - using system nginx)
+  # ==========================================================================
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: erp-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./default.conf:/etc/nginx/conf.d/default.conf:ro
+  #     - /etc/letsencrypt:/etc/letsencrypt:ro
+  #   depends_on:
+  #     - frontend
+  #     - gateway
+  #   logging: *default-logging
+  #   networks:
+  #     - backend
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 256M
+  #       reservations:
+  #         cpus: '0.25'
+  #         memory: 128M
+  #     restart_policy:
+  #       condition: on-failure
 
 volumes:
   postgres-data:
-  zookeeper-data:
-  zookeeper-logs:
-  kafka-data:
-  minio-data:
-  prometheus-data:
-  grafana-data:
 
 networks:
-  default:
-    name: erp-network
-    driver: overlay
-    attachable: true
-    internal: false
-    driver_opts:
-      encrypted: "true"
   backend:
-    name: erp-backend
-    driver: overlay
-    attachable: true
-    internal: true
-    driver_opts:
-      encrypted: "true"
-
-secrets:
-  postgres_password:
-    external: true
-  minio_root_password:
-    external: true
-  jwt_secret:
-    external: true
-  grafana_password:
-    external: true
+    driver: bridge

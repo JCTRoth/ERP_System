@@ -11,10 +11,10 @@ subgraphs:
     schema:
       subgraph_url: http://company-service:8080/graphql
 
-  translation-service:
-    routing_url: http://translation-service:8081/graphql
-    schema:
-      subgraph_url: http://translation-service:8081/graphql
+#  translation-service:
+#    routing_url: http://translation-service:8083/graphql
+#    schema:
+#      subgraph_url: http://translation-service:8083/graphql
 
   shop-service:
     routing_url: http://shop-service:5003/graphql
@@ -36,12 +36,12 @@ subgraphs:
      schema:
        subgraph_url: http://accounting-service:5001/graphql
 
-  notification-service:
-     routing_url: http://localhost:8084/graphql
-     schema:
-       subgraph_url: http://localhost:8084/graphql
+#  notification-service:
+#     routing_url: http://notification-service:8082/graphql
+#     schema:
+#       subgraph_url: http://notification-service:8082/graphql
 
-  scripting-service:
-     routing_url: http://localhost:8085/graphql
-     schema:
-       subgraph_url: http://localhost:8085/graphql
+#  scripting-service:
+#     routing_url: http://localhost:8085/graphql
+#     schema:
+#       subgraph_url: http://localhost:8085/graphql

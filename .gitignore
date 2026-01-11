@@ -86,3 +86,4 @@ temp/
 *.bak
 
 TODO.txt
+scripts/deployment/config.json

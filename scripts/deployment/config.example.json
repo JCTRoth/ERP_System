@@ -10,6 +10,7 @@
     "deploy_server": "prod.example.com",
     "deploy_domain": "erp.example.com",
     "deploy_username": "root",
+    "deploy_port": 22,
     "deploy_ssh_key": "~/.ssh/id_rsa",
     "registry_url": "ghcr.io",
     "registry_username": "JCTRoth",
