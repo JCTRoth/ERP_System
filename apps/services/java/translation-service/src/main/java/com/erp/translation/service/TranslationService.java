@@ -58,7 +58,7 @@ public class TranslationService {
     }
 
     @Transactional
-    @CacheEvict(value = "translations", allEntries = true)
+    // @CacheEvict(value = "translations", allEntries = true)
     public TranslationKeyDto createKey(CreateTranslationKeyRequest request) {
         String namespace = request.getNamespace() != null ? request.getNamespace() : "common";
         
@@ -78,7 +78,7 @@ public class TranslationService {
     }
 
     @Transactional
-    @CacheEvict(value = "translations", allEntries = true)
+    // @CacheEvict(value = "translations", allEntries = true)
     public void deleteKey(UUID id) {
         TranslationKey key = keyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("TranslationKey", "id", id));
@@ -91,7 +91,7 @@ public class TranslationService {
     // ==================== Translation Values ====================
 
     @Transactional
-    @CacheEvict(value = "translations", allEntries = true)
+    // @CacheEvict(value = "translations", allEntries = true)
     public TranslationValueDto setTranslation(SetTranslationRequest request) {
         TranslationKey key = keyRepository.findById(request.getKeyId())
                 .orElseThrow(() -> new ResourceNotFoundException("TranslationKey", "id", request.getKeyId()));
@@ -164,7 +164,7 @@ public class TranslationService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "translations", key = "#language + '-' + (#companyId != null ? #companyId : 'default') + '-' + (#namespace != null ? #namespace : 'all')")
+    // @Cacheable(value = "translations", key = "#language + '-' + (#companyId != null ? #companyId : 'default') + '-' + (#namespace != null ? #namespace : 'all')")
     public TranslationBundleDto getTranslationBundle(String language, UUID companyId, String namespace) {
         Map<String, String> translations = new HashMap<>();
 
@@ -221,7 +221,7 @@ public class TranslationService {
     }
 
     @Transactional
-    @CacheEvict(value = "translations", allEntries = true)
+    // @CacheEvict(value = "translations", allEntries = true)
     public void deleteCompanyOverrides(UUID companyId) {
         valueRepository.deleteByCompanyId(companyId);
         log.info("Deleted all translation overrides for company {}", companyId);
@@ -241,7 +241,7 @@ public class TranslationService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "translations", key = "#language + '-' + (#companyId != null ? #companyId : 'default')")
+    // @Cacheable(value = "translations", key = "#language + '-' + (#companyId != null ? #companyId : 'default')")
     public List<TranslationDto> getAllTranslations(String language, UUID companyId) {
         Map<String, String> translations = new HashMap<>();
 

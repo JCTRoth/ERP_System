@@ -24,10 +24,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-graphql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
         <dependency>
@@ -56,6 +52,8 @@
             <version>0.11.5</version>
             <scope>runtime</scope>
         </dependency>
+        
+        <!-- Apollo Federation -->
         <dependency>
             <groupId>com.apollographql.federation</groupId>
             <artifactId>federation-graphql-java-support</artifactId>
@@ -111,8 +109,8 @@
         <!-- Netflix GraphQL DGS -->
         <dependency>
             <groupId>com.netflix.graphql.dgs</groupId>
-            <artifactId>dgs-starter</artifactId>
-            <version>10.0.0</version>
+            <artifactId>graphql-dgs-spring-boot-starter</artifactId>
+            <version>8.2.0</version>
         </dependency>
         
         <!-- GraphQL Java -->
