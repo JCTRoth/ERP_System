@@ -68,6 +68,7 @@ DEPLOY_SSH_KEY="${DEPLOY_SSH_KEY:-$HOME/.ssh/id_rsa}"
 REGISTRY_URL="${REGISTRY_URL:-ghcr.io}"
 REGISTRY_USERNAME="${REGISTRY_USERNAME:-jctroth}"
 REGISTRY_TOKEN="${REGISTRY_TOKEN:-}"
+SUDO_PASSWORD="${SUDO_PASSWORD:-}"
 IMAGE_VERSION="${IMAGE_VERSION:-latest}"
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
@@ -226,31 +227,6 @@ validate_ssh() {
     print_status "SSH connection successful"
 }
 
-# Setup sudoers to allow passwordless sudo (done once during initial setup)
-setup_sudoers() {
-    # Note: Sudo is expected to be pre-configured on the server with NOPASSWD
-    # If it requires a password and doesn't have a TTY, stdin piping won't work
-    # User should run this command on the server first:
-    #   sudo visudo -f /etc/sudoers.d/erp-deployment
-    # And add:
-    #   containeruser ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /bin/mkdir, /bin/chown, /bin/chmod, /usr/bin/certbot, /usr/bin/apt-get, /usr/sbin/ufw, /usr/sbin/iptables, /usr/bin/systemctl, /bin/bash
-    
-    print_step "Checking sudo configuration..."
-    
-    # Try to use sudo without password to check if NOPASSWD is already set up
-    if sshpass -p "$SUDO_PASSWORD" ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
-        -o StrictHostKeyChecking=no \
-        "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
-        "sudo -n whoami >/dev/null 2>&1" 2>/dev/null; then
-        print_status "Sudo is configured with NOPASSWD - deployment will proceed"
-        return 0
-    fi
-    
-    print_warning "Sudo appears to require password input"
-    print_info "For automated deployment, configure passwordless sudo on the server:"
-    print_info "  sudo visudo -f /etc/sudoers.d/erp-deployment"
-}
-
 # Setup server infrastructure using container-host-setup.sh utilities
 setup_server_infrastructure() {
     print_header "Setting up Server Infrastructure"
@@ -285,7 +261,7 @@ setup_server_infrastructure() {
     fi
 }
 
-# Execute SSH command on remote server
+# Execute SSH command on remote server with sudo password support
 ssh_exec() {
     local command=$1
     
@@ -295,18 +271,16 @@ ssh_exec() {
         return 0
     fi
     
-    # No sudo needed - deployment is in home directory
-    if command -v sshpass &> /dev/null; then
-        sshpass -p "$SSH_PASSWORD" ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
-            -o StrictHostKeyChecking=no \
-            "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
-            "bash -c '$command'"
-    else
-        ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" \
-            -o StrictHostKeyChecking=no \
-            "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
-            "bash -c '$command'"
-    fi
+    # Create temporary password file for sudo
+    local pass_file="$TEMP_DIR/sudopass"
+    mkdir -p "$TEMP_DIR"
+    echo "$SUDO_PASSWORD" > "$pass_file"
+    chmod 600 "$pass_file"
+    
+    # Send command with password available for sudo -S via stdin
+    # We use 'cat' to read the password and pipe it to the command
+    ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" "$DEPLOY_USERNAME@$DEPLOY_SERVER" \
+        "cat > /tmp/.sudo_pwd && chmod 600 /tmp/.sudo_pwd && cat /tmp/.sudo_pwd | sudo -S bash -c '$command'; rm -f /tmp/.sudo_pwd" < "$pass_file"
 }
 
 # Copy file to remote server via SCP
@@ -409,6 +383,7 @@ services:
         condition: service_healthy
     ports:
       - "5001:5001"
+    expose: []
     restart: unless-stopped
     networks:
       - erp-network
@@ -528,6 +503,7 @@ services:
       VITE_API_URL: https://${DEPLOY_DOMAIN}/graphql
     ports:
       - "5173:5173"
+    expose: []
     restart: unless-stopped
     networks:
       - erp-network
@@ -574,12 +550,7 @@ server {
     listen 80;
     server_name $domain www.$domain;
     
-    # ACME challenge for Let's Encrypt
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-    
-    # Redirect all other traffic to HTTPS
+    # Redirect all traffic to HTTPS
     location / {
         return 301 https://\$server_name\$request_uri;
     }
@@ -590,14 +561,16 @@ server {
     listen 443 ssl http2;
     server_name $domain www.$domain;
     
-    # SSL certificates
-    ssl_certificate /etc/letsencrypt/live/$domain/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$domain/privkey.pem;
+    # SSL certificates (self-signed for development, or Let's Encrypt in production)
+    ssl_certificate /opt/erp-system/certs/fullchain.pem;
+    ssl_certificate_key /opt/erp-system/certs/privkey.pem;
     
     # SSL configuration
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
     
     # Security headers
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
@@ -612,6 +585,9 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
     }
     
     # GraphQL Gateway
@@ -639,14 +615,20 @@ setup_letsencrypt() {
     local domain=$1
     local email=$2
     
-    print_info "Setting up Let's Encrypt SSL certificate for $domain..."
+    print_info "Setting up SSL certificate for $domain..."
     
-    # Install certbot if needed
+    # Check if we already have a certificate
+    if [ -d "/opt/erp-system/certs" ] && [ -f "/opt/erp-system/certs/fullchain.pem" ]; then
+        print_status "Using existing certificate"
+        return 0
+    fi
+    
+    # Try to get Let's Encrypt certificate via certbot
     local install_cmd="command -v certbot >/dev/null 2>&1 || (apt-get update && apt-get install -y certbot)"
     ssh_exec "$install_cmd"
     
-    # Request certificate (only if not already present)
-    local cert_cmd="test -d /etc/letsencrypt/live/$domain || certbot certonly --standalone -d $domain -d www.$domain --email $email --agree-tos --non-interactive --preferred-challenges http"
+    # Request certificate (this may fail if DNS isn't configured - that's ok)
+    local cert_cmd="test -d /etc/letsencrypt/live/$domain || certbot certonly --webroot -w /var/www/certbot -d $domain -d www.$domain --email $email --agree-tos --non-interactive 2>&1 || true"
     ssh_exec "$cert_cmd"
 }
 
@@ -681,20 +663,64 @@ EOF
     print_info "Uploading docker-compose.yml..."
     scp_to_server "$compose_file" "/opt/erp-system/docker-compose.yml"
     
+    # Create nginx.conf file (required before docker compose tries to mount it)
+    print_step "Creating nginx configuration files..."
+    local nginx_main_conf="$TEMP_DIR/nginx.conf"
+    cat > "$nginx_main_conf" << 'EOF'
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log /var/log/nginx/access.log main;
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    client_max_body_size 20M;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+EOF
+    # Use scp with -r flag removed and force file copy (remove directory if exists)
+    ssh_exec "rm -f /opt/erp-system/nginx/nginx.conf"
+    scp_to_server "$nginx_main_conf" "/opt/erp-system/nginx/nginx.conf"
+    
     # Copy nginx config
     local nginx_config
     nginx_config=$(create_nginx_config "$DEPLOY_DOMAIN")
-    print_info "Uploading nginx configuration..."
+    print_info "Uploading nginx default configuration..."
     scp_to_server "$nginx_config" "/opt/erp-system/nginx/conf.d/default.conf"
     
-    # Setup Let's Encrypt
-    setup_letsencrypt "$DEPLOY_DOMAIN" "$LETSENCRYPT_EMAIL"
+    # Login to registry
+    print_step "Authenticating with container registry..."
+    local login_cmd="cd /opt/erp-system && echo '$REGISTRY_TOKEN' | docker login $REGISTRY_URL -u $REGISTRY_USERNAME --password-stdin"
+    ssh_exec "$login_cmd"
     
-    # Login to registry and start services
-    print_info "Starting services..."
-    local deploy_cmd="cd /opt/erp-system && echo '$REGISTRY_TOKEN' | docker login $REGISTRY_URL -u $REGISTRY_USERNAME --password-stdin && docker compose --env-file .env pull && docker compose --env-file .env up -d && sleep 10"
+    # Pull images
+    print_step "Pulling container images..."
+    local pull_cmd="cd /opt/erp-system && docker compose --env-file .env pull"
+    ssh_exec "$pull_cmd"
     
-    ssh_exec "$deploy_cmd"
+    # Start all services
+    print_step "Starting all services..."
+    local start_cmd="cd /opt/erp-system && docker compose --env-file .env up -d"
+    ssh_exec "$start_cmd"
+    sleep 10
 }
 
 # Verify deployment
@@ -801,6 +827,10 @@ main() {
                 ;;
             --db-password)
                 DB_PASSWORD="$2"
+                shift 2
+                ;;
+            --sudo-password)
+                SUDO_PASSWORD="$2"
                 shift 2
                 ;;
             --dry-run)
