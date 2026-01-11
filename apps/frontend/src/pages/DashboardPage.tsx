@@ -79,13 +79,18 @@ export default function DashboardPage() {
     }
   }, [usersError]);
 
+  // Check if user is authenticated
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   // Prepare stats with real data and better error handling with fallback
   const stats = [
     {
       labelKey: 'dashboard.totalCompanies',
       value: companiesLoading ? '...' : 
              companiesError ? 
-               (companiesListLoading ? '...' : (companiesListData?.companies?.length?.toString() || t('dashboard.serviceUnavailable'))) :
+               (companiesListLoading ? '...' : 
+                (companiesListError ? t('dashboard.serviceUnavailable') : 
+                 (companiesListData?.companies?.length?.toString() || '0'))) :
                (companiesData?.totalCompanies?.toString() || '0'),
       icon: BuildingOfficeIcon
     },
@@ -116,6 +121,13 @@ export default function DashboardPage() {
         <p className="text-gray-600 dark:text-gray-400">
           {t('dashboard.overview')}
         </p>
+        {!isAuthenticated && (
+          <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded">
+            <p className="text-sm text-yellow-800">
+              {t('dashboard.notAuthenticatedHint')}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}

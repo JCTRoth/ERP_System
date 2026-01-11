@@ -81,3 +81,5 @@ This is a modern, full-stack Enterprise Resource Planning (ERP) system built wit
 - **Communication**: GraphQL Federation, REST
 - **Documentation**: AsciiDoc, PDF generation</content>
 <parameter name="filePath">/home/jonas/Git/ERP_System/.github/copilot-instructions.md
+
+- Only mix Ghic.io container and local conatiner builds if you really know what you are doing.

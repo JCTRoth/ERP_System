@@ -1,13 +1,13 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using System.Security.Claims;
-using Prometheus;
 using UserService.Data;
 using UserService.Services;
 using UserService.GraphQL;
 using UserService.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Claims;
+using Prometheus;
 using BCrypt.Net;
 using System.Linq;
 
@@ -97,8 +97,8 @@ app.MapGraphQL();
 app.MapHealthChecks("/health");
 app.MapMetrics();
 
-// Apply migrations on startup (dev only)
-if (app.Environment.IsDevelopment())
+// Apply migrations and seed data on startup (dev or when explicitly enabled)
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:EnableSeeding", false))
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();

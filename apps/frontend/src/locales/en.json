@@ -209,6 +209,7 @@
   "dashboard.recentUsers": "Recent Users",
   "dashboard.revenue": "Revenue",
   "dashboard.serviceUnavailable": "Service unavailable",
+  "dashboard.notAuthenticatedHint": "Please log in to access full functionality and data.",
   "dashboard.totalCompanies": "Total Companies",
   "dashboard.totalUsers": "Total Users",
   "dashboard.welcome": "Welcome back, {name}!",

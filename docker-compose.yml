@@ -48,10 +48,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://*:5000
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_user;Username=erp_user;Password=securepassword123
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_user;Username=erp_user;Password=postgres
       JWT__Secret: your-jwt-secret-key-here-make-it-long-and-secure
       JWT__Issuer: erp-system
       JWT__Audience: erp-clients
+      Database__EnableSeeding: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,7 +75,8 @@ services:
     container_name: erp-shop-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_shop;Username=erp_shop;Password=securepassword123
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_shop;Username=erp_shop;Password=postgres
+      Database__EnableSeeding: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,7 +99,8 @@ services:
     container_name: erp-accounting-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_accounting;Username=erp_accounting;Password=securepassword123
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_accounting;Username=erp_accounting;Password=postgres
+      Database__EnableSeeding: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -120,7 +123,8 @@ services:
     container_name: erp-masterdata-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_masterdata;Username=erp_masterdata;Password=securepassword123
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_masterdata;Username=erp_masterdata;Password=postgres
+      Database__EnableSeeding: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -143,7 +147,8 @@ services:
     container_name: erp-orders-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_orders;Username=erp_orders;Password=securepassword123
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=erp_orders;Username=erp_orders;Password=postgres
+      Database__EnableSeeding: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -171,7 +176,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_company
       SPRING_DATASOURCE_USERNAME: erp_company
-      SPRING_DATASOURCE_PASSWORD: securepassword123
+      SPRING_DATASOURCE_PASSWORD: postgres
     depends_on:
       postgres:
         condition: service_healthy
@@ -189,30 +194,30 @@ services:
       restart_policy:
         condition: on-failure
 
-  edifact-service:
-    image: ghcr.io/jctroth/erp-edifact-service:latest
-    container_name: erp-edifact-service
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_edifact
-      SPRING_DATASOURCE_USERNAME: erp_edifact
-      SPRING_DATASOURCE_PASSWORD: securepassword123
-    depends_on:
-      postgres:
-        condition: service_healthy
-    logging: *default-logging
-    networks:
-      - backend
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-      restart_policy:
-        condition: on-failure
+#  edifact-service:
+#    image: ghcr.io/jctroth/erp-edifact-service:latest
+#    container_name: erp-edifact-service
+#    environment:
+#      SPRING_PROFILES_ACTIVE: prod
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_edifact
+#      SPRING_DATASOURCE_USERNAME: erp_edifact
+#      SPRING_DATASOURCE_PASSWORD: postgres
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    logging: *default-logging
+#    networks:
+#      - backend
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '1.0'
+#          memory: 1G
+#        reservations:
+#          cpus: '0.5'
+#          memory: 512M
+#      restart_policy:
+#        condition: on-failure
 
   notification-service:
     image: ghcr.io/jctroth/erp-notification-service:latest
@@ -221,7 +226,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_notification
       SPRING_DATASOURCE_USERNAME: erp_notification
-      SPRING_DATASOURCE_PASSWORD: securepassword123
+      SPRING_DATASOURCE_PASSWORD: postgres
       SMTP_HOST: smtp.example.com
       SMTP_PORT: 587
       SMTP_USERNAME: your-email@example.com
@@ -244,13 +249,15 @@ services:
         condition: on-failure
 
   translation-service:
+    build:
+      context: ./apps/services/java/translation-service
     image: ghcr.io/jctroth/erp-translation-service:latest
     container_name: erp-translation-service
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_translation
       SPRING_DATASOURCE_USERNAME: erp_translation
-      SPRING_DATASOURCE_PASSWORD: securepassword123
+      SPRING_DATASOURCE_PASSWORD: postgres
     depends_on:
       postgres:
         condition: service_healthy
@@ -269,13 +276,17 @@ services:
         condition: on-failure
 
   scripting-service:
+    build:
+      context: ./apps/services/java/scripting-service
     image: ghcr.io/jctroth/erp-scripting-service:latest
     container_name: erp-scripting-service
+    profiles:
+      - scripting  # Only start with: docker compose --profile scripting up
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_scripting
       SPRING_DATASOURCE_USERNAME: erp_scripting
-      SPRING_DATASOURCE_PASSWORD: securepassword123
+      SPRING_DATASOURCE_PASSWORD: postgres
     depends_on:
       postgres:
         condition: service_healthy
@@ -302,7 +313,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://erp_templates:securepassword123@postgres:5432/erp_templates
+      DATABASE_URL: postgresql://erp_templates:postgres@postgres:5432/erp_templates
     depends_on:
       postgres:
         condition: service_healthy
@@ -347,7 +358,9 @@ services:
         condition: on-failure
 
   frontend:
-    image: ghcr.io/jctroth/erp-frontend:latest
+    # image: ghcr.io/jctroth/erp-frontend:latest
+    build:
+      context: ./apps/frontend
     container_name: erp-frontend
     ports:
       - "3000:80"

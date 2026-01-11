@@ -5,61 +5,85 @@ set -e
 # Creates multiple databases and users for the ERP microservices
 # Uses environment variables for passwords (loaded from Docker secrets or env files)
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    -- User Service Database
-    CREATE USER erp_user WITH ENCRYPTED PASSWORD '${ERP_USER_PASSWORD:-postgres}';
-    CREATE DATABASE erp_user OWNER erp_user;
-    GRANT ALL PRIVILEGES ON DATABASE erp_user TO erp_user;
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-'EOSQL'
+-- Helper: create user if not exists
+CREATE OR REPLACE FUNCTION ensure_user(u TEXT, p TEXT) RETURNS VOID AS $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = u) THEN
+        EXECUTE format('CREATE USER %I WITH ENCRYPTED PASSWORD %L', u, p);
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
 
-    -- Shop Service Database
-    CREATE USER erp_shop WITH ENCRYPTED PASSWORD '${ERP_SHOP_PASSWORD:-postgres}';
-    CREATE DATABASE erp_shop OWNER erp_shop;
-    GRANT ALL PRIVILEGES ON DATABASE erp_shop TO erp_shop;
+-- Helper: create database if not exists
+CREATE OR REPLACE FUNCTION ensure_db(dbname TEXT, owner TEXT) RETURNS VOID AS $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_database WHERE datname = dbname) THEN
+        EXECUTE format('CREATE DATABASE %I OWNER %I', dbname, owner);
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
 
-    -- Accounting Service Database
-    CREATE USER erp_accounting WITH ENCRYPTED PASSWORD '${ERP_ACCOUNTING_PASSWORD:-postgres}';
-    CREATE DATABASE erp_accounting OWNER erp_accounting;
-    GRANT ALL PRIVILEGES ON DATABASE erp_accounting TO erp_accounting;
+-- Create users and databases (both legacy 'erp_*' names and service expected '*db' names)
 
-    -- Masterdata Service Database
-    CREATE USER erp_masterdata WITH ENCRYPTED PASSWORD '${ERP_MASTERDATA_PASSWORD:-postgres}';
-    CREATE DATABASE erp_masterdata OWNER erp_masterdata;
-    GRANT ALL PRIVILEGES ON DATABASE erp_masterdata TO erp_masterdata;
+-- User Service
+SELECT ensure_user('erp_user', '${ERP_USER_PASSWORD:-postgres}');
+SELECT ensure_db('erp_user', 'erp_user');
+SELECT ensure_db('userdb', 'erp_user');
 
-    -- Orders Service Database
-    CREATE USER erp_orders WITH ENCRYPTED PASSWORD '${ERP_ORDERS_PASSWORD:-postgres}';
-    CREATE DATABASE erp_orders OWNER erp_orders;
-    GRANT ALL PRIVILEGES ON DATABASE erp_orders TO erp_orders;
+-- Shop Service
+SELECT ensure_user('erp_shop', '${ERP_SHOP_PASSWORD:-postgres}');
+SELECT ensure_db('erp_shop', 'erp_shop');
+SELECT ensure_db('shopdb', 'erp_shop');
 
-    -- Company Service Database
-    CREATE USER erp_company WITH ENCRYPTED PASSWORD '${ERP_COMPANY_PASSWORD:-postgres}';
-    CREATE DATABASE erp_company OWNER erp_company;
-    GRANT ALL PRIVILEGES ON DATABASE erp_company TO erp_company;
+-- Accounting Service
+SELECT ensure_user('erp_accounting', '${ERP_ACCOUNTING_PASSWORD:-postgres}');
+SELECT ensure_db('erp_accounting', 'erp_accounting');
+SELECT ensure_db('accountingdb', 'erp_accounting');
 
-    -- Notification Service Database
-    CREATE USER erp_notification WITH ENCRYPTED PASSWORD '${ERP_NOTIFICATION_PASSWORD:-postgres}';
-    CREATE DATABASE erp_notification OWNER erp_notification;
-    GRANT ALL PRIVILEGES ON DATABASE erp_notification TO erp_notification;
+-- Masterdata Service
+SELECT ensure_user('erp_masterdata', '${ERP_MASTERDATA_PASSWORD:-postgres}');
+SELECT ensure_db('erp_masterdata', 'erp_masterdata');
+SELECT ensure_db('masterdatadb', 'erp_masterdata');
 
-    -- Translation Service Database
-    CREATE USER erp_translation WITH ENCRYPTED PASSWORD '${ERP_TRANSLATION_PASSWORD:-postgres}';
-    CREATE DATABASE erp_translation OWNER erp_translation;
-    GRANT ALL PRIVILEGES ON DATABASE erp_translation TO erp_translation;
+-- Orders Service
+SELECT ensure_user('erp_orders', '${ERP_ORDERS_PASSWORD:-postgres}');
+SELECT ensure_db('erp_orders', 'erp_orders');
+SELECT ensure_db('ordersdb', 'erp_orders');
 
-    -- Templates Service Database
-    CREATE USER erp_templates WITH ENCRYPTED PASSWORD '${ERP_TEMPLATES_PASSWORD:-postgres}';
-    CREATE DATABASE erp_templates OWNER erp_templates;
-    GRANT ALL PRIVILEGES ON DATABASE erp_templates TO erp_templates;
+-- Company Service
+SELECT ensure_user('erp_company', '${ERP_COMPANY_PASSWORD:-postgres}');
+SELECT ensure_db('erp_company', 'erp_company');
+SELECT ensure_db('companydb', 'erp_company');
 
-    -- Edifact Service Database (if needed)
-    CREATE USER erp_edifact WITH ENCRYPTED PASSWORD '${ERP_EDIFACT_PASSWORD:-postgres}';
-    CREATE DATABASE erp_edifact OWNER erp_edifact;
-    GRANT ALL PRIVILEGES ON DATABASE erp_edifact TO erp_edifact;
+-- Notification Service
+SELECT ensure_user('erp_notification', '${ERP_NOTIFICATION_PASSWORD:-postgres}');
+SELECT ensure_db('erp_notification', 'erp_notification');
+SELECT ensure_db('notificationdb', 'erp_notification');
 
-    -- Scripting Service Database (if needed)
-    CREATE USER erp_scripting WITH ENCRYPTED PASSWORD '${ERP_SCRIPTING_PASSWORD:-postgres}';
-    CREATE DATABASE erp_scripting OWNER erp_scripting;
-    GRANT ALL PRIVILEGES ON DATABASE erp_scripting TO erp_scripting;
+-- Translation Service
+SELECT ensure_user('erp_translation', '${ERP_TRANSLATION_PASSWORD:-postgres}');
+SELECT ensure_db('erp_translation', 'erp_translation');
+SELECT ensure_db('translationdb', 'erp_translation');
+
+-- Templates Service
+SELECT ensure_user('erp_templates', '${ERP_TEMPLATES_PASSWORD:-postgres}');
+SELECT ensure_db('erp_templates', 'erp_templates');
+SELECT ensure_db('templatesdb', 'erp_templates');
+
+-- Edifact Service
+SELECT ensure_user('erp_edifact', '${ERP_EDIFACT_PASSWORD:-postgres}');
+SELECT ensure_db('erp_edifact', 'erp_edifact');
+SELECT ensure_db('edifactdb', 'erp_edifact');
+
+-- Scripting Service
+SELECT ensure_user('erp_scripting', '${ERP_SCRIPTING_PASSWORD:-postgres}');
+SELECT ensure_db('erp_scripting', 'erp_scripting');
+SELECT ensure_db('scriptingdb', 'erp_scripting');
+
+-- Cleanup helper functions
+DROP FUNCTION IF EXISTS ensure_db(text, text);
+DROP FUNCTION IF EXISTS ensure_user(text, text);
 EOSQL
 
 echo "✅ All databases and users created successfully"

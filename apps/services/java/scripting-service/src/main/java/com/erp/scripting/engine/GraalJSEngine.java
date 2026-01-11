@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.graalvm.polyglot.*;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
@@ -19,19 +18,19 @@ public class GraalJSEngine {
     private final ObjectMapper objectMapper;
     private final ExecutorService executorService;
     
-    @Value("${scripting.execution.timeout-ms:5000}")
+    @org.springframework.beans.factory.annotation.Value("${scripting.execution.timeout-ms:5000}")
     private long timeoutMs;
     
-    @Value("${scripting.execution.max-memory-mb:64}")
+    @org.springframework.beans.factory.annotation.Value("${scripting.execution.max-memory-mb:64}")
     private int maxMemoryMb;
     
-    @Value("${scripting.execution.max-statements:10000}")
+    @org.springframework.beans.factory.annotation.Value("${scripting.execution.max-statements:10000}")
     private int maxStatements;
     
-    @Value("${scripting.execution.allow-network:false}")
+    @org.springframework.beans.factory.annotation.Value("${scripting.execution.allow-network:false}")
     private boolean allowNetwork;
     
-    @Value("${scripting.execution.allow-file-access:false}")
+    @org.springframework.beans.factory.annotation.Value("${scripting.execution.allow-file-access:false}")
     private boolean allowFileAccess;
     
     public GraalJSEngine(ObjectMapper objectMapper) {
@@ -79,14 +78,10 @@ public class GraalJSEngine {
                 .allowEnvironmentAccess(EnvironmentAccess.NONE)
                 .option("js.ecmascript-version", "2022")
                 .option("engine.WarnInterpreterOnly", "false")
+                .resourceLimits(ResourceLimits.newBuilder()
+                        .statementLimit(maxStatements, null)
+                        .build())
                 .build()) {
-            
-            // Set up statement limit
-            graalContext.setResourceLimit(
-                    ResourceLimits.newBuilder()
-                            .statementLimit(maxStatements, null)
-                            .build()
-            );
             
             // Create sandbox bindings
             Value bindings = graalContext.getBindings("js");

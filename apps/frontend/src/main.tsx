@@ -5,17 +5,20 @@ import { ApolloProvider } from '@apollo/client';
 import { apolloClient } from './lib/apollo';
 import { I18nProvider } from './providers/I18nProvider';
 import App from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles/index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ApolloProvider client={apolloClient}>
-      <I18nProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </I18nProvider>
-    </ApolloProvider>
+    <ErrorBoundary>
+      <ApolloProvider client={apolloClient}>
+        <I18nProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </I18nProvider>
+      </ApolloProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
 

@@ -67,7 +67,6 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     variables: { language, companyId: currentCompanyId },
     skip: !language,
     errorPolicy: 'ignore',
-    onError: () => {},
   });
 
   // Merge service translations on top of local translations (service overrides local)

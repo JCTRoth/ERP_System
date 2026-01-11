@@ -163,8 +163,8 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapMetrics();
 
-// Apply migrations on startup (dev only)
-if (app.Environment.IsDevelopment())
+// Apply migrations on startup
+if (true)
 {
     app.Logger.LogInformation("Applying database migrations...");
     try
@@ -180,16 +180,9 @@ if (app.Environment.IsDevelopment())
         var pendingMigrations = db.Database.GetPendingMigrations();
         app.Logger.LogInformation("Pending migrations: {PendingMigrations}", string.Join(", ", pendingMigrations));
         
-        if (pendingMigrations.Any())
-        {
-            app.Logger.LogInformation("Applying {Count} pending migrations...", pendingMigrations.Count());
-            db.Database.Migrate();
-            app.Logger.LogInformation("Database migrations applied successfully");
-        }
-        else
-        {
-            app.Logger.LogInformation("No pending migrations to apply");
-        }
+        app.Logger.LogInformation("Applying migrations...");
+        db.Database.EnsureCreated();
+        app.Logger.LogInformation("Database tables created successfully");
     }
     catch (Exception ex)
     {
