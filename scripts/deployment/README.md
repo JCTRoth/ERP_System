@@ -38,17 +38,22 @@ The `start-prod-local.sh` script provides a complete local production environmen
 2. **Builds images** - Creates production-ready container images locally
 3. **Network checks** - Ensures required ports are available
 4. **Infrastructure** - Starts PostgreSQL with proper configuration
-5. **Services** - Launches all microservices in dependency order
+5. **Services** - Launches all microservices in dependency order (MinIO is optional)
 6. **Frontend** - Starts the React application
 7. **Gateway** - Starts Apollo Gateway last (takes longest to initialize)
 8. **Verification** - Tests all endpoints and provides access information
 
+### Notes:
+- **MinIO (file storage)** is optional for local development. If it fails to start, the system will continue without file storage features
+- All core ERP functionality (users, companies, orders, etc.) works without MinIO
+- For full file storage capabilities, ensure MinIO starts successfully
+
 ### Access URLs (when running):
-- Frontend: http://localhost:5173
-- GraphQL Gateway: http://localhost:4000/graphql
-- Health Check: http://localhost:4000/health
-- Metrics: http://localhost:4000/metrics
-- PostgreSQL: localhost:15432 (user: postgres, pass: postgres)
+- **Frontend:** http://localhost:8088 (production build served by nginx)
+- **GraphQL Gateway:** http://localhost:4000/graphql
+- **Health Check:** http://localhost:4000/health
+- **Metrics:** http://localhost:4000/metrics
+- **PostgreSQL:** localhost:15432 (user: postgres, pass: postgres)
 
 ### Example usage:
 ```bash

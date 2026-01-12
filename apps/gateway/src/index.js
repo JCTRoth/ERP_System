@@ -183,7 +183,48 @@ async function startServer() {
 
   // Add startup delay to allow services to initialize
   console.log('Waiting for services to initialize before starting Apollo Server...');
-  await new Promise(resolve => setTimeout(resolve, 60000)); // 60 second delay
+    // Wait for each subgraph URL to be reachable before attempting composition
+    async function waitForService(url, timeoutMs = 120000, intervalMs = 2000) {
+      const start = Date.now();
+      // derive base URL (scheme + host[:port])
+      try {
+        const parsed = new URL(url);
+        const base = `${parsed.protocol}//${parsed.hostname}${parsed.port ? ':' + parsed.port : ''}`;
+        const healthCandidates = [`${base}/health`, `${base}/actuator/health`, url];
+
+        while (Date.now() - start < timeoutMs) {
+          for (const candidate of healthCandidates) {
+            try {
+              if (candidate.endsWith('/health') || candidate.endsWith('/actuator/health')) {
+                const r = await fetch(candidate, { method: 'GET' });
+                if (r && r.ok) return true;
+              } else {
+                // GraphQL endpoint probe
+                const r = await fetch(candidate, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: '{__typename}' }) });
+                if (r && r.ok) return true;
+              }
+            } catch (err) {
+              // ignore individual candidate failures
+            }
+          }
+          await new Promise(r => setTimeout(r, intervalMs));
+        }
+      } catch (err) {
+        // parsing error or other fatal issue
+        console.warn('Error parsing URL for subgraph probing', url, err.message || err);
+      }
+      return false;
+    }
+
+    for (const sg of subgraphs) {
+      console.log(`Probing subgraph ${sg.name} at ${sg.url}`);
+      const ok = await waitForService(sg.url, 120000, 2000);
+      if (!ok) {
+        console.warn(`Subgraph ${sg.name} did not become available within timeout (${sg.url}). Gateway will still attempt composition but may retry.`);
+      } else {
+        console.log(`Subgraph ${sg.name} is reachable`);
+      }
+    }
 
   // Start Apollo Server; IntrospectAndCompose will poll subgraphs.
   await server.start();

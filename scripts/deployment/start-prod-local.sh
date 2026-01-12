@@ -29,8 +29,23 @@ NC='\033[0m'
 
 # Configuration
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPOSE_FILE="$PROJECT_DIR/docker-compose.prod-local.yml"
+# Default compose files
+COMPOSE_FILE_REMOTE="$PROJECT_DIR/docker-compose.yml"
+COMPOSE_FILE_LOCAL="$PROJECT_DIR/docker-compose.prod-local.yml"
 COMPOSE_FILE_DEV="$PROJECT_DIR/docker-compose.dev.yml"
+
+# Mode: remote (use published images) or local (build from source)
+MODE="local"
+
+# Helper to run docker compose with selected mode
+dc() {
+    # Usage: dc [docker-compose-args...]
+    if [ "$MODE" = "local" ]; then
+        docker compose -f "$COMPOSE_FILE_REMOTE" -f "$COMPOSE_FILE_LOCAL" "$@"
+    else
+        docker compose -f "$COMPOSE_FILE_REMOTE" "$@"
+    fi
+}
 
 # Logging utilities
 print_status() {
@@ -73,11 +88,19 @@ preflight_checks() {
 
     # Check Docker Compose file
     print_info "Checking Docker Compose file..."
-    if [ ! -f "$COMPOSE_FILE" ]; then
-        print_error "Docker Compose file not found: $COMPOSE_FILE"
-        exit 1
+    if [ "$MODE" = "local" ]; then
+        if [ ! -f "$COMPOSE_FILE_REMOTE" ] || [ ! -f "$COMPOSE_FILE_LOCAL" ]; then
+            print_error "Required docker-compose files not found: $COMPOSE_FILE_REMOTE and/or $COMPOSE_FILE_LOCAL"
+            exit 1
+        fi
+        print_status "Found: $COMPOSE_FILE_REMOTE and $COMPOSE_FILE_LOCAL (local mode)"
+    else
+        if [ ! -f "$COMPOSE_FILE_REMOTE" ]; then
+            print_error "Docker Compose file not found: $COMPOSE_FILE_REMOTE"
+            exit 1
+        fi
+        print_status "Found: $COMPOSE_FILE_REMOTE (remote mode)"
     fi
-    print_status "Found: $COMPOSE_FILE"
 
     # Check if services already running
     print_info "Checking for existing services..."
@@ -103,10 +126,16 @@ build_images() {
     print_info "Building all service images locally..."
     print_info "This may take several minutes..."
 
-    # Build all services
-    if ! docker compose -f "$COMPOSE_FILE" build --parallel; then
-        print_error "Failed to build service images"
-        exit 1
+    # Build all services (only in local mode)
+    if [ "$MODE" = "local" ]; then
+        if ! dc build --parallel; then
+            print_error "Failed to build service images"
+            exit 1
+        fi
+        print_status "All images built successfully"
+    else
+        print_info "Remote mode: skipping local builds"
+        print_status "Using published images from $COMPOSE_FILE_REMOTE"
     fi
 
     print_status "All images built successfully"
@@ -146,7 +175,7 @@ start_infrastructure() {
     print_header "PHASE 4: Starting Infrastructure"
 
     print_info "Starting PostgreSQL database..."
-    docker compose -f "$COMPOSE_FILE" up -d postgres
+    dc up -d postgres
 
     # Wait for PostgreSQL to be healthy
     print_info "Waiting for PostgreSQL to be ready..."
@@ -154,7 +183,7 @@ start_infrastructure() {
     local attempt=1
 
     while [ $attempt -le $max_attempts ]; do
-        if docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+        if dc exec -T postgres pg_isready -U postgres -d postgres >/dev/null 2>&1; then
             print_status "PostgreSQL is ready"
             return 0
         fi
@@ -176,7 +205,7 @@ start_services() {
     print_header "PHASE 5: Starting Services"
 
     print_info "Starting all GraphQL services..."
-    docker compose -f "$COMPOSE_FILE" up -d \
+    dc up -d \
         user-service \
         company-service \
         masterdata-service \
@@ -186,6 +215,33 @@ start_services() {
         translation-service \
         notification-service \
         templates-service
+
+    # Start MinIO separately (optional for local development)
+    print_info "Starting MinIO (optional file storage)..."
+    print_info "Starting MinIO (file storage)..."
+    if ! dc up -d minio >/dev/null 2>&1; then
+        print_error "Failed to start MinIO. MinIO is required for production simulation"
+        exit 1
+    fi
+
+    # Wait for MinIO to become healthy
+    print_info "Waiting for MinIO to be healthy..."
+    local max_minio_attempts=20
+    local minio_attempt=1
+    while [ $minio_attempt -le $max_minio_attempts ]; do
+        if dc ps --format "table {{.Name}}\t{{.Status}}" | grep -q "erp-minio.*Up.*(healthy)"; then
+            print_status "MinIO is healthy"
+            break
+        fi
+        print_info "Waiting for MinIO... (attempt $minio_attempt/$max_minio_attempts)"
+        sleep 3
+        minio_attempt=$((minio_attempt + 1))
+    done
+    if [ $minio_attempt -gt $max_minio_attempts ]; then
+        print_error "MinIO did not become healthy in time. Aborting start."
+        dc logs minio --tail 50
+        exit 1
+    fi
 
     # Wait for services to be ready
     print_info "Waiting for services to initialize (60 seconds)..."
@@ -200,7 +256,7 @@ start_frontend() {
     print_header "PHASE 6: Starting Frontend"
 
     print_info "Starting frontend application..."
-    docker compose -f "$COMPOSE_FILE" up -d frontend
+    dc up -d frontend
 }
 
 # ============================================================================
@@ -211,7 +267,7 @@ start_gateway() {
     print_header "PHASE 7: Starting Gateway"
 
     print_info "Starting Apollo Gateway (this takes longest to initialize)..."
-    docker compose -f "$COMPOSE_FILE" up -d gateway
+    dc up -d gateway
 
     # Wait for gateway to compose schema
     print_info "Waiting for gateway to compose schema (70 seconds)..."
@@ -228,13 +284,22 @@ verify_deployment() {
     # Check container health
     print_info "Checking container status..."
     local unhealthy_count
-    unhealthy_count=$(docker compose -f "$COMPOSE_FILE" ps --format "table {{.Name}}\t{{.Status}}" | grep -c "unhealthy\|exited")
+    unhealthy_count=$(dc ps --format "table {{.Name}}\t{{.Status}}" | grep -c "unhealthy\|exited")
 
     if [ "$unhealthy_count" -gt 0 ]; then
-        print_warning "Some containers are unhealthy:"
-        docker compose -f "$COMPOSE_FILE" ps --format "table {{.Name}}\t{{.Status}}" | grep -E "(unhealthy|exited)"
+        print_warning "Some containers are unhealthy or exited:"
+        dc ps --format "table {{.Name}}\t{{.Status}}" | grep -E "(unhealthy|exited)"
     else
         print_status "All containers are healthy"
+    fi
+
+    # Verify MinIO is running and healthy (required)
+    if dc ps --format "table {{.Name}}\t{{.Status}}" | grep -q "erp-minio.*Up.*(healthy)"; then
+        print_status "MinIO is running and healthy (file storage available)"
+    else
+        print_error "MinIO is not healthy or not running. File storage is required for production simulation."
+        dc logs minio --tail 50
+        exit 1
     fi
 
     # Test gateway health
@@ -247,7 +312,7 @@ verify_deployment() {
 
     # Test frontend
     print_info "Testing frontend availability..."
-    if curl -f -s http://localhost:5173 >/dev/null 2>&1; then
+    if curl -f -s http://localhost:8088 >/dev/null 2>&1; then
         print_status "Frontend is accessible"
     else
         print_warning "Frontend is not yet accessible"
@@ -263,27 +328,27 @@ show_status() {
 
     echo ""
     print_info "Running containers:"
-    docker compose -f "$COMPOSE_FILE" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+    dc ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
 
     echo ""
     print_info "Access URLs:"
-    echo "  Frontend:    http://localhost:5173"
+    echo "  Frontend:    http://localhost:8088"
     echo "  Gateway:     http://localhost:4000/graphql"
     echo "  Health:      http://localhost:4000/health"
     echo "  Metrics:     http://localhost:4000/metrics"
     echo "  PostgreSQL:  localhost:15432 (postgres/postgres)"
 
     echo ""
-    print_info "To view logs: docker compose -f $COMPOSE_FILE logs -f [service-name]"
-    print_info "To stop:      docker compose -f $COMPOSE_FILE down"
-    print_info "To restart:   docker compose -f $COMPOSE_FILE restart"
+    print_info "To view logs: use the script with 'logs' or 'status' (mode-aware)"
+    print_info "To stop:      $0 stop [mode]"
+    print_info "To restart:   $0 restart [mode]"
 }
 
 stop_system() {
     print_header "Stopping ERP System Production"
 
     print_info "Stopping all services..."
-    docker compose -f "$COMPOSE_FILE" down
+    dc down
 
     print_status "All services stopped"
 }
@@ -292,10 +357,10 @@ cleanup() {
     print_header "Cleanup"
 
     print_info "Removing containers and volumes..."
-    docker compose -f "$COMPOSE_FILE" down -v
+    dc down -v
 
     print_info "Removing built images..."
-    docker compose -f "$COMPOSE_FILE" down --rmi local
+    dc down --rmi local
 
     print_status "Cleanup completed"
 }
@@ -305,7 +370,15 @@ cleanup() {
 # ============================================================================
 
 main() {
-    case "${1:-start}" in
+    local cmd="${1:-start}"
+    # Allow optional mode argument as second param or environment variable MODE
+    if [ -n "$2" ]; then
+        MODE="$2"
+    else
+        MODE="${MODE:-local}"
+    fi
+
+    case "$cmd" in
         start)
             print_header "🚀 Starting ERP System - Production Simulation"
             echo "This will build and run the ERP system in production mode locally."
@@ -339,15 +412,15 @@ main() {
 
         logs)
             if [ -n "$2" ]; then
-                docker compose -f "$COMPOSE_FILE" logs -f "$2"
+                dc logs -f "$2"
             else
-                docker compose -f "$COMPOSE_FILE" logs -f
+                dc logs -f
             fi
             ;;
 
         restart)
             print_info "Restarting production system..."
-            docker compose -f "$COMPOSE_FILE" restart
+            dc restart
             sleep 10
             verify_deployment
             show_status
