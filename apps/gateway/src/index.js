@@ -8,6 +8,10 @@ import { ApolloGateway, IntrospectAndCompose, RemoteGraphQLDataSource } from '@a
 import { expressMiddleware } from '@apollo/server/express4';
 import { collectDefaultMetrics, Registry, Counter, Histogram } from 'prom-client';
 
+console.log('===== GATEWAY STARTING =====');
+console.log('SHOP_SERVICE_URL:', process.env.SHOP_SERVICE_URL);
+console.log('ORDERS_SERVICE_URL:', process.env.ORDERS_SERVICE_URL);
+
 // Enable debug logging
 process.env.DEBUG = 'apollo:gateway';
 
@@ -52,15 +56,22 @@ class AuthenticatedDataSource extends RemoteGraphQLDataSource {
 }
 
 // Define subgraph services
-const subgraphs = [
-  { name: 'user-service', url: process.env.USER_SERVICE_URL || 'http://user-service:5000/graphql' },
-  { name: 'company-service', url: process.env.COMPANY_SERVICE_URL || 'http://company-service:8080/graphql' },
-  { name: 'masterdata-service', url: process.env.MASTERDATA_SERVICE_URL || 'http://masterdata-service:5002/graphql' },
-  { name: 'accounting-service', url: process.env.ACCOUNTING_SERVICE_URL || 'http://accounting-service:5001/graphql' },
-  { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL || 'http://translation-service:8081/graphql' },
-  { name: 'shop-service', url: process.env.SHOP_SERVICE_URL || 'http://shop-service:5003/graphql' },
-  { name: 'orders-service', url: process.env.ORDERS_SERVICE_URL || 'http://orders-service:5004/graphql' },
+const allSubgraphs = [
+  { name: 'user-service', url: process.env.USER_SERVICE_URL !== undefined ? process.env.USER_SERVICE_URL : 'http://user-service:5000/graphql' },
+  { name: 'company-service', url: process.env.COMPANY_SERVICE_URL !== undefined ? process.env.COMPANY_SERVICE_URL : 'http://company-service:8080/graphql' },
+  { name: 'masterdata-service', url: process.env.MASTERDATA_SERVICE_URL !== undefined ? process.env.MASTERDATA_SERVICE_URL : 'http://masterdata-service:5002/graphql' },
+  { name: 'accounting-service', url: process.env.ACCOUNTING_SERVICE_URL !== undefined ? process.env.ACCOUNTING_SERVICE_URL : 'http://accounting-service:5001/graphql' },
+  { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL !== undefined ? process.env.TRANSLATION_SERVICE_URL : 'http://translation-service:8081/graphql' },
+  { name: 'shop-service', url: process.env.SHOP_SERVICE_URL !== undefined ? process.env.SHOP_SERVICE_URL : 'http://shop-service:5003/graphql' },
+  { name: 'orders-service', url: process.env.ORDERS_SERVICE_URL !== undefined ? process.env.ORDERS_SERVICE_URL : 'http://orders-service:5004/graphql' },
 ];
+
+console.log('All subgraphs before filtering:', JSON.stringify(allSubgraphs, null, 2));
+
+// Filter out services with empty URLs (allows disabling services via env vars)
+const subgraphs = allSubgraphs.filter(subgraph => subgraph.url && subgraph.url.trim() !== '');
+
+console.log('Subgraphs after filtering:', JSON.stringify(subgraphs, null, 2));
 
 // Create gateway
 const gateway = new ApolloGateway({
@@ -263,11 +274,11 @@ async function startServer() {
     }
   });
 
-  app.listen(PORT, () => {
-    console.log(`🚀 Gateway ready at http://localhost:${PORT}/graphql`);
-    console.log(`🛒 Shop service proxy at http://localhost:${PORT}/shop/graphql`);
-    console.log(`📊 Metrics available at http://localhost:${PORT}/metrics`);
-    console.log(`❤️  Health check at http://localhost:${PORT}/health`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Gateway ready at http://0.0.0.0:${PORT}/graphql`);
+    console.log(`🛒 Shop service proxy at http://0.0.0.0:${PORT}/shop/graphql`);
+    console.log(`📊 Metrics available at http://0.0.0.0:${PORT}/metrics`);
+    console.log(`❤️  Health check at http://0.0.0.0:${PORT}/health`);
   });
 }
 

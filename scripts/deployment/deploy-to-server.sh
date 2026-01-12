@@ -43,7 +43,7 @@
 #
 ################################################################################
 
-set -euo pipefail
+set -uo pipefail
 
 # Script directory for locating utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -163,7 +163,10 @@ load_config() {
     IMAGE_VERSION=$(jq -r '.image_version // empty' "$config_file" || echo "latest")
     LETSENCRYPT_EMAIL=$(jq -r '.letsencrypt_email // empty' "$config_file" || echo "")
     DB_PASSWORD=$(jq -r '.db_password // empty' "$config_file" || echo "")
+    SUDO_PASSWORD=$(jq -r '.sudo_password // empty' "$config_file" || echo "")
     
+    # Expand tilde in SSH key path
+    DEPLOY_SSH_KEY="${DEPLOY_SSH_KEY/#\~/$HOME}"
     [ -z "$DEPLOY_SSH_KEY" ] && DEPLOY_SSH_KEY="$HOME/.ssh/id_rsa"
 }
 
@@ -692,6 +695,11 @@ EOF
 # Verify deployment
 verify_deployment() {
     print_header "Verifying Deployment"
+    
+    if [ "$DRY_RUN" = true ]; then
+        print_warning "DRY RUN: Skipping deployment verification"
+        return 0
+    fi
     
     # Check HTTP to HTTPS redirect
     print_info "Checking HTTP→HTTPS redirect..."

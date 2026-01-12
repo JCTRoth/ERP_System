@@ -34,16 +34,78 @@ COMPOSE_FILE_REMOTE="$PROJECT_DIR/docker-compose.yml"
 COMPOSE_FILE_LOCAL="$PROJECT_DIR/docker-compose.prod-local.yml"
 COMPOSE_FILE_DEV="$PROJECT_DIR/docker-compose.dev.yml"
 
+# Load configuration from config.json if it exists
+CONFIG_FILE="$PROJECT_DIR/scripts/deployment/config.json"
+if [ -f "$CONFIG_FILE" ]; then
+    echo "Loading configuration from $CONFIG_FILE"
+    DEPLOY_SERVER=$(jq -r '.deploy_server // empty' "$CONFIG_FILE" 2>/dev/null || echo "")
+    DEPLOY_DOMAIN=$(jq -r '.deploy_domain // empty' "$CONFIG_FILE" 2>/dev/null || echo "")
+    DEPLOY_USERNAME=$(jq -r '.deploy_username // empty' "$CONFIG_FILE" 2>/dev/null || echo "root")
+    DEPLOY_PORT=$(jq -r '.deploy_port // empty' "$CONFIG_FILE" 2>/dev/null || echo "22")
+    DEPLOY_SSH_KEY=$(jq -r '.deploy_ssh_key // empty' "$CONFIG_FILE" 2>/dev/null || echo "")
+    REGISTRY_URL=$(jq -r '.registry_url // empty' "$CONFIG_FILE" 2>/dev/null || echo "ghcr.io")
+    REGISTRY_USERNAME=$(jq -r '.registry_username // empty' "$CONFIG_FILE" 2>/dev/null || echo "")
+    REGISTRY_TOKEN=$(jq -r '.registry_token // empty' "$CONFIG_FILE" 2>/dev/null || echo "")
+    IMAGE_VERSION=$(jq -r '.image_version // empty' "$CONFIG_FILE" 2>/dev/null || echo "latest")
+    LETSENCRYPT_EMAIL=$(jq -r '.letsencrypt_email // empty' "$CONFIG_FILE" 2>/dev/null || echo "")
+    DB_PASSWORD=$(jq -r '.db_password // empty' "$CONFIG_FILE" 2>/dev/null || echo "")
+    SUDO_PASSWORD=$(jq -r '.sudo_password // empty' "$CONFIG_FILE" 2>/dev/null || echo "")
+    
+    # Expand tilde in SSH key path
+    DEPLOY_SSH_KEY="${DEPLOY_SSH_KEY/#\~/$HOME}"
+    [ -z "$DEPLOY_SSH_KEY" ] && DEPLOY_SSH_KEY="$HOME/.ssh/id_rsa"
+fi
+
 # Mode: remote (use published images) or local (build from source)
 MODE="local"
+
+# Deployment target: local or remote
+TARGET="local"
 
 # Helper to run docker compose with selected mode
 dc() {
     # Usage: dc [docker-compose-args...]
-    if [ "$MODE" = "local" ]; then
-        docker compose -f "$COMPOSE_FILE_REMOTE" -f "$COMPOSE_FILE_LOCAL" "$@"
+    if [ "$TARGET" = "remote" ]; then
+        # For remote deployment, execute on server
+        local cmd="cd /opt/erp-system && docker compose --env-file .env"
+        if [ "$MODE" = "local" ]; then
+            cmd="$cmd -f docker-compose.yml -f docker-compose.prod-local.yml"
+        else
+            cmd="$cmd -f docker-compose.yml"
+        fi
+        cmd="$cmd $@"
+        ssh_exec "$cmd"
     else
-        docker compose -f "$COMPOSE_FILE_REMOTE" "$@"
+        # Local execution
+        if [ "$MODE" = "local" ]; then
+            docker compose -f "$COMPOSE_FILE_REMOTE" -f "$COMPOSE_FILE_LOCAL" "$@"
+        else
+            docker compose -f "$COMPOSE_FILE_REMOTE" "$@"
+        fi
+    fi
+}
+
+# SSH execution helper for remote deployment
+ssh_exec() {
+    local command=$1
+    
+    if [ "$TARGET" = "remote" ]; then
+        ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" -o StrictHostKeyChecking=accept-new \
+            "$DEPLOY_USERNAME@$DEPLOY_SERVER" "$command"
+    else
+        eval "$command"
+    fi
+}
+
+# SCP helper for remote deployment
+scp_to_server() {
+    local source=$1
+    local dest=$2
+    
+    if [ "$TARGET" = "remote" ]; then
+        scp -i "$DEPLOY_SSH_KEY" -P "$DEPLOY_PORT" "$source" "$DEPLOY_USERNAME@$DEPLOY_SERVER:$dest"
+    else
+        cp "$source" "$dest"
     fi
 }
 
@@ -284,17 +346,17 @@ verify_deployment() {
     # Check container health
     print_info "Checking container status..."
     local unhealthy_count
-    unhealthy_count=$(dc ps --format "table {{.Name}}\t{{.Status}}" | grep -c "unhealthy\|exited")
+    unhealthy_count=$(dc ps | grep -c "unhealthy\|exited")
 
     if [ "$unhealthy_count" -gt 0 ]; then
         print_warning "Some containers are unhealthy or exited:"
-        dc ps --format "table {{.Name}}\t{{.Status}}" | grep -E "(unhealthy|exited)"
+        dc ps | grep -E "(unhealthy|exited)"
     else
         print_status "All containers are healthy"
     fi
 
     # Verify MinIO is running and healthy (required)
-    if dc ps --format "table {{.Name}}\t{{.Status}}" | grep -q "erp-minio.*Up.*(healthy)"; then
+    if dc ps | grep -q "erp-minio.*Up.*(healthy)"; then
         print_status "MinIO is running and healthy (file storage available)"
     else
         print_error "MinIO is not healthy or not running. File storage is required for production simulation."
@@ -304,19 +366,156 @@ verify_deployment() {
 
     # Test gateway health
     print_info "Testing gateway health..."
-    if curl -f -s http://localhost:4000/health >/dev/null 2>&1; then
-        print_status "Gateway health check passed"
+    if [ "$TARGET" = "remote" ]; then
+        # Test remote gateway
+        if ssh_exec "curl -f -s http://localhost:4000/health >/dev/null 2>&1"; then
+            print_status "Gateway health check passed"
+        else
+            print_warning "Gateway health check failed - it may still be initializing"
+        fi
     else
-        print_warning "Gateway health check failed - it may still be initializing"
+        # Test local gateway
+        if curl -f -s http://localhost:4000/health >/dev/null 2>&1; then
+            print_status "Gateway health check passed"
+        else
+            print_warning "Gateway health check failed - it may still be initializing"
+        fi
     fi
 
     # Test frontend
     print_info "Testing frontend availability..."
-    if curl -f -s http://localhost:8088 >/dev/null 2>&1; then
-        print_status "Frontend is accessible"
+    if [ "$TARGET" = "remote" ]; then
+        # Test remote frontend
+        if ssh_exec "curl -f -s http://localhost:5173 >/dev/null 2>&1"; then
+            print_status "Frontend is accessible"
+        else
+            print_warning "Frontend is not yet accessible"
+        fi
     else
-        print_warning "Frontend is not yet accessible"
+        # Test local frontend
+        if curl -f -s http://localhost:5173 >/dev/null 2>&1; then
+            print_status "Frontend is accessible"
+        else
+            print_warning "Frontend is not yet accessible"
+        fi
     fi
+}
+
+# ============================================================================
+# REMOTE DEPLOYMENT FUNCTIONS
+# ============================================================================
+
+remote_preflight_checks() {
+    print_header "PHASE 1: Remote Pre-flight Checks"
+
+    # Check required configuration
+    if [ -z "$DEPLOY_SERVER" ] || [ -z "$DEPLOY_USERNAME" ] || [ -z "$DB_PASSWORD" ]; then
+        print_error "Missing required configuration. Please check config.json"
+        print_info "Required: deploy_server, deploy_username, db_password"
+        exit 1
+    fi
+    print_status "Configuration loaded"
+
+    # Check SSH connectivity
+    print_info "Testing SSH connection to $DEPLOY_SERVER..."
+    if ! ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_PORT" -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new \
+        "$DEPLOY_USERNAME@$DEPLOY_SERVER" "echo 'SSH connection successful'" >/dev/null 2>&1; then
+        print_error "Cannot connect to $DEPLOY_SERVER via SSH"
+        exit 1
+    fi
+    print_status "SSH connection successful"
+
+    # Check Docker on remote server
+    print_info "Checking Docker on remote server..."
+    if ! ssh_exec "docker info >/dev/null 2>&1"; then
+        print_error "Docker is not running on remote server"
+        exit 1
+    fi
+    print_status "Docker is available on remote server"
+}
+
+prepare_remote_deployment() {
+    print_header "PHASE 2: Preparing Remote Deployment"
+
+    # Create remote directories
+    print_info "Creating remote directories..."
+    ssh_exec "mkdir -p /opt/erp-system /opt/erp-system/nginx/conf.d /var/www/certbot"
+    
+    # Configure firewall
+    print_info "Configuring firewall..."
+    ssh_exec "echo '$SUDO_PASSWORD' | sudo -S ufw status | head -5 || echo 'UFW not active'"
+    ssh_exec "echo '$SUDO_PASSWORD' | sudo -S ufw allow 8088/tcp comment 'ERP Frontend' || echo 'Failed to allow 8088'"
+    ssh_exec "echo '$SUDO_PASSWORD' | sudo -S ufw allow 4000/tcp comment 'ERP Gateway' || echo 'Failed to allow 4000'"
+    ssh_exec "echo '$SUDO_PASSWORD' | sudo -S ufw allow 9000/tcp comment 'MinIO' || echo 'Failed to allow 9000'"
+    ssh_exec "echo '$SUDO_PASSWORD' | sudo -S ufw reload || echo 'Failed to reload UFW'"
+    
+    # Create .env file on remote server
+    print_info "Creating environment configuration..."
+    local env_file="/tmp/.env.production"
+    cat > "$env_file" << EOF
+DB_PASSWORD=$DB_PASSWORD
+REGISTRY_URL=$REGISTRY_URL
+REGISTRY_USERNAME=$REGISTRY_USERNAME
+IMAGE_VERSION=$IMAGE_VERSION
+DEPLOY_DOMAIN=$DEPLOY_DOMAIN
+EOF
+    scp_to_server "$env_file" "/opt/erp-system/.env"
+    rm -f "$env_file"
+    
+    # Copy docker-compose files
+    print_info "Copying docker-compose files..."
+    scp_to_server "$COMPOSE_FILE_REMOTE" "/opt/erp-system/docker-compose.yml"
+    if [ "$MODE" = "local" ]; then
+        scp_to_server "$COMPOSE_FILE_LOCAL" "/opt/erp-system/docker-compose.prod-local.yml"
+    fi
+    
+    # Copy nginx configuration
+    print_info "Copying nginx configuration..."
+    scp_to_server "$PROJECT_DIR/infrastructure/nginx/nginx.conf" "/opt/erp-system/nginx/"
+    scp_to_server "$PROJECT_DIR/infrastructure/nginx/conf.d/default.conf" "/opt/erp-system/nginx/conf.d/"
+    
+    # Login to registry on remote server
+    if [ "$MODE" = "remote" ] && [ -n "$REGISTRY_TOKEN" ]; then
+        print_info "Authenticating with container registry..."
+        ssh_exec "echo '$REGISTRY_TOKEN' | docker login $REGISTRY_URL -u $REGISTRY_USERNAME --password-stdin"
+    fi
+}
+
+deploy_to_remote() {
+    print_header "PHASE 3: Deploying to Remote Server"
+
+    # Pull images if using remote mode
+    if [ "$MODE" = "remote" ]; then
+        print_info "Pulling container images..."
+        dc pull
+        # Force pull gateway image to ensure latest version
+        dc pull gateway
+    fi
+
+    # Start services
+    print_info "Starting services..."
+    dc up -d postgres
+    
+    # Wait for postgres
+    print_info "Waiting for PostgreSQL..."
+    local max_attempts=30
+    local attempt=1
+    while [ $attempt -le $max_attempts ]; do
+        if ssh_exec "docker exec erp-postgres pg_isready -U postgres >/dev/null 2>&1"; then
+            print_status "PostgreSQL is ready"
+            break
+        fi
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+    
+    if [ $attempt -gt $max_attempts ]; then
+        print_error "PostgreSQL failed to start"
+        exit 1
+    fi
+    
+    # Start all other services
+    dc up -d
 }
 
 # ============================================================================
@@ -324,24 +523,37 @@ verify_deployment() {
 # ============================================================================
 
 show_status() {
-    print_header "ERP System Production Status"
+    print_header "ERP System $([ "$TARGET" = "remote" ] && echo "Remote" || echo "Local") Production Status"
 
     echo ""
     print_info "Running containers:"
-    dc ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+    dc ps
 
     echo ""
     print_info "Access URLs:"
-    echo "  Frontend:    http://localhost:8088"
-    echo "  Gateway:     http://localhost:4000/graphql"
-    echo "  Health:      http://localhost:4000/health"
-    echo "  Metrics:     http://localhost:4000/metrics"
-    echo "  PostgreSQL:  localhost:15432 (postgres/postgres)"
+    if [ "$TARGET" = "remote" ]; then
+        echo "  Frontend:    https://$DEPLOY_DOMAIN"
+        echo "  Gateway:     https://$DEPLOY_DOMAIN/graphql"
+        echo "  Health:      https://$DEPLOY_DOMAIN/health"
+        echo "  Server:      $DEPLOY_SERVER"
+    else
+        echo "  Frontend:    http://localhost:5173"
+        echo "  Gateway:     http://localhost:4000/graphql"
+        echo "  Health:      http://localhost:4000/health"
+        echo "  Metrics:     http://localhost:4000/metrics"
+        echo "  PostgreSQL:  localhost:15432 (postgres/postgres)"
+    fi
 
     echo ""
-    print_info "To view logs: use the script with 'logs' or 'status' (mode-aware)"
-    print_info "To stop:      $0 stop [mode]"
-    print_info "To restart:   $0 restart [mode]"
+    if [ "$TARGET" = "remote" ]; then
+        print_info "To view logs: ssh $DEPLOY_USERNAME@$DEPLOY_SERVER 'cd /opt/erp-system && docker compose logs -f'"
+        print_info "To stop:      ssh $DEPLOY_USERNAME@$DEPLOY_SERVER 'cd /opt/erp-system && docker compose down'"
+        print_info "To restart:   $0 restart remote"
+    else
+        print_info "To view logs: use the script with 'logs' or 'status' (mode-aware)"
+        print_info "To stop:      $0 stop [mode]"
+        print_info "To restart:   $0 restart [mode]"
+    fi
 }
 
 stop_system() {
@@ -371,30 +583,48 @@ cleanup() {
 
 main() {
     local cmd="${1:-start}"
-    # Allow optional mode argument as second param or environment variable MODE
-    if [ -n "$2" ]; then
-        MODE="$2"
-    else
-        MODE="${MODE:-local}"
+    # Parse arguments: cmd target mode
+    TARGET="${2:-local}"
+    MODE="${3:-local}"
+    
+    # For remote target, default to remote mode (GitHub images)
+    if [ "$TARGET" = "remote" ]; then
+        MODE="${MODE:-remote}"
     fi
+    echo "DEBUG: cmd=$cmd, TARGET=$TARGET, MODE=$MODE"
 
     case "$cmd" in
         start)
-            print_header "🚀 Starting ERP System - Production Simulation"
-            echo "This will build and run the ERP system in production mode locally."
-            echo "Estimated time: 5-10 minutes"
-            echo ""
+            if [ "$TARGET" = "remote" ]; then
+                print_header "🚀 Deploying ERP System to Remote Server"
+                echo "Server: $DEPLOY_SERVER"
+                echo "Domain: $DEPLOY_DOMAIN"
+                echo "Mode: $MODE (using $([ "$MODE" = "remote" ] && echo "GitHub images" || echo "local builds"))"
+                echo "Estimated time: 10-15 minutes"
+                echo ""
+                
+                remote_preflight_checks
+                prepare_remote_deployment
+                build_images
+                deploy_to_remote
+                verify_deployment
+            else
+                print_header "🚀 Starting ERP System - Production Simulation"
+                echo "This will build and run the ERP system in production mode locally."
+                echo "Estimated time: 5-10 minutes"
+                echo ""
 
-            preflight_checks
-            build_images
-            network_checks
-            start_infrastructure
-            start_services
-            start_frontend
-            start_gateway
-            verify_deployment
+                preflight_checks
+                build_images
+                network_checks
+                start_infrastructure
+                start_services
+                start_frontend
+                start_gateway
+                verify_deployment
+            fi
 
-            print_header "🎉 Production Simulation Started Successfully!"
+            print_header "🎉 $([ "$TARGET" = "remote" ] && echo "Deployment" || echo "Production Simulation") Started Successfully!"
             show_status
             ;;
 
@@ -427,18 +657,28 @@ main() {
             ;;
 
         *)
-            echo "Usage: $0 [command]"
+            echo "Usage: $0 [command] [target] [mode]"
             echo ""
             echo "Commands:"
-            echo "  start    - Start the production simulation (default)"
+            echo "  start    - Start the production system (default)"
             echo "  stop     - Stop all services"
             echo "  status   - Show current status"
             echo "  restart  - Restart all services"
             echo "  logs     - Show logs (optionally specify service name)"
             echo "  cleanup  - Stop services and remove containers/volumes/images"
             echo ""
+            echo "Targets:"
+            echo "  local    - Run locally on this machine (default)"
+            echo "  remote   - Deploy to remote server using config.json"
+            echo ""
+            echo "Modes:"
+            echo "  local    - Build images from source (default)"
+            echo "  remote   - Use published images from GitHub Container Registry"
+            echo ""
             echo "Examples:"
-            echo "  $0 start"
+            echo "  $0 start                           # Local production simulation with local builds"
+            echo "  $0 start remote remote             # Deploy to remote server using GitHub images"
+            echo "  $0 start local remote              # Local deployment using GitHub images"
             echo "  $0 logs gateway"
             echo "  $0 stop"
             exit 1

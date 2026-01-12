@@ -48,6 +48,7 @@ builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 
 // MinIO S3 client
 builder.Services.AddMinio(configureClient => configureClient
@@ -172,6 +173,7 @@ if (true)
     {
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ShopDbContext>();
+        var seedService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
         
         // Get applied migrations
         var appliedMigrations = db.Database.GetAppliedMigrations();
@@ -184,6 +186,10 @@ if (true)
         app.Logger.LogInformation("Applying migrations...");
         db.Database.EnsureCreated();
         app.Logger.LogInformation("Database tables created successfully");
+        
+        // Seed data if empty
+        app.Logger.LogInformation("Seeding database...");
+        await seedService.SeedAsync();
     }
     catch (Exception ex)
     {

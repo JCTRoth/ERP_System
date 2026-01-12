@@ -26,9 +26,13 @@ public class Mutation
     }
 
     public async Task<Product?> UpdateProduct(
+        Guid id,
         [Service] IProductService productService,
         UpdateProductInput input)
-        => await productService.UpdateAsync(input);
+    {
+        var inputWithId = input with { Id = id };
+        return await productService.UpdateAsync(inputWithId);
+    }
 
     public async Task<bool> DeleteProduct(
         [Service] IProductService productService,

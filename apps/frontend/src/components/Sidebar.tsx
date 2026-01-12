@@ -20,8 +20,6 @@ import CustomPagesSection from './CustomPagesSection';
 
 const menuItems = [
   { path: '/', icon: HomeIcon, labelKey: 'nav.dashboard', tooltipKey: 'nav.dashboardTooltip' },
-  { path: '/companies', icon: BuildingOfficeIcon, labelKey: 'nav.companies', tooltipKey: 'nav.companiesTooltip' },
-  { path: '/users', icon: UsersIcon, labelKey: 'nav.users', tooltipKey: 'nav.usersTooltip' },
   { path: '/products', icon: CubeIcon, labelKey: 'nav.products', tooltipKey: 'nav.productsTooltip' },
   { path: '/orders', icon: ShoppingCartIcon, labelKey: 'nav.orders', tooltipKey: 'nav.ordersTooltip' },
   { path: '/accounting', icon: CalculatorIcon, labelKey: 'nav.accounting', tooltipKey: 'nav.accountingTooltip' },
@@ -29,6 +27,8 @@ const menuItems = [
   { path: '/templates', icon: DocumentTextIcon, labelKey: 'nav.templates', tooltipKey: 'nav.templatesTooltip' },
   { path: '/translations', icon: LanguageIcon, labelKey: 'nav.translations', tooltipKey: 'nav.translationsTooltip' },
   { path: '/ui-builder', icon: RectangleStackIcon, labelKey: 'nav.uiBuilder', tooltipKey: 'nav.uiBuilderTooltip' },
+  { path: '/companies', icon: BuildingOfficeIcon, labelKey: 'nav.companies', tooltipKey: 'nav.companiesTooltip' },
+  { path: '/users', icon: UsersIcon, labelKey: 'nav.users', tooltipKey: 'nav.usersTooltip' },
   { path: '/settings', icon: Cog6ToothIcon, labelKey: 'nav.settings', tooltipKey: 'nav.settingsTooltip' },
 ];
 

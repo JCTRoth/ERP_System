@@ -1,45 +1,51 @@
 -- V2__Seed_email_templates.sql
--- Default email templates for all supported languages (EN, DE, FR, RU)
+-- MediVita email templates for all supported languages (EN, DE, FR, RU)
 
 -- Welcome Email Templates
 INSERT INTO email_templates (name, subject, body_html, body_text, language, description) VALUES
-('welcome', 'Welcome to ERP System', 
+('welcome', 'Welcome to MediVita - Crafting Health for Life', 
 '<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-<h1 style="color: #3b82f6;">Welcome to ERP System!</h1>
+<h1 style="color: #2563eb;">Welcome to MediVita!</h1>
 <p>Hello <span th:text="${firstName}">User</span>,</p>
-<p>Your account has been successfully created. You can now log in and start using the system.</p>
-<p>Best regards,<br>The ERP Team</p>
+<p>Your account has been successfully created. At MediVita, we specialize in innovative pharmaceuticals, blending advanced science with a passion for well-being.</p>
+<p>Our mission: to deliver trusted, effective solutions for a healthier world.</p>
+<p>Best regards,<br>The MediVita Team</p>
 </body>
 </html>',
-'Welcome to ERP System!
+'Welcome to MediVita - Crafting Health for Life
 
 Hello ${firstName},
 
-Your account has been successfully created. You can now log in and start using the system.
+Your account has been successfully created. At MediVita, we specialize in innovative pharmaceuticals, blending advanced science with a passion for well-being.
+
+Our mission: to deliver trusted, effective solutions for a healthier world.
 
 Best regards,
-The ERP Team', 'en', 'Welcome email for new users'),
+The MediVita Team', 'en', 'Welcome email for new MediVita users'),
 
-('welcome', 'Willkommen bei ERP System',
+('welcome', 'Willkommen bei MediVita - Gesundheit fürs Leben',
 '<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-<h1 style="color: #3b82f6;">Willkommen bei ERP System!</h1>
+<h1 style="color: #2563eb;">Willkommen bei MediVita!</h1>
 <p>Hallo <span th:text="${firstName}">Benutzer</span>,</p>
-<p>Ihr Konto wurde erfolgreich erstellt. Sie können sich jetzt anmelden und das System nutzen.</p>
-<p>Mit freundlichen Grüßen,<br>Das ERP-Team</p>
+<p>Ihr Konto wurde erfolgreich erstellt. Bei MediVita spezialisieren wir uns auf innovative Pharmazeutika und verbinden fortschrittliche Wissenschaft mit Leidenschaft für das Wohlbefinden.</p>
+<p>Unsere Mission: vertrauenswürdige, effektive Lösungen für eine gesündere Welt zu liefern.</p>
+<p>Mit freundlichen Grüßen,<br>Das MediVita-Team</p>
 </body>
 </html>',
-'Willkommen bei ERP System!
+'Willkommen bei MediVita - Gesundheit fürs Leben
 
 Hallo ${firstName},
 
-Ihr Konto wurde erfolgreich erstellt. Sie können sich jetzt anmelden und das System nutzen.
+Ihr Konto wurde erfolgreich erstellt. Bei MediVita spezialisieren wir uns auf innovative Pharmazeutika und verbinden fortschrittliche Wissenschaft mit Leidenschaft für das Wohlbefinden.
+
+Unsere Mission: vertrauenswürdige, effektive Lösungen für eine gesündere Welt zu liefern.
 
 Mit freundlichen Grüßen,
-Das ERP-Team', 'de', 'Willkommens-E-Mail für neue Benutzer'),
+Das MediVita-Team', 'de', 'Willkommens-E-Mail für neue MediVita-Benutzer'),
 
 ('welcome', 'Bienvenue sur ERP System',
 '<!DOCTYPE html>
@@ -159,24 +165,28 @@ ${resetUrl}
 
 -- Order Confirmation Templates
 INSERT INTO email_templates (name, subject, body_html, body_text, language, description) VALUES
-('order-confirmation', 'Order Confirmation #[[${orderId}]]',
+('order-confirmation', 'MediVita Order Confirmation #[[${orderId}]]',
 '<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-<h1 style="color: #3b82f6;">Order Confirmation</h1>
+<h1 style="color: #2563eb;">MediVita Order Confirmation</h1>
 <p>Thank you for your order!</p>
 <p>Order ID: <strong th:text="${orderId}">123</strong></p>
 <p>Total: <strong th:text="${orderTotal}">$0.00</strong></p>
-<p>We will notify you when your order ships.</p>
+<p>At MediVita, we craft health for life. We will notify you when your order ships.</p>
+<p>Crafting Health for Life,<br>The MediVita Team</p>
 </body>
 </html>',
-'Order Confirmation
+'MediVita Order Confirmation
 
 Thank you for your order!
 Order ID: ${orderId}
 Total: ${orderTotal}
 
-We will notify you when your order ships.', 'en', 'Order confirmation email'),
+At MediVita, we craft health for life. We will notify you when your order ships.
+
+Crafting Health for Life,
+The MediVita Team', 'en', 'MediVita order confirmation email'),
 
 ('order-confirmation', 'Bestellbestätigung #[[${orderId}]]',
 '<!DOCTYPE html>

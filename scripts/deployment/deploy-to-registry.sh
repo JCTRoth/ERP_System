@@ -48,7 +48,7 @@ DRY_RUN=false
 PARALLEL_BUILDS=2
 CONFIG_FILE=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")/.."
 
 # Services to build (name:dockerfile_path)
 declare -a SERVICES=(

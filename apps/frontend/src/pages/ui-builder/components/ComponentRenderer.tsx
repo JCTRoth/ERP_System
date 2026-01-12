@@ -51,9 +51,9 @@ export default function ComponentRenderer({ component }: ComponentRendererProps)
           {inputLabel && <label className="label mb-1">{inputLabel}</label>}
           <input
             type={(props.type as string) || 'text'}
-            placeholder={props.placeholder as string}
+            placeholder={(props.placeholder as string) || ''}
             className="input"
-            disabled
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
       );
@@ -63,7 +63,7 @@ export default function ComponentRenderer({ component }: ComponentRendererProps)
       return (
         <div>
           {selectLabel && <label className="label mb-1">{selectLabel}</label>}
-          <select className="input" disabled>
+          <select className="input" onClick={(e) => e.stopPropagation()}>
             {((props.options as string[]) || []).map((option, i) => (
               <option key={i}>{option}</option>
             ))}
@@ -75,7 +75,7 @@ export default function ComponentRenderer({ component }: ComponentRendererProps)
       const checkboxLabel = typeof props.label === 'string' ? props.label : undefined;
       return (
         <div className="flex items-center gap-2">
-          <input type="checkbox" disabled className="h-4 w-4" />
+          <input type="checkbox" className="h-4 w-4" onClick={(e) => e.stopPropagation()} />
           {checkboxLabel && <label className="text-sm">{checkboxLabel}</label>}
         </div>
       );

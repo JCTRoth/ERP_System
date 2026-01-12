@@ -1,5 +1,5 @@
 -- V2__Seed_demo_company.sql
--- Seed Demo_Corporation
+-- Seed MediVita - Crafting Health for Life
 
 INSERT INTO companies (name, slug, is_demo, settings_json)
-VALUES ('Demo_Corporation', 'demo-corporation', true, '{"theme": "default", "timezone": "UTC"}')
+VALUES ('MediVita', 'medivita', true, '{"theme": "healthcare", "tagline": "Crafting Health for Life", "industry": "pharmaceutical", "description": "Innovative pharmaceuticals blending advanced science with a passion for well-being. Our mission: to deliver trusted, effective solutions for a healthier world.", "timezone": "UTC"}')
