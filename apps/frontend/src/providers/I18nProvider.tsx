@@ -63,11 +63,17 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, [language]);
 
-  const { data, loading } = useQuery(GET_TRANSLATIONS, {
+  const { data, loading, error } = useQuery(GET_TRANSLATIONS, {
     variables: { language, companyId: currentCompanyId },
     skip: !language,
-    errorPolicy: 'ignore',
+    errorPolicy: 'all',
   });
+
+  // If the translations subgraph/schema is missing, don't treat it as fatal
+  if (error && error.graphQLErrors?.some(e => e.extensions?.code === 'GRAPHQL_VALIDATION_FAILED')) {
+    // silently ignore validation errors for translations (service not composed)
+    // rely on localTranslations as fallback already loaded above
+  }
 
   // Merge service translations on top of local translations (service overrides local)
   useEffect(() => {

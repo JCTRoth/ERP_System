@@ -131,5 +131,6 @@ public enum PaymentMethod
     Check,
     PayPal,
     DirectDebit,
+    Invoice,
     Other
 }

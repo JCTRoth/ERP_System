@@ -75,7 +75,7 @@ public class NotificationDataFetcher {
                 (String) input.get("toName"),
                 (String) input.get("subject"),
                 (String) input.get("templateName"),
-                (Map<String, Object>) input.get("templateData"),
+                input.get("templateData") instanceof Map<?, ?> ? (Map<String, Object>) input.get("templateData") : new java.util.HashMap<>(),
                 (String) input.get("bodyHtml"),
                 (String) input.get("bodyText"),
                 (String) input.get("language")

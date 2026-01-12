@@ -71,6 +71,7 @@ public record OrderDto(
     DateTime CreatedAt
 );
 
+[GraphQLName("ShopCreateOrderInput")]
 public record CreateOrderInput(
     Guid CustomerId,
     List<CreateOrderItemInput> Items,
@@ -91,12 +92,14 @@ public record CreateOrderInput(
     string? CouponCode
 );
 
+[GraphQLName("ShopCreateOrderItemInput")]
 public record CreateOrderItemInput(
     Guid ProductId,
     Guid? VariantId,
     int Quantity
 );
 
+[GraphQLName("ShopUpdateOrderStatusInput")]
 public record UpdateOrderStatusInput(
     Guid OrderId,
     string Status,

@@ -6,11 +6,13 @@ namespace ShopService.GraphQL;
 public class Subscription
 {
     [Subscribe]
-    [Topic]
-    public Order OnOrderCreated([EventMessage] Order order) => order;
+    [Topic(nameof(OnShopOrderCreated))]
+    [GraphQLName("onShopOrderCreated")]
+    public Order OnShopOrderCreated([EventMessage] Order order) => order;
 
     [Subscribe]
     [Topic]
+    [GraphQLName("onShopOrderStatusChanged")]
     public Order OnOrderStatusChanged([EventMessage] Order order) => order;
 
     [Subscribe]

@@ -37,7 +37,9 @@ export default function TranslationsPage() {
   const [filterNamespace, setFilterNamespace] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { data, loading, refetch } = useQuery(GET_TRANSLATION_KEYS);
+  const { data, loading, error, refetch } = useQuery(GET_TRANSLATION_KEYS, {
+    errorPolicy: 'all',
+  });
 
   const handleEdit = (translationKey: TranslationKey) => {
     setEditingKey(translationKey);
@@ -150,6 +152,13 @@ export default function TranslationsPage() {
                   </td>
                 </tr>
               ) : filteredKeys.length === 0 ? (
+                error && error.graphQLErrors?.some(e => e.extensions?.code === 'GRAPHQL_VALIDATION_FAILED') ? (
+                  <tr>
+                    <td colSpan={3 + SUPPORTED_LANGUAGES.length} className="px-6 py-4 text-center text-yellow-600">
+                      {t('translations.validationErrorNotice') || 'Translations service schema is not available yet.'}
+                    </td>
+                  </tr>
+                ) : 
                 <tr>
                   <td colSpan={3 + SUPPORTED_LANGUAGES.length} className="px-6 py-4 text-center text-gray-500">
                     {t('translations.noTranslations')}

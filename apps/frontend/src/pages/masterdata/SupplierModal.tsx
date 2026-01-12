@@ -178,8 +178,10 @@ export default function SupplierModal({ supplier, onClose, onSuccess }: Supplier
                 type="text"
                 required
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="input mt-1 w-full"
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="input mt-1 w-full"
+                  aria-disabled={createError?.message.includes('Unknown type') || updateError?.message.includes('Unknown type')}
+                  data-not-accessible={createError?.message.includes('Unknown type') || updateError?.message.includes('Unknown type')}
                 placeholder={t('masterdata.supplierNamePlaceholder') || 'Enter supplier name'}
               />
             </div>
@@ -192,8 +194,10 @@ export default function SupplierModal({ supplier, onClose, onSuccess }: Supplier
               <input
                 type="text"
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="input mt-1 w-full"
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  className="input mt-1 w-full"
+                  aria-disabled={createError?.message.includes('Unknown type') || updateError?.message.includes('Unknown type')}
+                  data-not-accessible={createError?.message.includes('Unknown type') || updateError?.message.includes('Unknown type')}
                 placeholder="SUP-001"
               />
             </div>

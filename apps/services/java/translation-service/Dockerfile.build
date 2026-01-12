@@ -1,0 +1,16 @@
+# Build stage
+FROM eclipse-temurin:21-jdk-alpine AS build
+WORKDIR /app
+COPY . .
+RUN apk add --no-cache wget unzip && \
+    wget https://services.gradle.org/distributions/gradle-8.9-bin.zip && \
+    unzip gradle-8.9-bin.zip && \
+    rm gradle-8.9-bin.zip && \
+    ./gradle-8.9/bin/gradle clean build -x test
+
+# Runtime stage
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY --from=build /app/build/libs/*.jar app.jar
+EXPOSE 8081
+ENTRYPOINT ["java", "-jar", "app.jar"]

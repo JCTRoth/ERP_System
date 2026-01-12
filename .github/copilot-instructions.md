@@ -1,5 +1,9 @@
 # GitHub Copilot Instructions for ERP System
 
+- Only mix Ghic.io container and local conatiner builds if you really know what you are doing.
+- SQL Changes that fix problems must be accompanied extention of the code and by a test that reproduces the problem.
+- Always test your changes by using wget/curl against the local running services.
+
 ## Project Overview
 This is a modern, full-stack Enterprise Resource Planning (ERP) system built with microservices architecture. The system manages business operations including user management, accounting, inventory, orders, and document generation.
 
@@ -81,5 +85,3 @@ This is a modern, full-stack Enterprise Resource Planning (ERP) system built wit
 - **Communication**: GraphQL Federation, REST
 - **Documentation**: AsciiDoc, PDF generation</content>
 <parameter name="filePath">/home/jonas/Git/ERP_System/.github/copilot-instructions.md
-
-- Only mix Ghic.io container and local conatiner builds if you really know what you are doing.

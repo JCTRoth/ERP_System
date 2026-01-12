@@ -1,4 +1,6 @@
 using HotChocolate.Types;
+using HotChocolate.ApolloFederation;
+using HotChocolate.ApolloFederation.Types;
 using Microsoft.EntityFrameworkCore;
 using ShopService.Data;
 using ShopService.Models;
@@ -113,6 +115,8 @@ public class AddressType : ObjectType<Address>
 {
     protected override void Configure(IObjectTypeDescriptor<Address> descriptor)
     {
+        // Rename to ShopAddress to avoid collision with MasterdataService Address type
+        descriptor.Name("ShopAddress");
         descriptor.Field(a => a.Name).Type<StringType>();
         descriptor.Field(a => a.Street).Type<StringType>();
         descriptor.Field(a => a.City).Type<StringType>();
@@ -136,6 +140,10 @@ public class UserType : ObjectType<User>
 {
     protected override void Configure(IObjectTypeDescriptor<User> descriptor)
     {
+        // Mark as shareable with key for Apollo Federation entity resolution
+        descriptor.Shareable();
+        descriptor.Key("id");
+        
         descriptor.Field(u => u.Id).Type<NonNullType<IdType>>();
         descriptor.Field(u => u.FirstName).Type<StringType>();
         descriptor.Field(u => u.LastName).Type<StringType>();
@@ -157,7 +165,12 @@ public class OrderItemType : ObjectType<OrderItem>
 {
     protected override void Configure(IObjectTypeDescriptor<OrderItem> descriptor)
     {
+        // Mark as shareable and define key for Apollo Federation entity resolution
+        descriptor.Shareable();
+        descriptor.Key("id");
+        
         descriptor.Field(i => i.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(i => i.OrderId).Type<NonNullType<IdType>>();  // Explicitly define as ID to match orders-service
         descriptor.Field(i => i.ProductId).Type<NonNullType<IdType>>();
         descriptor.Field(i => i.ProductName).Type<NonNullType<StringType>>();
         descriptor.Field("productSku").Type<NonNullType<StringType>>()
@@ -174,6 +187,9 @@ public class OrderItemType : ObjectType<OrderItem>
         descriptor.Field("product")
             .Type<NonNullType<ProductType>>()
             .ResolveWith<OrderItemResolvers>(r => r.GetProduct(default!, default!));
+        
+        // Ignore navigation properties 
+        descriptor.Field(i => i.Order).Ignore();
     }
 }
 
@@ -189,6 +205,9 @@ public class OrderType : ObjectType<Order>
 {
     protected override void Configure(IObjectTypeDescriptor<Order> descriptor)
     {
+        // Mark as shareable with key for Apollo Federation entity resolution
+        descriptor.Shareable();
+        descriptor.Key("id");
         
         descriptor.Field(o => o.Id).Type<NonNullType<IdType>>();
         descriptor.Field(o => o.OrderNumber).Type<NonNullType<StringType>>();
@@ -361,5 +380,31 @@ public class OrderDocumentType : ObjectType<OrderDocument>
         descriptor.Field(d => d.PdfUrl).Type<StringType>();
         descriptor.Field(d => d.GeneratedAt).Type<NonNullType<DateTimeType>>();
         descriptor.Field(d => d.TemplateKey).Type<StringType>();
+    }
+}
+
+public class SupplierType : ObjectType<Supplier>
+{
+    protected override void Configure(IObjectTypeDescriptor<Supplier> descriptor)
+    {
+        // Rename to ShopSupplier to avoid collision with MasterdataService Supplier type
+        descriptor.Name("ShopSupplier");
+        
+        descriptor.Field(s => s.Id).Type<NonNullType<IdType>>();
+        descriptor.Field(s => s.Name).Type<NonNullType<StringType>>();
+        descriptor.Field(s => s.Code).Type<StringType>();
+        descriptor.Field(s => s.ContactPerson).Type<StringType>();
+        descriptor.Field(s => s.Email).Type<StringType>();
+        descriptor.Field(s => s.Phone).Type<StringType>();
+        descriptor.Field(s => s.Address).Type<StringType>();
+        descriptor.Field(s => s.City).Type<StringType>();
+        descriptor.Field(s => s.PostalCode).Type<StringType>();
+        descriptor.Field(s => s.Country).Type<StringType>();
+        descriptor.Field(s => s.VatNumber).Type<StringType>();
+        descriptor.Field(s => s.LeadTimeDays).Type<NonNullType<IntType>>();
+        descriptor.Field(s => s.Currency).Type<NonNullType<StringType>>();
+        descriptor.Field(s => s.IsActive).Type<NonNullType<BooleanType>>();
+        descriptor.Field(s => s.CreatedAt).Type<NonNullType<DateTimeType>>();
+        descriptor.Field(s => s.UpdatedAt).Type<DateTimeType>();
     }
 }

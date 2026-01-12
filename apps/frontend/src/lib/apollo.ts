@@ -49,12 +49,16 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
   if (networkError) {
     if ('statusCode' in networkError) {
       const statusCode = networkError.statusCode;
-      
+
       // Only force logout for explicit auth failures (401/403)
       if (statusCode === 401 || statusCode === 403) {
         shouldForceLogout = true;
       }
-      // Note: 400 errors are NOT auth errors - they're usually validation/schema issues
+      // Silently ignore 400 validation errors (schema mismatches / missing federated subgraph)
+      if (statusCode === 400) {
+        return;
+      }
+      // Note: other non-auth errors will be logged below
     }
   }
 

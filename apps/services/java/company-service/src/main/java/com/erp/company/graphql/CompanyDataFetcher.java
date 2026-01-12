@@ -51,7 +51,7 @@ public class CompanyDataFetcher {
                 .name((String) input.get("name"))
                 .slug((String) input.get("slug"))
                 .description((String) input.get("description"))
-                .settingsJson((Map<String, Object>) input.get("settingsJson"))
+                .settingsJson(input.get("settingsJson") instanceof Map<?, ?> ? (Map<String, Object>) input.get("settingsJson") : new java.util.HashMap<>())
                 .isActive((Boolean) input.get("isActive"))
                 .build();
         return companyService.createCompany(request);
@@ -63,7 +63,7 @@ public class CompanyDataFetcher {
                 .name((String) input.get("name"))
                 .slug((String) input.get("slug"))
                 .description((String) input.get("description"))
-                .settingsJson((Map<String, Object>) input.get("settingsJson"))
+                .settingsJson(input.get("settingsJson") instanceof Map<?, ?> ? (Map<String, Object>) input.get("settingsJson") : new java.util.HashMap<>())
                 .isActive((Boolean) input.get("isActive"))
                 .build();
         return companyService.updateCompany(UUID.fromString(id), request);

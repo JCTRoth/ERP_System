@@ -100,6 +100,7 @@ builder.Services
     .AddType<PaymentType>()
     .AddType<AddressType>()
     .AddType<UserType>()
+    .AddType<SupplierType>()
     .AddType<AuditLogType>()
     .AddFiltering()
     .AddSorting()

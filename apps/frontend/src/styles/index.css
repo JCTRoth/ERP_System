@@ -35,6 +35,20 @@
     @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:placeholder-gray-500;
   }
 
+  /* Not-accessible visual state for disabled / readonly form controls */
+  input[disabled], select[disabled], textarea[disabled],
+  input[readonly], select[readonly], textarea[readonly] {
+    @apply border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed;
+    box-shadow: none;
+  }
+
+  /* Also target ARIA-disabled and custom data attribute for non-accessible fields */
+  input[aria-disabled="true"], select[aria-disabled="true"], textarea[aria-disabled="true"],
+  input[data-not-accessible="true"], select[data-not-accessible="true"], textarea[data-not-accessible="true"] {
+    @apply border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed;
+    box-shadow: none;
+  }
+
   .label {
     @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
   }

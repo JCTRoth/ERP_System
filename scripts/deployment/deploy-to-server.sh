@@ -357,21 +357,6 @@ services:
     networks:
       - erp-network
 
-  shop-service:
-    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-shop-service:${IMAGE_VERSION}
-    container_name: erp_system-shop-service
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=shop_db;User Id=postgres;Password=${DB_PASSWORD};"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "5003:5003"
-    restart: unless-stopped
-    networks:
-      - erp-network
-
   accounting-service:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-accounting-service:${IMAGE_VERSION}
     container_name: erp_system-accounting-service
@@ -403,20 +388,13 @@ services:
     networks:
       - erp-network
 
-  orders-service:
-    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
-    container_name: erp_system-orders-service
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=orders_db;User Id=postgres;Password=${DB_PASSWORD};"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "5004:5004"
-    restart: unless-stopped
-    networks:
-      - erp-network
+  # NOTE: shop-service and orders-service disabled in production
+  # Both define overlapping Order mutations, causing Apollo Federation conflicts
+  # See DEPLOYMENT_CHECKLIST.md for details and resolution options
+  # shop-service:
+  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-shop-service:${IMAGE_VERSION}
+  # orders-service:
+  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
 
   company-service:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-company-service:${IMAGE_VERSION}
@@ -439,8 +417,8 @@ services:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-translation-service:${IMAGE_VERSION}
     container_name: erp_system-translation-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/translation_db
-      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/translationdb
+      SPRING_DATASOURCE_USERNAME: erp_translation
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: prod
     depends_on:
@@ -452,20 +430,14 @@ services:
     networks:
       - erp-network
 
-  templates-service:
-    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-templates-service:${IMAGE_VERSION}
-    container_name: erp_system-templates-service
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@postgres:5432/templates_db
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8087:8087"
-    restart: unless-stopped
-    networks:
-      - erp-network
+  # NOTE: shop-service and orders-service disabled in production
+  # Both services define overlapping Order mutations, causing Apollo Federation conflicts
+  # Users: Use orders-service for dedicated order management functionality
+  # Future: Implement @shareable directives if full shop integration needed
+  # shop-service: 
+  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-shop-service:${IMAGE_VERSION}
+  # orders-service:
+  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
 
   gateway:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-gateway:${IMAGE_VERSION}
@@ -474,22 +446,16 @@ services:
       NODE_ENV: production
       PORT: 4000
       USER_SERVICE_URL: http://user-service:5000/graphql/
-      SHOP_SERVICE_URL: http://shop-service:5003/graphql
       ACCOUNTING_SERVICE_URL: http://accounting-service:5001/graphql/
       MASTERDATA_SERVICE_URL: http://masterdata-service:5002/graphql/
-      ORDERS_SERVICE_URL: http://orders-service:5004/graphql/
       COMPANY_SERVICE_URL: http://company-service:8080/graphql
       TRANSLATION_SERVICE_URL: http://translation-service:8081/graphql
-      TEMPLATES_SERVICE_URL: http://templates-service:8087
     depends_on:
       - user-service
-      - shop-service
       - accounting-service
       - masterdata-service
-      - orders-service
       - company-service
       - translation-service
-      - templates-service
     ports:
       - "4000:4000"
     restart: unless-stopped

@@ -212,6 +212,7 @@
   "dashboard.notAuthenticatedHint": "Please log in to access full functionality and data.",
   "dashboard.totalCompanies": "Total Companies",
   "dashboard.totalUsers": "Total Users",
+  "translations.validationErrorNotice": "Translation service schema is not available yet; translation keys are temporarily disabled.",
   "dashboard.welcome": "Welcome back, {name}!",
   "errors.pageNotFound": "Page Not Found",
   "errors.pageNotFoundDesc": "The page you are looking for does not exist.",

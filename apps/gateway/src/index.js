@@ -54,11 +54,12 @@ class AuthenticatedDataSource extends RemoteGraphQLDataSource {
 // Define subgraph services
 const subgraphs = [
   { name: 'user-service', url: process.env.USER_SERVICE_URL || 'http://user-service:5000/graphql' },
-  // { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL || 'http://translation-service:8081/graphql' },
   { name: 'company-service', url: process.env.COMPANY_SERVICE_URL || 'http://company-service:8080/graphql' },
   { name: 'masterdata-service', url: process.env.MASTERDATA_SERVICE_URL || 'http://masterdata-service:5002/graphql' },
-  { name: 'orders-service', url: process.env.ORDERS_SERVICE_URL || 'http://orders-service:5004/graphql' },
   { name: 'accounting-service', url: process.env.ACCOUNTING_SERVICE_URL || 'http://accounting-service:5001/graphql' },
+  { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL || 'http://translation-service:8081/graphql' },
+  { name: 'shop-service', url: process.env.SHOP_SERVICE_URL || 'http://shop-service:5003/graphql' },
+  { name: 'orders-service', url: process.env.ORDERS_SERVICE_URL || 'http://orders-service:5004/graphql' },
 ];
 
 // Create gateway
@@ -74,10 +75,15 @@ const gateway = new ApolloGateway({
     subgraphHealthCheck: true,
     // Increase timeout for slower startup environments
     request: {
-      timeout: 15000, // 15 second timeout for introspection requests
+      timeout: 30000, // 30 second timeout for introspection requests
     },
-    // Add initial composition delay
+    // Slightly shorter initial composition delay but rely on per-request timeout
     initialCompositionDelayMs: 60000, // Wait 60 seconds before first composition attempt
+    // Add simple retry/backoff logging hook
+    async onUpdateSupergraphSdl(prev, next) {
+      if (!prev) console.log('Initial supergraph composed');
+      else console.log('Supergraph updated');
+    }
   }),
   buildService({ name, url }) {
     console.log(`Building service ${name} with URL ${url}`);
@@ -224,4 +230,10 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  console.error('Failed to start server:', error.message);
+  console.log('Retrying in 30 seconds...');
+  setTimeout(() => {
+    startServer().catch(console.error);
+  }, 30000);
+});

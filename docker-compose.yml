@@ -343,6 +343,13 @@ services:
       NODE_ENV: production
       PORT: 4000
       JWT_SECRET: your-jwt-secret-key-here-make-it-long-and-secure
+      USER_SERVICE_URL: http://user-service:5000/graphql
+      SHOP_SERVICE_URL: http://shop-service:5003/graphql
+      ACCOUNTING_SERVICE_URL: http://accounting-service:5002/graphql
+      MASTERDATA_SERVICE_URL: http://masterdata-service:5001/graphql
+      ORDERS_SERVICE_URL: http://orders-service:5004/graphql
+      COMPANY_SERVICE_URL: http://company-service:8080/graphql
+      TRANSLATION_SERVICE_URL: http://translation-service:8082/graphql
     logging: *default-logging
     networks:
       - backend

@@ -90,10 +90,12 @@ app.UseRouting();
 // Prometheus metrics
 app.UseHttpMetrics();
 
+// Map GraphQL before authentication to allow introspection
+app.MapGraphQL();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGraphQL();
 app.MapHealthChecks("/health");
 app.MapMetrics();
 

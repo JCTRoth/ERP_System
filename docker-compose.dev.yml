@@ -42,11 +42,9 @@ services:
     depends_on:
       - user-service
       - company-service
-      - shop-service
       - translation-service
       - accounting-service
       - masterdata-service
-      - orders-service
 
   # .NET Services
   user-service:
@@ -174,12 +172,17 @@ services:
     depends_on:
       - postgres
 
+  # Build from source with compatible dependencies
   translation-service:
-    image: ghcr.io/jctroth/erp-translation-service:latest
+    build:
+      context: ./apps/services/java/translation-service
+      dockerfile: Dockerfile.build
     ports:
       - "8081:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_CACHE_TYPE=none
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/translationdb
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -188,44 +191,47 @@ services:
       - DB_PASSWORD=postgres
     depends_on:
       - postgres
+    networks:
+      - default
+    restart: unless-stopped
 
-  scripting-service:
-    build:
-      context: ./apps/services/java/scripting-service
-      # use default Dockerfile in scripting-service
-    profiles:
-      - scripting  # Only start with: docker compose --profile scripting up
-    ports:
-      - "8084:8084"
-    volumes:
-      - ./apps/services/java/scripting-service:/app
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=companydb
-      - DB_USER=erp_company
-      - DB_PASSWORD=postgres
-    depends_on:
-      - postgres
+  # scripting-service:
+  #   build:
+  #     context: ./apps/services/java/scripting-service
+  #     # use default Dockerfile in scripting-service
+  #   profiles:
+  #     - scripting  # Only start with: docker compose --profile scripting up
+  #   ports:
+  #     - "8084:8084"
+  #   volumes:
+  #     - ./apps/services/java/scripting-service:/app
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=dev
+  #     - DB_HOST=postgres
+  #     - DB_PORT=5432
+  #     - DB_NAME=companydb
+  #     - DB_USER=erp_company
+  #     - DB_PASSWORD=postgres
+  #   depends_on:
+  #     - postgres
 
-  edifact-service:
-    build:
-      context: ./apps/services/java/edifact-service
-      # use default Dockerfile in edifact-service
-    ports:
-      - "8085:8085"
-    volumes:
-      - ./apps/services/java/edifact-service:/app
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=companydb
-      - DB_USER=erp_company
-      - DB_PASSWORD=postgres
-    depends_on:
-      - postgres
+  # edifact-service:
+  #   build:
+  #     context: ./apps/services/java/edifact-service
+  #     # use default Dockerfile in edifact-service
+  #   ports:
+  #     - "8085:8085"
+  #   volumes:
+  #     - ./apps/services/java/edifact-service:/app
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=dev
+  #     - DB_HOST=postgres
+  #     - DB_PORT=5432
+  #     - DB_NAME=companydb
+  #     - DB_USER=erp_company
+  #     - DB_PASSWORD=postgres
+  #   depends_on:
+  #     - postgres
 
   templates-service:
     build:

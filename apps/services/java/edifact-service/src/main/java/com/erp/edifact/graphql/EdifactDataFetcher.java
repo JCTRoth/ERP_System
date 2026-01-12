@@ -46,7 +46,7 @@ public class EdifactDataFetcher {
         return edifactService.generateOutbound(
                 UUID.fromString((String) input.get("companyId")),
                 (String) input.get("messageType"),
-                (Map<String, Object>) input.get("data"),
+                input.get("data") instanceof Map<?, ?> ? (Map<String, Object>) input.get("data") : new java.util.HashMap<>(),
                 input.get("createdBy") != null ? UUID.fromString((String) input.get("createdBy")) : null
         );
     }

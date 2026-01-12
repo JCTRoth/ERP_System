@@ -92,32 +92,39 @@ public class Mutation
         => await brandService.DeleteAsync(id);
 
     // Suppliers
+    [GraphQLName("createShopSupplier")]
     public async Task<Supplier> CreateSupplier(
         [Service] ISupplierService supplierService,
         CreateSupplierInput input)
         => await supplierService.CreateAsync(input);
 
+    [GraphQLName("updateShopSupplier")]
     public async Task<Supplier?> UpdateSupplier(
         [Service] ISupplierService supplierService,
         UpdateSupplierInput input)
         => await supplierService.UpdateAsync(input);
 
+    [GraphQLName("deleteShopSupplier")]
     public async Task<bool> DeleteSupplier(
         [Service] ISupplierService supplierService,
         Guid id)
         => await supplierService.DeleteAsync(id);
 
     // Orders
+    [GraphQLDescription("Create a new order (ShopService)")]
+    [GraphQLName("createShopOrder")]
     public async Task<Order> CreateOrder(
         [Service] IOrderService orderService,
         [Service] ITopicEventSender eventSender,
         CreateOrderInput input)
     {
         var order = await orderService.CreateAsync(input);
-        await eventSender.SendAsync(nameof(Subscription.OnOrderCreated), order);
+        await eventSender.SendAsync(nameof(Subscription.OnShopOrderCreated), order);
         return order;
     }
 
+    [GraphQLDescription("Update order status (ShopService)")]
+    [GraphQLName("updateShopOrderStatus")]
     public async Task<Order?> UpdateOrderStatus(
         [Service] IOrderService orderService,
         [Service] ITopicEventSender eventSender,
@@ -131,12 +138,16 @@ public class Mutation
         return order;
     }
 
+    [GraphQLDescription("Cancel an order (ShopService)")]
+    [GraphQLName("cancelShopOrder")]
     public async Task<bool> CancelOrder(
         [Service] IOrderService orderService,
         Guid id,
         string? reason = null)
         => await orderService.CancelAsync(id, reason);
 
+    [GraphQLDescription("Delete an order (ShopService)")]
+    [GraphQLName("deleteShopOrder")]
     public async Task<bool> DeleteOrder(
         [Service] IOrderService orderService,
         Guid id)

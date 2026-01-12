@@ -1,4 +1,5 @@
 using HotChocolate.ApolloFederation;
+using HotChocolate.ApolloFederation.Types;
 using HotChocolate.Types;
 using HotChocolate.Types.Relay;
 using UserService.Models;
@@ -10,6 +11,8 @@ public class UserType : ObjectType<User>
     protected override void Configure(IObjectTypeDescriptor<User> descriptor)
     {
         descriptor.Name("User");
+        descriptor.Shareable();
+        descriptor.Key("id");
 
         descriptor.Field(u => u.Id)
             .Type<NonNullType<IdType>>();

@@ -1,6 +1,8 @@
 using OrdersService.Models;
 using OrdersService.Data;
 using Microsoft.EntityFrameworkCore;
+using HotChocolate.Types;
+using HotChocolate.ApolloFederation.Types;
 
 namespace OrdersService.GraphQL;
 
@@ -8,6 +10,10 @@ public class OrderObjectType : ObjectType<Order>
 {
     protected override void Configure(IObjectTypeDescriptor<Order> descriptor)
     {
+        // Mark as shareable with key for Apollo Federation entity resolution
+        descriptor.Shareable();
+        descriptor.Key("id");
+        
         descriptor.Field(o => o.Id).Type<NonNullType<IdType>>();
         descriptor.Field(o => o.OrderNumber).Type<NonNullType<StringType>>();
         descriptor.Field(o => o.CustomerId).Type<NonNullType<IdType>>();
@@ -28,6 +34,10 @@ public class OrderItemObjectType : ObjectType<OrderItem>
 {
     protected override void Configure(IObjectTypeDescriptor<OrderItem> descriptor)
     {
+        // Mark as shareable and define key for Apollo Federation entity resolution
+        descriptor.Shareable();
+        descriptor.Key("id");
+        
         descriptor.Field(i => i.Id).Type<NonNullType<IdType>>();
         descriptor.Field(i => i.OrderId).Type<NonNullType<IdType>>();
         descriptor.Field(i => i.ProductId).Type<NonNullType<IdType>>();

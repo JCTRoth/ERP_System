@@ -7,7 +7,6 @@ import org.graalvm.polyglot.*;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -71,7 +70,7 @@ public class GraalJSEngine {
         try (Context graalContext = Context.newBuilder("js")
                 .allowHostAccess(HostAccess.SCOPED)
                 .allowHostClassLookup(className -> false)  // No Java class access
-                .allowIO(allowFileAccess)
+                .allowAllAccess(false)  // Explicitly disable all access, then selectively enable
                 .allowNativeAccess(false)
                 .allowCreateThread(false)
                 .allowCreateProcess(false)

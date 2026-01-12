@@ -51,7 +51,7 @@ public class DynamicFieldDataFetcher {
                 .entityType(DynamicFieldDefinition.EntityType.valueOf((String) input.get("entityType")))
                 .fieldName((String) input.get("fieldName"))
                 .fieldType(DynamicFieldDefinition.FieldType.valueOf((String) input.get("fieldType")))
-                .validationRules((Map<String, Object>) input.get("validationRules"))
+                .validationRules(input.get("validationRules") instanceof Map<?, ?> ? (Map<String, Object>) input.get("validationRules") : new java.util.HashMap<>())
                 .displayOrder((Integer) input.get("displayOrder"))
                 .build();
         
@@ -65,7 +65,7 @@ public class DynamicFieldDataFetcher {
         
         return dynamicFieldService.updateFieldDefinition(
                 UUID.fromString(id),
-                (Map<String, Object>) input.get("validationRules"),
+                input.get("validationRules") instanceof Map<?, ?> ? (Map<String, Object>) input.get("validationRules") : new java.util.HashMap<>(),
                 (Integer) input.get("displayOrder")
         );
     }

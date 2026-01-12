@@ -38,12 +38,14 @@ public class Payment
 
 public enum PaymentMethod
 {
+    BankTransfer,
     CreditCard,
     DebitCard,
-    BankTransfer,
-    PayPal,
-    Invoice,
     Cash,
+    Check,
+    PayPal,
+    DirectDebit,
+    Invoice,
     Other
 }
 

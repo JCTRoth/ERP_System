@@ -159,6 +159,7 @@ public record SupplierDto(
     DateTime CreatedAt
 );
 
+[GraphQLName("ShopCreateSupplierInput")]
 public record CreateSupplierInput(
     string Name,
     string? Code,
@@ -175,6 +176,7 @@ public record CreateSupplierInput(
     bool IsActive
 );
 
+[GraphQLName("ShopUpdateSupplierInput")]
 public record UpdateSupplierInput(
     Guid Id,
     string? Name,

@@ -104,19 +104,23 @@ public class Query
         => await supplierService.GetByIdAsync(id);
 
     // Orders
-    [UsePaging]
+    [UsePaging(ConnectionName = "ShopOrdersConnection")]
     [UseProjection]
     [UseFiltering]
     [UseSorting]
+    [GraphQLName("shopOrders")]
     public IQueryable<Order> GetOrders([Service] ShopDbContext context)
         => context.Orders.Include(o => o.Items).AsNoTracking();
 
+    [GraphQLName("shopOrder")]
     public async Task<Order?> GetOrder([Service] IOrderService orderService, Guid id)
         => await orderService.GetByIdAsync(id);
 
+    [GraphQLName("shopOrderByNumber")]
     public async Task<Order?> GetOrderByNumber([Service] IOrderService orderService, string orderNumber)
         => await orderService.GetByOrderNumberAsync(orderNumber);
 
+    [GraphQLName("shopOrdersByCustomer")]
     public async Task<IEnumerable<Order>> GetOrdersByCustomer(
         [Service] IOrderService orderService, Guid customerId)
         => await orderService.GetByCustomerAsync(customerId);
