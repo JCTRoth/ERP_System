@@ -48,13 +48,13 @@ services:
 
   # .NET Services
   user-service:
-    build:
-      context: ./apps/services/dotnet/UserService
-      # use default Dockerfile in UserService
+    image: mcr.microsoft.com/dotnet/sdk:8.0-alpine
     ports:
       - "5000:5000"
     volumes:
       - ./apps/services/dotnet/UserService:/app
+    working_dir: /app
+    command: dotnet run --urls http://0.0.0.0:5000
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=erp_user;Username=erp_user;Password=postgres
@@ -65,13 +65,13 @@ services:
       - postgres
 
   shop-service:
-    build:
-      context: ./apps/services/dotnet/ShopService
-      # use default Dockerfile in ShopService
+    image: mcr.microsoft.com/dotnet/sdk:8.0-alpine
     ports:
       - "5003:5003"
     volumes:
       - ./apps/services/dotnet/ShopService:/app
+    working_dir: /app
+    command: dotnet run --urls http://0.0.0.0:5003
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=erp_shop;Username=erp_shop;Password=postgres
@@ -97,14 +97,13 @@ services:
       - postgres
 
   masterdata-service:
-    build:
-      context: ./apps/services/dotnet/MasterdataService
-      target: development
-      # use default Dockerfile in MasterdataService
+    image: mcr.microsoft.com/dotnet/sdk:8.0-alpine
     ports:
       - "5002:5002"
     volumes:
       - ./apps/services/dotnet/MasterdataService:/app
+    working_dir: /app
+    command: dotnet run --urls http://0.0.0.0:5002
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=erp_masterdata;Username=erp_masterdata;Password=postgres
@@ -115,13 +114,13 @@ services:
       - postgres
 
   orders-service:
-    build:
-      context: ./apps/services/dotnet/OrdersService
-      target: development
+    image: mcr.microsoft.com/dotnet/sdk:8.0-alpine
     ports:
       - "5004:5004"
     volumes:
       - ./apps/services/dotnet/OrdersService:/app
+    working_dir: /app
+    command: dotnet run --urls http://0.0.0.0:5004
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=erp_orders;Username=erp_orders;Password=postgres

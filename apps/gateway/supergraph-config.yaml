@@ -6,10 +6,10 @@ subgraphs:
     schema:
       subgraph_url: http://user-service:5000/graphql
 
-  company-service:
-    routing_url: http://company-service:8080/graphql
-    schema:
-      subgraph_url: http://company-service:8080/graphql
+#  company-service:
+#    routing_url: http://company-service:8080/graphql
+#    schema:
+#      subgraph_url: http://company-service:8080/graphql
 
 #  translation-service:
 #    routing_url: http://translation-service:8083/graphql

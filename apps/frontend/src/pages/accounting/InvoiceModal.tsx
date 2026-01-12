@@ -55,7 +55,7 @@ const GET_ACCOUNTS = gql`
 
 const GET_ORDERS = gql`
   query GetOrdersForInvoice {
-    orders(first: 50, where: { status: { in: [CONFIRMED, SHIPPED, DELIVERED] } }) {
+    shopOrders(first: 50, where: { status: { in: [CONFIRMED, SHIPPED, DELIVERED] } }) {
       nodes {
         id
         orderNumber
@@ -71,7 +71,7 @@ const GET_ORDERS = gql`
 
 const GET_ORDER_DETAILS = gql`
   query GetOrderDetailsForInvoice($id: UUID!) {
-    order(id: $id) {
+    shopOrder(id: $id) {
       id
       orderNumber
       subtotal
@@ -268,10 +268,10 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
     console.log('Order details error:', orderDetailsError);
     console.log('Form data orderId:', formData.orderId);
     console.log('Formatted orderId for query:', formData.orderId ? formatUUID(formData.orderId) : '');
-    console.log('Available orders:', ordersData?.orders?.nodes?.length || 0);
+    console.log('Available orders:', ordersData?.shopOrders?.nodes?.length || 0);
     console.log('Orders loading:', ordersData === undefined);
-    if (orderDetailsData?.order) {
-      const order = orderDetailsData.order;
+    if (orderDetailsData?.shopOrder) {
+      const order = orderDetailsData.shopOrder;
       // Find customer name from customersData
       const customer = customersData?.customers?.nodes?.find(
         (c: any) => c.id === order.customerId
@@ -330,8 +330,8 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
       } as any;
 
       // If invoice has orderNumber but no customerId, try to find an order in ordersData
-      if (!initialForm.customerId && invoice.orderNumber && ordersData?.orders?.nodes) {
-        const matchingOrder = ordersData.orders.nodes.find((o: any) => o.orderNumber === invoice.orderNumber);
+      if (!initialForm.customerId && invoice.orderNumber && ordersData?.shopOrders?.nodes) {
+        const matchingOrder = ordersData.shopOrders.nodes.find((o: any) => o.orderNumber === invoice.orderNumber);
         if (matchingOrder) {
           initialForm.orderId = matchingOrder.id || initialForm.orderId;
           initialForm.customerId = matchingOrder.customerId || initialForm.customerId;
@@ -615,7 +615,7 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
               disabled={isFormDisabled}
             >
               <option value="">{t('accounting.selectOrder') || 'No Order'}</option>
-              {ordersData?.orders?.nodes?.map((order: any) => (
+              {ordersData?.shopOrders?.nodes?.map((order: any) => (
                 <option key={order.id} value={order.id}>
                   {order.orderNumber} - {order.status} - ${order.total}
                 </option>

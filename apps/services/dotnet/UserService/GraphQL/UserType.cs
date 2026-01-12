@@ -15,34 +15,34 @@ public class UserType : ObjectType<User>
         descriptor.Key("id");
 
         descriptor.Field(u => u.Id)
-            .Type<NonNullType<IdType>>();
+            .Type<NonNullType<IdType>>().Shareable();
 
         descriptor.Field(u => u.Email)
-            .Type<NonNullType<StringType>>();
+            .Type<NonNullType<StringType>>().Shareable();
 
         descriptor.Field(u => u.FirstName)
-            .Type<StringType>();
+            .Type<StringType>().Shareable();
 
         descriptor.Field(u => u.LastName)
-            .Type<StringType>();
+            .Type<StringType>().Shareable();
 
         descriptor.Field(u => u.FullName)
-            .Type<NonNullType<StringType>>();
+            .Type<NonNullType<StringType>>().Shareable();
 
         descriptor.Field(u => u.IsActive)
-            .Type<NonNullType<BooleanType>>();
+            .Type<NonNullType<BooleanType>>().Shareable();
 
         descriptor.Field(u => u.EmailVerified)
-            .Type<NonNullType<BooleanType>>();
+            .Type<NonNullType<BooleanType>>().Shareable();
 
         descriptor.Field(u => u.PreferredLanguage)
-            .Type<StringType>();
+            .Type<StringType>().Shareable();
 
         descriptor.Field(u => u.CreatedAt)
-            .Type<NonNullType<DateTimeType>>();
+            .Type<NonNullType<DateTimeType>>().Shareable();
 
         descriptor.Field(u => u.LastLoginAt)
-            .Type<DateTimeType>();
+            .Type<DateTimeType>().Shareable();
 
         // Ignore sensitive fields
         descriptor.Field(u => u.PasswordHash).Ignore();

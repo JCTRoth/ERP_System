@@ -23,10 +23,12 @@ EXPOSE 5001
 RUN dotnet build -c Release -o /app/out
 ENTRYPOINT ["dotnet", "/app/out/AccountingService.dll"]
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
+# Install curl for health checks
+RUN apk add --no-cache curl
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src

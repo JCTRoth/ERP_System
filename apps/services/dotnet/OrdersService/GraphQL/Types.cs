@@ -14,18 +14,18 @@ public class OrderObjectType : ObjectType<Order>
         descriptor.Shareable();
         descriptor.Key("id");
         
-        descriptor.Field(o => o.Id).Type<NonNullType<IdType>>();
-        descriptor.Field(o => o.OrderNumber).Type<NonNullType<StringType>>();
-        descriptor.Field(o => o.CustomerId).Type<NonNullType<IdType>>();
-        descriptor.Field(o => o.CompanyId).Type<NonNullType<IdType>>();
-        descriptor.Field(o => o.Status).Type<NonNullType<EnumType<OrderStatus>>>();
-        descriptor.Field(o => o.OrderDate).Type<NonNullType<DateTimeType>>();
-        descriptor.Field(o => o.DueDate).Type<NonNullType<DateTimeType>>();
-        descriptor.Field(o => o.TotalAmount).Type<NonNullType<DecimalType>>();
-        descriptor.Field(o => o.CreatedAt).Type<NonNullType<DateTimeType>>();
-        descriptor.Field(o => o.UpdatedAt).Type<NonNullType<DateTimeType>>();
+        descriptor.Field(o => o.Id).Type<NonNullType<IdType>>().Shareable();
+        descriptor.Field(o => o.OrderNumber).Type<NonNullType<StringType>>().Shareable();
+        descriptor.Field(o => o.CustomerId).Type<NonNullType<IdType>>().Shareable();
+        descriptor.Field(o => o.CompanyId).Type<NonNullType<IdType>>().Shareable();
+        descriptor.Field(o => o.Status).Type<NonNullType<EnumType<OrderStatus>>>().Shareable();
+        descriptor.Field(o => o.OrderDate).Type<NonNullType<DateTimeType>>().Shareable();
+        descriptor.Field(o => o.DueDate).Type<NonNullType<DateTimeType>>().Shareable();
+        descriptor.Field(o => o.TotalAmount).Type<NonNullType<DecimalType>>().Shareable();
+        descriptor.Field(o => o.CreatedAt).Type<NonNullType<DateTimeType>>().Shareable();
+        descriptor.Field(o => o.UpdatedAt).Type<NonNullType<DateTimeType>>().Shareable();
 
-        descriptor.Field(o => o.Items)
+        descriptor.Field(o => o.Items).Shareable()
             .ResolveWith<OrderResolvers>(r => r.GetItems(default!, default!));
     }
 }
@@ -38,12 +38,12 @@ public class OrderItemObjectType : ObjectType<OrderItem>
         descriptor.Shareable();
         descriptor.Key("id");
         
-        descriptor.Field(i => i.Id).Type<NonNullType<IdType>>();
-        descriptor.Field(i => i.OrderId).Type<NonNullType<IdType>>();
-        descriptor.Field(i => i.ProductId).Type<NonNullType<IdType>>();
-        descriptor.Field(i => i.Quantity).Type<NonNullType<IntType>>();
-        descriptor.Field(i => i.UnitPrice).Type<NonNullType<DecimalType>>();
-        descriptor.Field(i => i.LineTotal).Type<NonNullType<DecimalType>>();
+        descriptor.Field(i => i.Id).Type<NonNullType<IdType>>().Shareable();
+        descriptor.Field(i => i.OrderId).Type<NonNullType<IdType>>().Shareable();
+        descriptor.Field(i => i.ProductId).Type<NonNullType<IdType>>().Shareable();
+        descriptor.Field(i => i.Quantity).Type<NonNullType<IntType>>().Shareable();
+        descriptor.Field(i => i.UnitPrice).Type<NonNullType<DecimalType>>().Shareable();
+        descriptor.Field(i => i.LineTotal).Type<NonNullType<DecimalType>>().Shareable();
     }
 }
 

@@ -12,6 +12,7 @@ import com.erp.company.repository.CompanyRepository;
 import com.erp.company.repository.UserCompanyAssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,9 +28,11 @@ public class UserCompanyAssignmentService {
     private static final String ASSIGNMENT_TOPIC = "user-company-assignments";
 
     private final UserCompanyAssignmentRepository assignmentRepository;
-    private final CompanyRepository companyRepository;
-    private final UserCompanyAssignmentMapper assignmentMapper;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+        private final CompanyRepository companyRepository;
+        private final UserCompanyAssignmentMapper assignmentMapper;
+
+        @Autowired(required = false)
+        private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Transactional(readOnly = true)
     public List<UserCompanyAssignmentDto> getAssignmentsByUserId(UUID userId) {
@@ -141,7 +144,12 @@ public class UserCompanyAssignmentService {
 
     private void publishAssignmentEvent(UserCompanyAssignment assignment, 
                                         UserAssignmentEvent.EventType eventType) {
-        try {
+                if (kafkaTemplate == null) {
+                        log.debug("Kafka disabled; skipping assignment event for {}", assignment.getUserId());
+                        return;
+                }
+
+                try {
             UserAssignmentEvent event = UserAssignmentEvent.builder()
                     .eventType(eventType)
                     .userId(assignment.getUserId())

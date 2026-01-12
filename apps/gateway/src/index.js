@@ -183,7 +183,7 @@ async function startServer() {
 
   // Add startup delay to allow services to initialize
   console.log('Waiting for services to initialize before starting Apollo Server...');
-  await new Promise(resolve => setTimeout(resolve, 15000)); // 15 second delay
+  await new Promise(resolve => setTimeout(resolve, 60000)); // 60 second delay
 
   // Start Apollo Server; IntrospectAndCompose will poll subgraphs.
   await server.start();
@@ -232,8 +232,6 @@ async function startServer() {
 
 startServer().catch((error) => {
   console.error('Failed to start server:', error.message);
-  console.log('Retrying in 30 seconds...');
-  setTimeout(() => {
-    startServer().catch(console.error);
-  }, 30000);
+  // Exit so Docker can restart the container
+  process.exit(1);
 });

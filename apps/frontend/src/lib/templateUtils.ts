@@ -3,7 +3,7 @@ import { gql } from '@apollo/client';
 // GraphQL queries for master data
 export const GET_ORDERS = gql`
   query GetOrdersForTemplate {
-    orders(first: 50) {
+    shopOrders(first: 50) {
       nodes {
         id
         orderNumber
@@ -62,7 +62,7 @@ export const GET_COMPANIES = gql`
 // Detail queries for fetching full records
 export const GET_ORDER_DETAILS = gql`
   query GetOrderDetails($id: UUID!) {
-    order(id: $id) {
+    shopOrder(id: $id) {
       id
       orderNumber
       subtotal
@@ -92,7 +92,7 @@ export const GET_ORDER_DETAILS = gql`
 // Shop service version - uses UUID instead of String
 export const GET_SHOP_ORDER_DETAILS = gql`
   query GetShopOrderDetails($id: UUID!) {
-    order(id: $id) {
+    shopOrder(id: $id) {
       id
       orderNumber
       subtotal

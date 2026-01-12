@@ -83,7 +83,7 @@ export function useTemplatePreview(template: ApiTemplate) {
   const { data: companiesData, loading: companiesLoading } = useQuery(GET_COMPANIES);
 
   const masterData = {
-    orders: ordersData?.orders?.nodes || [],
+    orders: ordersData?.shopOrders?.nodes || [],
     invoices: invoicesData?.invoices?.nodes || [],
     customers: customersData?.customers?.nodes || [],
     products: productsData?.products?.nodes || [],
@@ -108,7 +108,7 @@ export function useTemplatePreview(template: ApiTemplate) {
               variables: { id: selectedIds.orderId },
               fetchPolicy: 'network-only'
             });
-            if (mounted) updates.fullOrder = data?.order ?? null;
+            if (mounted) updates.fullOrder = data?.shopOrder ?? null;
           } catch (orderError) {
             console.warn('Failed to fetch order details:', (orderError as Error).message);
             if (mounted) updates.fullOrder = null;

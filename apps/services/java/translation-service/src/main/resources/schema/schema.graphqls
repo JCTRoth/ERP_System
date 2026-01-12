@@ -1,4 +1,4 @@
-extend schema @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
+# extend schema @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
 
 type Query {
     translationKey(id: ID!): TranslationKey
@@ -23,7 +23,7 @@ type Mutation {
     deleteCompanyOverrides(companyId: ID!): Boolean!
 }
 
-type TranslationKey @key(fields: "id") {
+type TranslationKey {
     id: ID!
     keyName: String!
     namespace: String

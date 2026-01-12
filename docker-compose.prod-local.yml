@@ -1,0 +1,364 @@
+version: '3.8'
+
+# Local Production Test Configuration
+# Builds images locally and runs in production mode
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # ==========================================================================
+  # Database
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp-postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "15432:5432"
+
+  # ==========================================================================
+  # .NET Services (Built Locally)
+  # ==========================================================================
+  user-service:
+    build:
+      context: ./apps/services/dotnet/UserService
+      dockerfile: Dockerfile
+    container_name: erp-user-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://*:5000
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=userdb;Username=erp_user;Password=postgres
+      JWT__Secret: your-jwt-secret-key-here-make-it-long-and-secure-at-least-32-chars
+      JWT__Issuer: erp-system
+      JWT__Audience: erp-clients
+      Database__EnableSeeding: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  shop-service:
+    build:
+      context: ./apps/services/dotnet/ShopService
+      dockerfile: Dockerfile
+    container_name: erp-shop-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://*:5003
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=shopdb;Username=erp_shop;Password=postgres
+      Database__EnableSeeding: "true"
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_USE_SSL: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "5003:5003"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  accounting-service:
+    build:
+      context: ./apps/services/dotnet/AccountingService
+      dockerfile: Dockerfile
+    container_name: erp-accounting-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://*:5001
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=accountingdb;Username=erp_accounting;Password=postgres
+      Database__EnableSeeding: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  masterdata-service:
+    build:
+      context: ./apps/services/dotnet/MasterdataService
+      dockerfile: Dockerfile
+    container_name: erp-masterdata-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://*:5002
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=masterdatadb;Username=erp_masterdata;Password=postgres
+      Database__EnableSeeding: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "5002:5002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  orders-service:
+    build:
+      context: ./apps/services/dotnet/OrdersService
+      dockerfile: Dockerfile
+    container_name: erp-orders-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://*:5004
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=ordersdb;Username=erp_orders;Password=postgres
+      Database__EnableSeeding: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "5004:5004"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # Java Services (Built Locally)
+  # ==========================================================================
+  company-service:
+    build:
+      context: ./apps/services/java/company-service
+      dockerfile: Dockerfile
+    container_name: erp-company-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/companydb
+      SPRING_DATASOURCE_USERNAME: erp_company
+      SPRING_DATASOURCE_PASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  translation-service:
+    build:
+      context: ./apps/services/java/translation-service
+      dockerfile: Dockerfile
+    container_name: erp-translation-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/translationdb
+      SPRING_DATASOURCE_USERNAME: erp_translation
+      SPRING_DATASOURCE_PASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  notification-service:
+    build:
+      context: ./apps/services/java/notification-service
+      dockerfile: Dockerfile
+    container_name: erp-notification-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notificationdb
+      SPRING_DATASOURCE_USERNAME: erp_notification
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: 587
+      SMTP_USERNAME: no-reply@example.com
+      SMTP_PASSWORD: placeholder
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "8082:8082"
+
+  # ==========================================================================
+  # Node.js Services
+  # ==========================================================================
+  templates-service:
+    build:
+      context: ./apps/services/nodejs/templates-service
+      dockerfile: Dockerfile
+    container_name: erp-templates-service
+    environment:
+      NODE_ENV: production
+      PORT: 8087
+      DATABASE_URL: postgresql://erp_templates:postgres@postgres:5432/templatesdb
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "8087:8087"
+
+  # ==========================================================================
+  # Gateway
+  # ==========================================================================
+  gateway:
+    build:
+      context: ./apps/gateway
+      dockerfile: Dockerfile
+    container_name: erp-gateway
+    restart: on-failure
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      USER_SERVICE_URL: http://user-service:5000/graphql/
+      COMPANY_SERVICE_URL: http://company-service:8080/graphql
+      MASTERDATA_SERVICE_URL: http://masterdata-service:5002/graphql/
+      ACCOUNTING_SERVICE_URL: http://accounting-service:5001/graphql/
+      TRANSLATION_SERVICE_URL: http://translation-service:8081/graphql
+      SHOP_SERVICE_URL: http://shop-service:5003/graphql/
+      ORDERS_SERVICE_URL: http://orders-service:5004/graphql/
+    depends_on:
+      user-service:
+        condition: service_healthy
+      company-service:
+        condition: service_healthy
+      masterdata-service:
+        condition: service_healthy
+      accounting-service:
+        condition: service_healthy
+      translation-service:
+        condition: service_healthy
+      shop-service:
+        condition: service_healthy
+      orders-service:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ==========================================================================
+  # Frontend
+  # ==========================================================================
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /graphql
+        VITE_SHOP_API_URL: /shop/graphql
+    container_name: erp-frontend
+    depends_on:
+      - gateway
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "8088:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # Infrastructure
+  # ==========================================================================
+  minio:
+    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    container_name: erp-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc alias set local http://localhost:9000 minioadmin minioadmin && mc admin info local --json | grep -q '\"status\":\"ok\"' || exit 0"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+networks:
+  erp-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  minio-data:

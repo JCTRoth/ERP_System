@@ -29,7 +29,7 @@ const formatDocumentTitle = (documentType: string, templateKey?: string) => {
 
 const GET_ORDER_DETAILS = gql`
   query GetOrderDetails($id: UUID!) {
-    order(id: $id) {
+    shopOrder(id: $id) {
       id
       orderNumber
       status
@@ -85,8 +85,8 @@ const GET_ORDER_DETAILS = gql`
 `;
 
 const UPDATE_ORDER_STATUS = gql`
-  mutation UpdateOrderStatus($input: UpdateOrderStatusInput!) {
-    updateOrderStatus(input: $input) {
+  mutation UpdateOrderStatus($input: ShopUpdateOrderStatusInput!) {
+    updateShopOrderStatus(input: $input) {
       id
       status
     }
@@ -164,14 +164,14 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
 
   // Set address states when data loads
   useEffect(() => {
-    if (data?.order?.shippingAddress) {
-      setShippingAddress(data.order.shippingAddress);
+    if (data?.shopOrder?.shippingAddress) {
+      setShippingAddress(data.shopOrder.shippingAddress);
     }
     // If no billing address is set, use shipping address
-    if (data?.order?.billingAddress) {
-      setBillingAddress(data.order.billingAddress);
-    } else if (data?.order?.shippingAddress) {
-      setBillingAddress(data.order.shippingAddress);
+    if (data?.shopOrder?.billingAddress) {
+      setBillingAddress(data.shopOrder.billingAddress);
+    } else if (data?.shopOrder?.shippingAddress) {
+      setBillingAddress(data.shopOrder.shippingAddress);
     }
   }, [data]);
 
@@ -183,7 +183,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
     client: shopApolloClient,
   });
 
-  const order = data?.order;
+  const order = data?.shopOrder;
 
   const handleStatusChange = async (newStatus: string) => {
     try {

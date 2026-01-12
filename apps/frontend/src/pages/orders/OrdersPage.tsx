@@ -14,7 +14,7 @@ import { shopApolloClient } from '../../lib/apollo';
 
 const GET_ORDERS = gql`
   query GetOrders($first: Int, $after: String, $where: OrderFilterInput) {
-    orders(first: $first, after: $after, where: $where, order: { createdAt: DESC }) {
+    shopOrders(first: $first, after: $after, where: $where, order: { createdAt: DESC }) {
       nodes {
         id
         orderNumber
@@ -44,13 +44,13 @@ const GET_ORDERS = gql`
 
 const CANCEL_ORDER = gql`
   mutation CancelOrder($id: UUID!) {
-    cancelOrder(id: $id)
+    cancelShopOrder(id: $id)
   }
 `;
 
 const DELETE_ORDER = gql`
   mutation DeleteOrder($id: UUID!) {
-    deleteOrder(id: $id)
+    deleteShopOrder(id: $id)
   }
 `;
 
@@ -136,7 +136,7 @@ export default function OrdersPage() {
     }
   };
 
-  const filteredOrders = data?.orders?.nodes?.filter((order: Order) =>
+  const filteredOrders = data?.shopOrders?.nodes?.filter((order: Order) =>
     order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${order.customer?.firstName} ${order.customer?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
@@ -322,11 +322,11 @@ export default function OrdersPage() {
         </div>
 
         {/* Pagination Info */}
-        {data?.orders?.totalCount !== undefined && data.orders.totalCount >= 0 && (
+        {data?.shopOrders?.totalCount !== undefined && data.shopOrders.totalCount >= 0 && (
           <div className="border-t border-gray-200 px-6 py-3 dark:border-gray-700">
             <p className="text-sm text-gray-500">
               {t('common.showing')} {filteredOrders?.length || 0} {t('common.of')}{' '}
-              {data.orders.totalCount} {t('orders.orders')}
+              {data.shopOrders.totalCount} {t('orders.orders')}
             </p>
           </div>
         )}

@@ -5,4 +5,3 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.graphql.GraphQlAutoConfiguration
       - org.springframework.boot.autoconfigure.graphql.servlet.GraphQlWebMvcAutoConfiguration
-      - com.netflix.graphql.dgs.springgraphql.autoconfig.DgsSpringGraphQLAutoConfiguration

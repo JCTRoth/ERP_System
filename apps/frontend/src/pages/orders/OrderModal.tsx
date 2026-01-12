@@ -5,8 +5,8 @@ import { useI18n } from '../../providers/I18nProvider';
 import { shopApolloClient } from '../../lib/apollo';
 
 const CREATE_ORDER = gql`
-  mutation CreateOrder($input: CreateOrderInput!) {
-    createOrder(input: $input) {
+  mutation CreateOrder($input: ShopCreateOrderInput!) {
+    createShopOrder(input: $input) {
       id
       orderNumber
       shippingAddress {
