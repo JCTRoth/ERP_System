@@ -16,6 +16,21 @@ export interface UIComponent {
   type: ComponentType;
   props: Record<string, unknown>;
   children: UIComponent[];
+  styling?: ComponentStyling;
+}
+
+export interface ComponentStyling {
+  padding?: string;
+  margin?: string;
+  backgroundColor?: string;
+  borderRadius?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  textColor?: string;
+  width?: string;
+  height?: string;
+  display?: string;
+  gap?: string;
 }
 
 export interface ComponentDefinition {

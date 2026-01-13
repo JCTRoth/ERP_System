@@ -11,8 +11,8 @@
 # 5. Wait for databases
 # 6. Start all GraphQL services
 # 7. Verify service health
-# 8. Start Frontend
-# 9. START GATEWAY LAST
+# 8. START GATEWAY FIRST (needed by frontend)
+# 9. Start Frontend
 # 10. Final verification
 
 set -e
@@ -325,11 +325,11 @@ verify_services() {
 }
 
 # ============================================================================
-# PHASE 6: START FRONTEND
+# PHASE 7: START FRONTEND
 # ============================================================================
 
 start_frontend() {
-    print_header "PHASE 6: Starting Frontend"
+    print_header "PHASE 7: Starting Frontend"
 
     print_info "Starting frontend container..."
     docker compose -f "$COMPOSE_FILE" up -d frontend >/dev/null 2>&1
@@ -354,11 +354,11 @@ start_frontend() {
 }
 
 # ============================================================================
-# PHASE 7: START GATEWAY (LAST)
+# PHASE 6: START GATEWAY (FIRST - needed by frontend)
 # ============================================================================
 
 start_gateway() {
-    print_header "PHASE 7: Starting GraphQL Gateway (LAST)"
+    print_header "PHASE 6: Starting GraphQL Gateway (FIRST - needed by frontend)"
 
     print_info "Starting Apollo Gateway..."
     docker compose -f "$COMPOSE_FILE" up -d gateway >/dev/null 2>&1
@@ -607,11 +607,11 @@ main() {
     print_info "Allowing services to fully stabilize..."
     sleep 15
 
-    # Phase 6: Start frontend
-    start_frontend || print_warning "Frontend not responding yet (may still be loading)"
-
-    # Phase 7: Start gateway (LAST)
+    # Phase 6: Start gateway (FIRST - needed by frontend)
     start_gateway || print_warning "Gateway not responding yet (may still be initializing)"
+
+    # Phase 7: Start frontend
+    start_frontend || print_warning "Frontend not responding yet (may still be loading)"
 
     # Phase 8: Final verification
     final_verification
