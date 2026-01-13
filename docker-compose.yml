@@ -343,8 +343,6 @@ services:
   gateway:
     image: ghcr.io/jonas089/erp-gateway:latest
     container_name: erp-gateway
-    ports:
-      - "4000:4000"
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -449,9 +447,6 @@ services:
     logging: *default-logging
     networks:
       - erp-network
-    ports:
-      - "9000:9000"
-      - "9001:9001"
 
 volumes:
   postgres-data:
