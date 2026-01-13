@@ -10,7 +10,7 @@ import {
 import { useI18n } from '../../providers/I18nProvider';
 import OrderModal from './OrderModal';
 import OrderDetailsModal from './OrderDetailsModal';
-import { apolloClient, shopApolloClient } from '../../lib/apollo';
+import { apolloClient } from '../../lib/apollo';
 
 const GET_ORDERS = gql`
   query GetOrders($first: Int, $after: String, $where: OrderFilterInput) {

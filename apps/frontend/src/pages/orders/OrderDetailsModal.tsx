@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
-import { shopApolloClient } from '../../lib/apollo';
+import { apolloClient, shopApolloClient } from '../../lib/apollo';
 
 // Helper function to format document titles
 const formatDocumentTitle = (documentType: string, templateKey?: string) => {

@@ -10,6 +10,7 @@ import {
 import { useI18n } from '../../providers/I18nProvider';
 import ProductModal from './ProductModal';
 import { shopApolloClient } from '../../lib/apollo';
+import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 
 const GET_PRODUCTS = gql`
   query GetProducts($first: Int, $after: String) {
@@ -49,6 +50,29 @@ const DELETE_PRODUCT = gql`
   }
 `;
 
+// Temporary direct client to bypass Vite proxy issues
+const directShopClient = new ApolloClient({
+  link: createHttpLink({
+    uri: 'http://localhost:5003/graphql',
+  }),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          products: {
+            merge: false,
+          },
+        },
+      },
+    },
+  }),
+  defaultOptions: {
+    watchQuery: {
+      fetchPolicy: 'cache-and-network',
+    },
+  },
+});
+
 interface Product {
   id: string;
   sku: string;
@@ -76,7 +100,7 @@ export default function ProductsPage() {
       first: 20,
     },
     errorPolicy: 'all',
-    client: shopApolloClient,
+    client: directShopClient,
   } as any);
 
   useEffect(() => {
@@ -103,7 +127,7 @@ export default function ProductsPage() {
       console.error('Delete product error:', error);
       alert(t('products.deleteError'));
     },
-    client: shopApolloClient,
+    client: directShopClient,
   } as any));
 
   const handleEdit = (product: Product) => {
