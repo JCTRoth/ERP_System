@@ -591,6 +591,7 @@
   "uiBuilder.save": "Enregistrer",
   "uiBuilder.selectComponent": "Sélectionnez un composant pour modifier ses propriétés",
   "uiBuilder.subtitle": "Concevoir et créer des interfaces utilisateur avec des composants glisser-déposer",
+  "uiBuilder.dragInstruction": "Dragging from Components a component into a row creates a new instance of this component in this row",
   "uiBuilder.title": "Titre",
   "uiBuilder.unsaved": "Non enregistré",
   "uiBuilder.untitled": "Sans titre",

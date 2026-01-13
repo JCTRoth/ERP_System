@@ -137,3 +137,33 @@ function getButtonClass(variant: string): string {
 export function generateJsonSchema(components: UIComponent[]): string {
   return JSON.stringify(components, null, 2);
 }
+
+export function generateReactFromRows(rows: { id: string; components: UIComponent[] }[]): string {
+  const imports = new Set<string>();
+  imports.add("import React from 'react';");
+
+  const rowsCode = rows.map((row) => {
+    const comps = row.components.map((component) => {
+      const span = component.columnSpan || 1;
+      const start = component.startColumn ?? 1;
+      const compHtml = generateComponentCode(component);
+      // wrap with a div that uses inline gridColumn
+      return `<div key=\"${component.id}\" style={{ gridColumn: '${start} / span ${span}' }}>${compHtml}</div>`;
+    }).join('\n        ');
+
+    return `<div key=\"${row.id}\" className=\"grid grid-cols-3 gap-2\">\n        ${comps}\n      </div>`;
+  }).join('\n      ');
+
+  return `${Array.from(imports).join('\n')}
+
+export default function GeneratedPage() {
+  return (
+    <div className="p-6">
+      <div className="space-y-4">
+        ${rowsCode}
+      </div>
+    </div>
+  );
+}
+`;
+}

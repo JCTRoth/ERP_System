@@ -1,25 +1,25 @@
 import { useState } from 'react';
 import { XMarkIcon, ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { UIComponent } from '../types';
-import { generateReactCode, generateJsonSchema } from '../utils';
+import { generateReactFromRows } from '../utils';
 import { useI18n } from '../../../providers/I18nProvider';
 
 interface CodeExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  components: UIComponent[];
+  rows: { id: string; components: UIComponent[] }[];
 }
 
 type ExportFormat = 'react' | 'json';
 
-export default function CodeExportModal({ isOpen, onClose, components }: CodeExportModalProps) {
+export default function CodeExportModal({ isOpen, onClose, rows }: CodeExportModalProps) {
   const { t } = useI18n();
   const [format, setFormat] = useState<ExportFormat>('react');
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
-  const code = format === 'react' ? generateReactCode(components) : generateJsonSchema(components);
+  const code = format === 'react' ? generateReactFromRows(rows) : JSON.stringify(rows, null, 2);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code);

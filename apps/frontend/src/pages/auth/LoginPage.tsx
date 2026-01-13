@@ -37,6 +37,10 @@ export default function LoginPage() {
         </h2>
       </div>
 
+      <div className="text-center text-sm text-gray-500">
+        <p>{t('auth.demoCredentials', { default: 'Demo Credentials:' })}</p>
+      </div>
+
       <form className="space-y-6" onSubmit={handleSubmit}>
         {error && (
           <div className="rounded-md bg-red-50 dark:bg-red-900/50 p-4">

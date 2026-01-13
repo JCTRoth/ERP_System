@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
 const gatewayUrl = process.env.VITE_GATEWAY_URL || 'http://localhost:4000';
+const shopUrl = process.env.VITE_SHOP_URL || 'http://localhost:5003';
+
+// Log resolved backend targets when Vite starts (helps debug proxy DNS issues)
+console.log(`[vite] using gateway target: ${gatewayUrl}, shop target: ${shopUrl}`);
 
 export default defineConfig({
   plugins: [react() as any],
@@ -11,8 +15,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@erp/shared-types': path.resolve(__dirname, '../../libs/shared-types/src'),
       '@erp/i18n': path.resolve(__dirname, '../../libs/i18n/src'),
-      'react': path.resolve(__dirname, './node_modules/react'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
   },
   server: {
@@ -21,7 +23,7 @@ export default defineConfig({
     proxy: {
       // Route shop-specific requests directly to the Shop service in dev
       '/shop/graphql': {
-        target: process.env.VITE_SHOP_URL || 'http://erp_system-shop-service-1:5003',
+        target: shopUrl,
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/shop\/graphql/, '/graphql'),

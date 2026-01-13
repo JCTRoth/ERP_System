@@ -10,7 +10,7 @@ import {
 import { useI18n } from '../../providers/I18nProvider';
 import OrderModal from './OrderModal';
 import OrderDetailsModal from './OrderDetailsModal';
-import { shopApolloClient } from '../../lib/apollo';
+import { apolloClient, shopApolloClient } from '../../lib/apollo';
 
 const GET_ORDERS = gql`
   query GetOrders($first: Int, $after: String, $where: OrderFilterInput) {
@@ -97,7 +97,7 @@ export default function OrdersPage() {
       where: statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined,
     },
     errorPolicy: 'all',
-    client: shopApolloClient,
+    client: apolloClient,
   } as any);
 
   const [cancelOrder] = useMutation(CANCEL_ORDER, {
@@ -112,12 +112,12 @@ export default function OrdersPage() {
       console.error('Cancel order error:', error);
       alert(t('orders.cancelError'));
     },
-    client: shopApolloClient,
+    client: apolloClient,
   } as any);
 
   const [deleteOrder] = useMutation(DELETE_ORDER, {
     onCompleted: () => refetch(),
-    client: shopApolloClient,
+    client: apolloClient,
   } as any);
 
   const handleViewDetails = (order: Order) => {

@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { UIComponent } from '../pages/ui-builder/types';
+import { UIComponent, UIRow } from '../pages/ui-builder/types';
 
 export interface UIPage {
   id: string;
   name: string;
   slug: string;
   description?: string;
-  components: UIComponent[];
+  components: UIComponent[]; // Legacy flat list (for backward compatibility)
+  rows?: UIRow[]; // New row-based structure
+  scripts?: Record<string, string>; // Component ID -> script mapping
   createdAt: string;
   updatedAt: string;
 }

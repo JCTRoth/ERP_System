@@ -2,6 +2,8 @@ import { UIComponent, ComponentStyling } from '../types';
 
 interface ComponentRendererProps {
   component: UIComponent;
+  onButtonClick?: (component: UIComponent, event: React.MouseEvent) => void;
+  isPreview?: boolean;
 }
 
 function getStyleObject(styling?: ComponentStyling): React.CSSProperties {
@@ -21,7 +23,7 @@ function getStyleObject(styling?: ComponentStyling): React.CSSProperties {
   };
 }
 
-export default function ComponentRenderer({ component }: ComponentRendererProps) {
+export default function ComponentRenderer({ component, onButtonClick, isPreview = false }: ComponentRendererProps) {
   const { type, props, styling } = component;
   const customStyle = getStyleObject(styling);
 
@@ -59,11 +61,18 @@ export default function ComponentRenderer({ component }: ComponentRendererProps)
         outline: 'btn-outline',
         danger: 'btn-danger',
       };
+      const handleButtonClick = (e: React.MouseEvent) => {
+        if (isPreview && onButtonClick) {
+          e.stopPropagation();
+          onButtonClick(component, e);
+        }
+      };
       return (
         <button 
           className={buttonVariants[(props.variant as string) || 'primary']}
           disabled={props.disabled === true}
           style={customStyle}
+          onClick={handleButtonClick}
         >
           {props.label && typeof props.label === 'string' ? props.label : 'Button'}
         </button>

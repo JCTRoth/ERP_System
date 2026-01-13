@@ -590,6 +590,7 @@
   "uiBuilder.save": "Сохранить",
   "uiBuilder.selectComponent": "Выберите компонент для редактирования его свойств",
   "uiBuilder.subtitle": "Проектируйте и создавайте пользовательские интерфейсы с помощью компонентов перетаскивания",
+  "uiBuilder.dragInstruction": "Dragging from Components a component into a row creates a new instance of this component in this row",
   "uiBuilder.title": "Заголовок",
   "uiBuilder.unsaved": "Не сохранено",
   "uiBuilder.untitled": "Без названия",

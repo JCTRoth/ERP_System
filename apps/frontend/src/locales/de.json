@@ -620,12 +620,20 @@
   "uiBuilder.properties": "Eigenschaften",
   "uiBuilder.save": "Speichern",
   "uiBuilder.selectComponent": "Wählen Sie eine Komponente aus, um deren Eigenschaften zu bearbeiten",
+  "uiBuilder.styling": "Styling",
   "uiBuilder.subtitle": "Entwerfen und erstellen Sie Benutzeroberflächen mit Drag-and-Drop-Komponenten",
+  "uiBuilder.dragInstruction": "Dragging from Components a component into a row creates a new instance of this component in this row",
   "uiBuilder.title": "Titel",
   "uiBuilder.unsaved": "Nicht gespeichert",
   "uiBuilder.untitled": "Unbenannt",
   "uiBuilder.updated": "Aktualisiert",
   "uiBuilder.variant": "Variante",
+  "uiBuilder.addComponent": "Komponente hinzufügen",
+  "uiBuilder.selectComponentType": "Komponententyp auswählen",
+  "uiBuilder.selectRow": "Zeile auswählen",
+  "uiBuilder.startColumn": "Startspalte",
+  "uiBuilder.position": "Position",
+  "uiBuilder.row": "Zeile",
   "users.activate": "Aktivieren",
   "users.addUser": "Benutzer hinzufügen",
   "users.confirmDelete": "Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?",
@@ -643,3 +651,4 @@
   "users.title": "Benutzer",
   "users.user": "Benutzer"
 }
+
