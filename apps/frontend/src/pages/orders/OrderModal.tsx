@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon, PlusIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
-import { shopApolloClient } from '../../lib/apollo';
 
 const CREATE_ORDER = gql`
   mutation CreateOrder($input: ShopCreateOrderInput!) {
@@ -96,10 +95,10 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   const [billingPostalCode, setBillingPostalCode] = useState('');
   const [billingCountry, setBillingCountry] = useState('');
 
-  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, ({ client: shopApolloClient } as any));
+  const { data: productsData, loading: productsLoading, error: productsError } = useQuery(GET_PRODUCTS, ({} as any));
   const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS, ({} as any));
   const { data: taxCodesData, loading: taxCodesLoading, error: taxCodesError } = useQuery(GET_TAX_CODES, ({} as any));
-  const [createOrder, { loading }] = useMutation(CREATE_ORDER, ({ client: shopApolloClient } as any));
+  const [createOrder, { loading }] = useMutation(CREATE_ORDER, ({} as any));
 
   // Set default tax code to standard rate (19%) when data loads
   useEffect(() => {

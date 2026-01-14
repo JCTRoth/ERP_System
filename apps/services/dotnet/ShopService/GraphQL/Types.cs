@@ -212,7 +212,7 @@ public class OrderType : ObjectType<Order>
         descriptor.Field(o => o.Id).Type<NonNullType<IdType>>();
         descriptor.Field(o => o.OrderNumber).Type<NonNullType<StringType>>();
         descriptor.Field(o => o.CustomerId).Type<IdType>();
-        descriptor.Field(o => o.Status).Type<NonNullType<EnumType<OrderStatus>>>();
+        descriptor.Field(o => o.Status).Type<NonNullType<EnumType<OrderStatus>>>().Shareable();
         descriptor.Field(o => o.PaymentStatus).Type<NonNullType<EnumType<PaymentStatus>>>();
         
         descriptor.Field(o => o.Subtotal).Type<NonNullType<DecimalType>>();

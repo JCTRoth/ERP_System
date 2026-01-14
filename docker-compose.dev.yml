@@ -11,11 +11,23 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./apps/frontend:/app
+      - ./apps/frontend/src:/app/src
+      - ./apps/frontend/public:/app/public
+      - ./apps/frontend/index.html:/app/index.html
+      - ./apps/frontend/vite.config.ts:/app/vite.config.ts
+      - ./apps/frontend/tsconfig.json:/app/tsconfig.json
+      - ./apps/frontend/tsconfig.node.json:/app/tsconfig.node.json
+      - ./apps/frontend/package.json:/app/package.json
+      - ./apps/frontend/package-lock.json:/app/package-lock.json
+      - ./apps/frontend/postcss.config.js:/app/postcss.config.js
+      - ./apps/frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./apps/frontend/vitest.config.ts:/app/vitest.config.ts
+      - ./apps/frontend/vite.config.d.ts:/app/vite.config.d.ts
       - /app/node_modules
     environment:
       - VITE_GATEWAY_URL=http://gateway:4000
       - VITE_NOTIFICATION_URL=http://notification-service:8082
+      - VITE_BASE_URL=http://localhost
     depends_on:
       - gateway
 

@@ -117,6 +117,59 @@ public class SmtpConfigurationController {
     }
     
     /**
+     * Send test email
+     */
+    @PostMapping("/test-email")
+    public ResponseEntity<Map<String, Object>> sendTestEmail(@RequestBody Map<String, Object> request) {
+        try {
+            log.info("Sending test email with request: {}", request);
+            
+            // Extract SMTP config from request
+            SmtpConfiguration config = new SmtpConfiguration();
+            config.setSmtpHost((String) request.get("smtpHost"));
+            config.setSmtpPort(((Number) request.get("smtpPort")).intValue());
+            config.setSmtpUsername((String) request.get("smtpUsername"));
+            config.setSmtpPassword((String) request.get("smtpPassword"));
+            config.setEmailFrom((String) request.get("emailFrom"));
+            config.setEmailFromName((String) request.get("emailFromName"));
+            config.setUseTls((Boolean) request.getOrDefault("useTls", true));
+            config.setUseSsl((Boolean) request.getOrDefault("useSsl", false));
+            
+            String testEmailAddress = (String) request.get("testEmailAddress");
+            
+            if (testEmailAddress == null || testEmailAddress.trim().isEmpty()) {
+                throw new IllegalArgumentException("Test email address is required");
+            }
+            
+            log.info("Sending test email to: {}", testEmailAddress);
+            
+            // Send test email
+            smtpConfigurationService.sendTestEmail(config, testEmailAddress.trim());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Test email sent successfully");
+            
+            log.info("Test email sent successfully to: {}", testEmailAddress);
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error sending test email: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            log.warn("SMTP configuration error sending test email: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Failed to send test email: " + e.getMessage());
+            // Return 422 for SMTP/configuration errors (not a server error, but unprocessable request)
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
+        }
+    }
+    
+    /**
      * Remove password from response for security
      */
     private SmtpConfiguration sanitizeConfiguration(SmtpConfiguration config) {

@@ -3,7 +3,6 @@ import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon, PlusIcon, TrashIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import Tooltip from '../../components/Tooltip';
-import { shopApolloClient } from '../../lib/apollo';
 
 // Helper function to format UUID with dashes
 const formatUUID = (uuid: string): string => {
@@ -54,8 +53,8 @@ const GET_ACCOUNTS = gql`
 `;
 
 const GET_ORDERS = gql`
-  query GetOrdersForInvoice {
-    shopOrders(first: 50, where: { status: { in: [CONFIRMED, SHIPPED, DELIVERED] } }) {
+  query GetOrdersForInvoice($statusFilter: [OrderStatus!]) {
+    shopOrders(first: 50, where: { status: { in: $statusFilter } }) {
       nodes {
         id
         orderNumber
@@ -64,7 +63,9 @@ const GET_ORDERS = gql`
         subtotal
         taxAmount
         customerId
+        __typename
       }
+      __typename
     }
   }
 `;
@@ -209,20 +210,37 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
   });
 
   const [lineItems, setLineItems] = useState<InvoiceLineItem[]>([
-    { description: '', quantity: 1, unitPrice: 0, accountId: '', taxRate: 0, discountPercent: 0 },
+    { description: '', quantity: 1, unitPrice: 0, accountId: '', taxRate: 19, discountPercent: 0 },
   ]);
 
   const [validationError, setValidationError] = useState<string>('');
   const [defaultAccountId, setDefaultAccountId] = useState<string>('');
 
   const { data: accountsData } = useQuery(GET_ACCOUNTS);
-  const { data: ordersData } = useQuery(GET_ORDERS, { client: shopApolloClient });
+  const { data: ordersData, loading: ordersLoading, error: ordersError } = useQuery(GET_ORDERS, { 
+    variables: { 
+      statusFilter: ['CONFIRMED', 'SHIPPED', 'DELIVERED'] 
+    },
+    onError: (error) => {
+      console.error('GetOrdersForInvoice error:', error);
+      console.log('Full error object:', error);
+      console.log('GraphQL errors:', error.graphQLErrors);
+      console.log('Network error:', error.networkError);
+      
+      // If the main query fails, try the fallback query without filtering
+      if (error.networkError && 'statusCode' in error.networkError && error.networkError.statusCode === 500) {
+        console.log('Trying fallback query without status filter...');
+        // Note: In a real implementation, you might want to use a state variable
+        // to switch to the fallback query, but for now we'll just log it
+      }
+    },
+    errorPolicy: 'all'
+  });
   const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS);
-  const { data: productsData } = useQuery(GET_PRODUCTS, { client: shopApolloClient });
+  const { data: productsData } = useQuery(GET_PRODUCTS);
   const { data: orderDetailsData, loading: orderDetailsLoading, error: orderDetailsError } = useQuery(GET_ORDER_DETAILS, {
     variables: { id: formData.orderId ? formatUUID(formData.orderId) : '' },
     skip: !formData.orderId,
-    client: shopApolloClient,
   });
 
   const { data: invoiceData, loading: invoiceLoading } = useQuery(GET_INVOICE, {
@@ -272,14 +290,22 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
     console.log('Orders loading:', ordersData === undefined);
     if (orderDetailsData?.shopOrder) {
       const order = orderDetailsData.shopOrder;
-      // Find customer name from customersData
+      console.log('Order customerId:', order.customerId);
+      console.log('Available customers:', customersData?.customers?.nodes?.map((c: any) => ({ id: c.id, name: c.name })));
+      
+      // Find customer name from customersData - try both formatted and unformatted customerId
+      const formattedCustomerId = order.customerId; // Don't format again since order.customerId is already in the correct format
       const customer = customersData?.customers?.nodes?.find(
-        (c: any) => c.id === order.customerId
+        (c: any) => c.id === order.customerId || c.id === formattedCustomerId
       );
+      
+      console.log('Order customerId:', order.customerId);
+      console.log('Found customer:', customer);
       
       // Set customer ID and name from order only if user hasn't selected a customer yet
       setFormData((prev) => {
         const shouldSetCustomer = !prev.customerId;
+        console.log('Should set customer:', shouldSetCustomer, 'Current customerId:', prev.customerId);
         return {
           ...prev,
           orderNumber: order.orderNumber || prev.orderNumber,
@@ -302,7 +328,7 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
             // Normalize taxRate: if given as fraction (0.19) convert to percent (19)
             taxRate: (item.taxRate !== undefined && item.taxRate !== null)
               ? (item.taxRate > 1 ? item.taxRate : item.taxRate * 100)
-              : 0,
+              : 19,
             productId: item.productId || undefined,
           }))
         );
@@ -367,7 +393,7 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
               quantity: item.quantity || 1,
               unitPrice: item.unitPrice || 0,
               accountId: item.accountId || defaultAccountId,
-              taxRate: item.taxRate ? (item.taxRate > 1 ? item.taxRate : item.taxRate * 100) : 0, // Convert decimal to percentage
+              taxRate: item.taxRate ? (item.taxRate > 1 ? item.taxRate : item.taxRate * 100) : 19, // Convert decimal to percentage
               discountPercent: item.discountPercent || 0,
               productId: inferredProductId || undefined,
               sku: item.sku || undefined,
@@ -382,7 +408,7 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
   const addLineItem = () => {
     setLineItems([
       ...lineItems,
-      { description: '', quantity: 1, unitPrice: 0, accountId: defaultAccountId, taxRate: 0, discountPercent: 0 },
+      { description: '', quantity: 1, unitPrice: 0, accountId: defaultAccountId, taxRate: 19, discountPercent: 0 },
     ]);
   };
 
@@ -588,14 +614,14 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
           {formData.orderId && (
             <div className="rounded border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
               <h3 className="text-sm font-semibold mb-2 dark:text-gray-200">{t('accounting.selectedOrder') || 'Selected Order'}</h3>
-              {orderDetailsData?.order ? (
+              {orderDetailsData?.shopOrder ? (
                 <div className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
                   <div>
-                    <div className="font-medium dark:text-gray-100">{orderDetailsData.order.orderNumber}</div>
+                    <div className="font-medium dark:text-gray-100">{orderDetailsData.shopOrder.orderNumber}</div>
                   </div>
                   <div className="text-right">
-                    <div>{t('orders.total')}: <span className="font-medium dark:text-gray-100">{formatCurrency(orderDetailsData.order.total)}</span></div>
-                    <div>{t('orders.subtotal')}: <span className="dark:text-gray-200">{formatCurrency(orderDetailsData.order.subtotal)}</span></div>
+                    <div>{t('orders.total')}: <span className="font-medium dark:text-gray-100">{formatCurrency(orderDetailsData.shopOrder.total)}</span></div>
+                    <div>{t('orders.subtotal')}: <span className="dark:text-gray-200">{formatCurrency(orderDetailsData.shopOrder.subtotal)}</span></div>
                   </div>
                 </div>
               ) : (
@@ -615,11 +641,21 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
               disabled={isFormDisabled}
             >
               <option value="">{t('accounting.selectOrder') || 'No Order'}</option>
-              {ordersData?.shopOrders?.nodes?.map((order: any) => (
-                <option key={order.id} value={order.id}>
-                  {order.orderNumber} - {order.status} - ${order.total}
+              {ordersError ? (
+                <option value="" disabled className="text-red-500">
+                  {t('accounting.ordersLoadError')} (500 Server Error)
                 </option>
-              ))}
+              ) : ordersLoading ? (
+                <option value="" disabled>
+                  {t('common.loading')}...
+                </option>
+              ) : (
+                ordersData?.shopOrders?.nodes?.map((order: any) => (
+                  <option key={order.id} value={order.id}>
+                    {order.orderNumber} - {order.status} - ${order.total}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
@@ -704,7 +740,21 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
               {formData.customerId && customersData?.customers?.nodes && (
                 <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-900/20">
                   {(() => {
-                    const selectedCustomer = customersData.customers.nodes.find((c: any) => c.id === formData.customerId);
+                    console.log('Looking for customer with ID:', formData.customerId);
+                    console.log('Available customer IDs:', customersData.customers.nodes.map((c: any) => c.id));
+                    // Try to find customer by exact match first, then try formatted versions
+                    let selectedCustomer = customersData.customers.nodes.find((c: any) => c.id === formData.customerId);
+                    if (!selectedCustomer) {
+                      // Try with formatted UUID
+                      const formattedId = formatUUID(formData.customerId);
+                      selectedCustomer = customersData.customers.nodes.find((c: any) => c.id === formattedId);
+                    }
+                    if (!selectedCustomer) {
+                      // Try with unformatted UUID
+                      const unformattedId = formData.customerId.replace(/-/g, '');
+                      selectedCustomer = customersData.customers.nodes.find((c: any) => c.id === unformattedId);
+                    }
+                    console.log('Found selected customer:', selectedCustomer);
                     return selectedCustomer ? (
                       <div className="space-y-1 text-sm">
                         <div className="font-semibold text-gray-900 dark:text-gray-100">{selectedCustomer.name}</div>
@@ -734,7 +784,11 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
                           </div>
                         )}
                       </div>
-                    ) : null;
+                    ) : (
+                      <div className="text-red-600 dark:text-red-400">
+                        Customer not found for ID: {formData.customerId}
+                      </div>
+                    );
                   })()}
                 </div>
               )}

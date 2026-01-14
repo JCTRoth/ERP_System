@@ -105,6 +105,7 @@
   "accounting.revenue": "Revenue",
   "accounting.salesInvoice": "Sales Invoice",
   "accounting.selectOrder": "Select Order",
+  "accounting.ordersLoadError": "Failed to load orders",
   "accounting.status": "Status",
   "accounting.readOnlyMode": "Read-only mode",
   "accounting.selectCustomer": "Select Customer",

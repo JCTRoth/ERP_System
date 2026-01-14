@@ -48,7 +48,6 @@ function SortableComponent({
   return (
     <div
       ref={setNodeRef}
-
       className={`group relative rounded-md border-2 p-2 transition-colors ${
         isSelected
           ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'

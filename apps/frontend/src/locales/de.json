@@ -104,6 +104,7 @@
   "accounting.revenue": "Umsatz",
   "accounting.salesInvoice": "Verkaufsrechnung",
   "accounting.selectOrder": "Bestellung auswählen",
+  "accounting.ordersLoadError": "Bestellungen konnten nicht geladen werden",
   "accounting.selectCustomer": "Kunden auswählen",
   "accounting.selectProduct": "Produkt auswählen",
   "accounting.selectedOrder": "Ausgewählte Bestellung",

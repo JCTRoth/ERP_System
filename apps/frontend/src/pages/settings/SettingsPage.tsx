@@ -7,9 +7,10 @@ import {
   CodeBracketIcon,
   ServerIcon,
   UserIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 
-type SettingsTab = 'general' | 'developer' | 'interface' | 'smtpServer' | 'account';
+type SettingsTab = 'general' | 'developer' | 'interface' | 'monitoring' | 'smtpServer' | 'account';
 
 export default function SettingsPage() {
   const { t, language, setLanguage } = useI18n();
@@ -19,6 +20,9 @@ export default function SettingsPage() {
   const toggleTranslationKeys = useUIStore((state) => state.toggleTranslationKeys);
   const user = useAuthStore((state) => state.user);
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  
+  // Get base URL from environment or default to localhost for development
+  const baseUrl = import.meta.env.VITE_BASE_URL || 'http://localhost';
   
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [smtpConfig, setSmtpConfig] = useState({
@@ -34,6 +38,7 @@ export default function SettingsPage() {
   const [smtpSource, setSmtpSource] = useState<'database' | 'environment'>('environment');
   const [smtpLoading, setSmtpLoading] = useState(false);
   const [smtpMessage, setSmtpMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [testEmailAddress, setTestEmailAddress] = useState('');
 
   // Load SMTP configuration when SMTP tab is selected
   useEffect(() => {
@@ -136,10 +141,67 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress.trim()) {
+      setSmtpMessage({ type: 'error', text: 'Please enter a test email address' });
+      return;
+    }
+
+    try {
+      setSmtpLoading(true);
+      setSmtpMessage(null);
+
+      console.log('SMTP Test Email: Starting test email send');
+      console.log('SMTP Test Email: Test email address:', testEmailAddress.trim());
+      console.log('SMTP Test Email: SMTP config:', { ...smtpConfig, password: '[REDACTED]' });
+
+      const requestBody = {
+        ...smtpConfig,
+        testEmailAddress: testEmailAddress.trim(),
+      };
+
+      console.log('SMTP Test Email: Sending request to /api/smtp-configuration/test-email');
+
+      const response = await fetch('/api/smtp-configuration/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('SMTP Test Email: Response status:', response.status);
+      console.log('SMTP Test Email: Response headers:', Object.fromEntries(response.headers.entries()));
+
+      const data = await response.json();
+
+      console.log('SMTP Test Email: Response data:', data);
+
+      if (data.success) {
+        console.log('SMTP Test Email: Test email sent successfully');
+        setSmtpMessage({ type: 'success', text: 'Test email sent successfully!' });
+      } else {
+        const errorMsg = data.message || 'Failed to send test email';
+        console.error('SMTP Test Email: Server returned error:', errorMsg);
+        console.error('SMTP Test Email: Full response data:', data);
+        setSmtpMessage({ type: 'error', text: errorMsg });
+      }
+    } catch (error) {
+      console.error('SMTP Test Email: Exception occurred:', error);
+      console.error('SMTP Test Email: Error type:', error instanceof Error ? 'Error' : typeof error);
+      console.error('SMTP Test Email: Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
+      const errorText = error instanceof Error ? error.message : 'Failed to send test email';
+      setSmtpMessage({ type: 'error', text: `Network error: ${errorText}` });
+    } finally {
+      setSmtpLoading(false);
+      console.log('SMTP Test Email: Test email process completed');
+    }
+  };
+
   const tabs = [
     { id: 'general' as const, label: t('settings.general') || 'General', icon: Cog6ToothIcon },
     ...(isAdmin() ? [{ id: 'developer' as const, label: t('settings.developer') || 'Development', icon: CodeBracketIcon }] : []),
     { id: 'interface' as const, label: t('settings.interface') || 'Interfaces', icon: ServerIcon },
+    { id: 'monitoring' as const, label: 'Monitoring', icon: ChartBarIcon },
     { id: 'smtpServer' as const, label: t('settings.smtpServer') || 'SMTP Server', icon: ServerIcon },
     { id: 'account' as const, label: t('settings.account') || 'Account', icon: UserIcon },
   ];
@@ -292,11 +354,11 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {t('settings.masterdataServiceApiDesc') || 'Core business entities including customers, suppliers, employees, assets, currencies, and reference data management. Health check.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5002/swagger/index.html</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:5002/swagger/index.html</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <a
-                      href="http://localhost:5002/swagger/index.html"
+                      href="${baseUrl}:5002/swagger/index.html"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary flex items-center gap-2"
@@ -315,11 +377,11 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {t('settings.shopServiceApiDesc') || 'E-commerce functionality including products, categories, orders, shopping cart, and inventory management.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:5003/swagger</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:5003/swagger</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <a
-                      href="http://localhost:5003/swagger"
+                      href="${baseUrl}:5003/swagger"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary flex items-center gap-2"
@@ -338,11 +400,11 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {t('settings.companyServiceApiDesc') || 'Multi-tenant company management, organizational structure, and company settings. Java/Spring Boot service.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:8080/swagger-ui/index.html</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:8080/swagger-ui/index.html</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <a
-                      href="http://localhost:8080/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true"
+                      href="${baseUrl}:8080/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary flex items-center gap-2"
@@ -361,11 +423,46 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {t('settings.translationServiceApiDesc') || 'Internationalization and localization. Manages translation keys, supported languages, and dynamic content translation.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">http://localhost:8081/swagger-ui.html</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:8081/swagger-ui.html</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <a
-                      href="http://localhost:8081/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true"
+                      href="${baseUrl}:8081/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary flex items-center gap-2"
+                    >
+                      {t('common.open')}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Monitoring Tab */}
+        {activeTab === 'monitoring' && (
+          <div className="card p-6">
+            <h2 className="mb-4 text-lg font-semibold">Monitoring Dashboard</h2>
+            <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+              Access monitoring and observability tools for the ERP system.
+            </p>
+            
+            <div className="space-y-4">
+              {/* Grafana */}
+              <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-medium">Grafana Dashboard</h3>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                      Visualize metrics, logs, and system performance with interactive dashboards.
+                    </p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:3001</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="${baseUrl}:3001"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary flex items-center gap-2"
@@ -399,7 +496,28 @@ export default function SettingsPage() {
                   ? 'bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-200'
                   : 'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-200'
               }`}>
-                {smtpMessage.text}
+                <div className="flex items-center justify-between">
+                  <span>{smtpMessage.text}</span>
+                  {smtpMessage.type === 'success' && smtpMessage.text === t('settings.connectionSuccess') && (
+                    <div className="flex items-center gap-2 ml-4">
+                      <input
+                        type="email"
+                        value={testEmailAddress}
+                        onChange={(e) => setTestEmailAddress(e.target.value)}
+                        placeholder="test@example.com"
+                        className="input text-sm px-2 py-1 w-48"
+                        disabled={smtpLoading}
+                      />
+                      <button
+                        onClick={handleSendTestEmail}
+                        disabled={smtpLoading || !testEmailAddress.trim()}
+                        className="btn-secondary text-sm px-3 py-1"
+                      >
+                        Send Test Email
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

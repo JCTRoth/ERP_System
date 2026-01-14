@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
-import { shopApolloClient, apolloClient as gatewayApolloClient } from '../lib/apollo';
+import { apolloClient as gatewayApolloClient } from '../lib/apollo';
 import * as templatesApi from '../lib/api/templates';
 import type { Template as ApiTemplate } from '../lib/api/templates';
 import {
@@ -76,10 +76,10 @@ export function useTemplatePreview(template: ApiTemplate) {
   }, [template.content]);
 
   // Fetch master data
-  const { data: ordersData, loading: ordersLoading } = useQuery(GET_ORDERS, { client: shopApolloClient });
+  const { data: ordersData, loading: ordersLoading } = useQuery(GET_ORDERS);
   const { data: invoicesData, loading: invoicesLoading } = useQuery(GET_INVOICES);
   const { data: customersData, loading: customersLoading } = useQuery(GET_CUSTOMERS);
-  const { data: productsData, loading: productsLoading } = useQuery(GET_PRODUCTS, { client: shopApolloClient });
+  const { data: productsData, loading: productsLoading } = useQuery(GET_PRODUCTS);
   const { data: companiesData, loading: companiesLoading } = useQuery(GET_COMPANIES);
 
   const masterData = {
@@ -100,10 +100,10 @@ export function useTemplatePreview(template: ApiTemplate) {
       try {
         const updates: Partial<typeof fullRecords> = {};
 
-        // Fetch order details from shop (shopApolloClient)
+        // Fetch order details from shop (gatewayApolloClient)
         if (selectedIds.orderId) {
           try {
-            const { data } = await shopApolloClient.query({
+            const { data } = await gatewayApolloClient.query({
               query: GET_SHOP_ORDER_DETAILS,
               variables: { id: selectedIds.orderId },
               fetchPolicy: 'network-only'
@@ -159,7 +159,7 @@ export function useTemplatePreview(template: ApiTemplate) {
         // Fetch product details from shop
         if (selectedIds.productId) {
           try {
-            const { data } = await shopApolloClient.query({
+            const { data } = await gatewayApolloClient.query({
               query: GET_PRODUCT_DETAILS,
               variables: { id: selectedIds.productId },
               fetchPolicy: 'network-only'

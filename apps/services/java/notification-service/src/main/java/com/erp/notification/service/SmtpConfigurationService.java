@@ -140,6 +140,31 @@ public class SmtpConfigurationService {
     }
     
     /**
+     * Send test email with given configuration
+     */
+    public void sendTestEmail(SmtpConfiguration config, String testEmailAddress) {
+        try {
+            log.info("Sending test email to: {}", testEmailAddress);
+            
+            JavaMailSenderImpl mailSender = createMailSender(config);
+            
+            // Create test email
+            org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
+            message.setFrom(config.getEmailFrom());
+            message.setTo(testEmailAddress);
+            message.setSubject("ERP System - SMTP Test Email");
+            message.setText("This is a test email from your ERP System.\n\nIf you received this email, your SMTP configuration is working correctly.\n\nSent at: " + java.time.LocalDateTime.now());
+            
+            mailSender.send(message);
+            log.info("Test email sent successfully to: {}", testEmailAddress);
+            
+        } catch (Exception e) {
+            log.error("Failed to send test email to: {} - Error: {}", testEmailAddress, e.getMessage(), e);
+            throw new RuntimeException("Failed to send test email: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
      * Create default configuration from environment variables
      */
     private SmtpConfiguration createDefaultConfiguration() {

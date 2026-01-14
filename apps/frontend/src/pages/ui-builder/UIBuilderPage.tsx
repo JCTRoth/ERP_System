@@ -30,6 +30,7 @@ import PreviewModal from './components/PreviewModal';
 import CodeExportModal from './components/CodeExportModal';
 import PageManagerModal from './components/PageManagerModal';
 import ScriptEditorModal from './components/ScriptEditorModal';
+import Tooltip from '../../components/Tooltip';
 import { 
   UIComponent, 
   UIRow, 
@@ -66,8 +67,24 @@ export default function UIBuilderPage() {
   const dragPositionRef = useRef<{ x: number; y: number } | null>(null);
   const [activeDragType, setActiveDragType] = useState<ComponentType | null>(null);
 
+  const getComponentTooltip = (type: ComponentType) => {
+    const tooltips: Record<ComponentType, string> = {
+      'text': 'Text Block - Display static or dynamic text content',
+      'heading': 'Heading - Page or section title',
+      'button': 'Button - Clickable action with optional script',
+      'input': 'Text Input - Single-line text field for user input',
+      'select': 'Dropdown - Selection from multiple options',
+      'checkbox': 'Checkbox - Boolean toggle for yes/no values',
+      'card': 'Card - Container for grouping related content',
+      'divider': 'Divider - Visual separator between sections (full-width)',
+      'spacer': 'Spacer - Add vertical spacing (full-width)',
+      'image': 'Image - Display pictures or graphics',
+      'table': 'Table - Display tabular data with rows and columns (full-width)',
+    };
+    return tooltips[type] || '';
+  };
+
   const handleAddComponentToSlot = useCallback((componentType: ComponentType) => {
-    console.log('handleAddComponentToSlot called', { componentType, pendingSlotInfo });
     if (!pendingSlotInfo) return;
 
     const { rowId, slotIndex } = pendingSlotInfo;
@@ -976,14 +993,15 @@ export default function UIBuilderPage() {
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
                       {categoryComponents.map((definition) => (
-                        <button
-                          key={definition.type}
-                          onClick={() => handleAddComponentToSlot(definition.type)}
-                          className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 transition-colors hover:border-primary-500 hover:bg-primary-50 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-primary-500 dark:hover:bg-gray-600"
-                        >
-                          <span className="text-2xl">{definition.icon}</span>
-                          <span className="font-medium">{definition.label}</span>
-                        </button>
+                        <Tooltip key={definition.type} content={getComponentTooltip(definition.type)} position="top">
+                          <button
+                            onClick={() => handleAddComponentToSlot(definition.type)}
+                            className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 transition-colors hover:border-primary-500 hover:bg-primary-50 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-primary-500 dark:hover:bg-gray-600"
+                          >
+                            <span className="text-2xl">{definition.icon}</span>
+                            <span className="font-medium">{definition.label}</span>
+                          </button>
+                        </Tooltip>
                       ))}
                     </div>
                   </div>

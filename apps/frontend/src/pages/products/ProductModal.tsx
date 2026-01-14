@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
-import { shopApolloClient } from '../../lib/apollo';
 
 const CREATE_PRODUCT = gql`
   mutation CreateProduct($input: CreateProductInput!) {
@@ -82,11 +81,11 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
     isActive: true,
   });
 
-  const { data: categoriesData } = useQuery(GET_CATEGORIES, { client: shopApolloClient });
-  const { data: brandsData } = useQuery(GET_BRANDS, { client: shopApolloClient });
+  const { data: categoriesData } = useQuery(GET_CATEGORIES);
+  const { data: brandsData } = useQuery(GET_BRANDS);
 
-  const [createProduct, { loading: createLoading }] = useMutation(CREATE_PRODUCT, { client: shopApolloClient });
-  const [updateProduct, { loading: updateLoading }] = useMutation(UPDATE_PRODUCT, { client: shopApolloClient });
+  const [createProduct, { loading: createLoading }] = useMutation(CREATE_PRODUCT);
+  const [updateProduct, { loading: updateLoading }] = useMutation(UPDATE_PRODUCT);
 
   useEffect(() => {
     if (product) {

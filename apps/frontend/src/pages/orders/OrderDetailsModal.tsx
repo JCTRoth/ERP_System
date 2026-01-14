@@ -4,6 +4,17 @@ import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { apolloClient } from '../../lib/apollo';
 
+// Helper function to format UUID with dashes
+const formatUUID = (uuid: string): string => {
+  if (!uuid) return '';
+  // Remove any existing dashes
+  const cleaned = uuid.replace(/-/g, '');
+  // Check if it's a valid hex string (32 chars)
+  if (cleaned.length !== 32) return uuid;
+  // Format as standard UUID: 8-4-4-4-12
+  return `${cleaned.substring(0, 8)}-${cleaned.substring(8, 12)}-${cleaned.substring(12, 16)}-${cleaned.substring(16, 20)}-${cleaned.substring(20)}`;
+};
+
 // Helper function to format document titles
 const formatDocumentTitle = (documentType: string, templateKey?: string) => {
   // Convert camelCase to PascalCase (CamelCase)
@@ -157,7 +168,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   });
 
   const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, {
-    variables: { id: orderId },
+    variables: { id: formatUUID(orderId) },
     client: apolloClient,
     pollInterval: 5000,
   });

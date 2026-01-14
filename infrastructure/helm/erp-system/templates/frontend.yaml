@@ -32,6 +32,8 @@ spec:
               value: "/graphql"
             - name: VITE_ENVIRONMENT
               value: {{ .Values.environment }}
+            - name: VITE_BASE_URL
+              value: {{ .Values.global.baseUrl | default "http://localhost" }}
           livenessProbe:
             httpGet:
               path: /

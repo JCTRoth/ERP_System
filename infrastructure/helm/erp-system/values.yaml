@@ -5,6 +5,7 @@ global:
   imageRegistry: ""
   imagePullSecrets: []
   storageClass: ""
+  baseUrl: "http://localhost"
 
 # =============================================================================
 # Common Settings

@@ -1,4 +1,4 @@
-import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/client';
+import { ApolloClient, InMemoryCache, createHttpLink, from, ApolloLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { useAuthStore } from '../stores/authStore';
@@ -54,6 +54,9 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
       if (statusCode === 401 || statusCode === 403) {
         shouldForceLogout = true;
       }
+      // Do NOT force logout for 500 errors (server-side issues) — leave the
+      // decision to the UI or specific handlers. This prevents accidental
+      // logouts when subgraphs or downstream services are temporarily failing.
       // Silently ignore 400 validation errors (schema mismatches / missing federated subgraph)
       if (statusCode === 400) {
         return;
@@ -99,10 +102,24 @@ const shopGraphqlUrl = '/shop/graphql';
 
 const shopHttpLink = createHttpLink({
   uri: shopGraphqlUrl,
+  credentials: 'same-origin',
+});
+
+// Create a console logging link for debugging
+const logLink = new ApolloLink((operation, forward) => {
+  console.log(`[Apollo] ${operation.operationName}:`, {
+    query: operation.query.loc?.source.body,
+    variables: operation.variables,
+    context: operation.getContext(),
+  });
+  return forward(operation).map((response) => {
+    console.log(`[Apollo] ${operation.operationName} response:`, response);
+    return response;
+  });
 });
 
 export const shopApolloClient = new ApolloClient({
-  link: from([errorLink, authLink, shopHttpLink]),
+  link: from([logLink, errorLink, authLink, shopHttpLink]),
   cache: new InMemoryCache({
     typePolicies: {
       Query: {
@@ -110,20 +127,33 @@ export const shopApolloClient = new ApolloClient({
           products: {
             merge: false,
           },
+          shopOrders: {
+            merge: false,
+          },
         },
       },
     },
   }),
+  // Disable all Apollo Client optimizations and caching
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'cache-and-network',
+      fetchPolicy: 'no-cache',
       errorPolicy: 'all',
     },
     query: {
-      fetchPolicy: 'network-only',
+      fetchPolicy: 'no-cache',
+      errorPolicy: 'all',
+    },
+    mutate: {
       errorPolicy: 'all',
     },
   },
+  // Disable schema validation and introspection
+  queryDeduplication: false,
+  assumeImmutableResults: false,
+  // Prevent Apollo DevTools from introspecting this client
+  name: 'ShopClient',
+  version: '1.0',
 });
 
 export const apolloClient = new ApolloClient({
@@ -138,13 +168,22 @@ export const apolloClient = new ApolloClient({
           users: {
             merge: false,
           },
+          invoices: {
+            merge: false,
+          },
+          customers: {
+            merge: false,
+          },
         },
       },
     },
   }),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'cache-and-network',
+      fetchPolicy: 'no-cache', // Force network requests to bypass cache
+    },
+    query: {
+      fetchPolicy: 'no-cache', // Force network requests to bypass cache
     },
   },
 });

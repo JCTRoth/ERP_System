@@ -96,6 +96,7 @@
   "accounting.revenue": "Revenus",
   "accounting.salesInvoice": "Facture de vente",
   "accounting.selectOrder": "Sélectionner une commande",
+  "accounting.ordersLoadError": "Échec du chargement des commandes",
   "accounting.selectCustomer": "Sélectionner un client",
   "accounting.selectProduct": "Sélectionner un produit",
   "accounting.selectedOrder": "Commande sélectionnée",

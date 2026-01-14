@@ -1,11 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
-var gatewayUrl = process.env.VITE_GATEWAY_URL || "http://localhost:4000";
-var shopUrl = process.env.VITE_SHOP_URL || "http://localhost:5003";
-var notificationUrl = process.env.VITE_NOTIFICATION_URL || "http://notification-service:8082";
+import path from "node:path";
+var gatewayUrl = "http://gateway:4000";
+var shopUrl = "http://shop-service:5003";
+var notificationUrl = "http://notification-service:8082";
 // Log resolved backend targets when Vite starts (helps debug proxy DNS issues)
-console.log("[vite] using gateway target: ".concat(gatewayUrl, ", shop target: ").concat(shopUrl));
+console.log("[vite] using gateway target: ".concat(gatewayUrl, ", shop target: ").concat(shopUrl, ", notification target: ").concat(notificationUrl));
 export default defineConfig({
     plugins: [react()],
     resolve: {
@@ -38,11 +38,11 @@ export default defineConfig({
                 changeOrigin: true,
                 secure: false,
             },
-            "/api": {
-                target: gatewayUrl,
-                changeOrigin: true,
-                secure: false,
-            },
+            // "/api": {
+            //   target: gatewayUrl,
+            //   changeOrigin: true,
+            //   secure: false,
+            // },
         },
     },
     build: {

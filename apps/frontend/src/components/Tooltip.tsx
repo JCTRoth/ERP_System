@@ -123,7 +123,7 @@ export default function Tooltip({
         onMouseLeave={hideTooltip}
         onFocus={showTooltip}
         onBlur={hideTooltip}
-        className={`inline-flex ${className}`}
+        className={className}
       >
         {children}
       </div>
