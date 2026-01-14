@@ -161,6 +161,8 @@ function SortableRow({
   // Check if active drag type can fit in this row
   const canFitActiveDrag = activeDragType ? canAddToRow(row, activeDragType) : true;
   const showInvalidDropZone = isOver && activeDragType && !canFitActiveDrag;
+  // Whether a component in this row is selected
+  const rowSelected = !!selectedComponent && row.components.some(c => c.id === selectedComponent.id);
 
   return (
     <div
@@ -191,19 +193,36 @@ function SortableRow({
         </div>
       </div>
 
-      {/* Delete Row Button */}
-      <button
-        onClick={() => onDeleteRow(row.id)}
-        className="absolute -right-6 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover/row:opacity-100 p-1 bg-red-100 dark:bg-red-900/30 rounded hover:bg-red-200 dark:hover:bg-red-900/50"
-        title="Delete Row"
-      >
-        <TrashIcon className="h-4 w-4 text-red-500" />
-      </button>
+      {/* Floating Buttons (Add + Delete) - stacked vertically, same size */}
+      <div className={`absolute -right-12 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 transition-opacity z-50 pointer-events-none ${rowSelected ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100'}`}>
+        <div className="pointer-events-auto">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onInsertRowBelow) onInsertRowBelow(row.id);
+            }}
+            className="h-8 w-8 flex items-center justify-center bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transform hover:scale-110"
+            title="Add Row"
+          >
+            <PlusIcon className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="pointer-events-auto">
+          <button
+            onClick={() => onDeleteRow(row.id)}
+            className="h-8 w-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transform hover:scale-110"
+            title="Delete Row"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
       {/* Grid Row */}
       <div
         ref={setDropRef}
-        className={`grid grid-cols-3 gap-2 min-h-[60px] p-2 rounded-lg border-2 border-dashed transition-colors relative ${
+        className={`grid grid-cols-3 gap-2 min-h-[60px] p-2 pl-12 pr-20 rounded-lg border-2 border-dashed transition-colors relative ${
           showInvalidDropZone
             ? 'border-red-500 bg-red-50 dark:bg-red-900/20' 
             : isOver 
@@ -272,21 +291,7 @@ function SortableRow({
         )}
       </div>
 
-      {/* Component Type Selector - Floating Menu (always visible/clickable) */}
-      <div className="absolute -right-12 top-2">
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onInsertRowBelow) onInsertRowBelow(row.id);
-            }}
-            className="bg-primary-500 hover:bg-primary-600 text-white rounded-full p-2 shadow-lg transition-all transform hover:scale-110 animate-pulse"
-            title="Add Row"
-          >
-            <PlusIcon className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
+      {/* removed individual floating add button (now uses stacked container) */}
     </div>
   );
 }
@@ -327,7 +332,7 @@ export default function Canvas({
   return (
     <div
       ref={setNodeRef}
-      className={`card h-full min-h-[400px] overflow-y-auto p-6 ${
+      className={`card h-full min-h-[400px] overflow-y-auto overflow-x-visible px-2 py-6 ${
         isOver ? 'ring-2 ring-primary-500' : ''
       }`}
       onClick={() => onSelect(null)}
@@ -350,7 +355,7 @@ export default function Canvas({
           </button>
         </div>
       ) : (
-        <div>
+        <div className="px-12">
           <SortableContext
             items={rows.map(r => r.id)}
             strategy={verticalListSortingStrategy}
@@ -379,9 +384,9 @@ export default function Canvas({
               e.stopPropagation();
               onAddRow();
             }}
-            className="w-full mt-4 p-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 hover:border-primary-500 hover:text-primary-500 transition-colors flex items-center justify-center gap-2"
+            className="w-full mt-4 p-1 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 hover:border-primary-500 hover:text-primary-500 transition-colors flex items-center justify-center gap-2 text-sm"
           >
-            <PlusIcon className="h-5 w-5" />
+            <PlusIcon className="h-4 w-4" />
             Add Row
           </button>
         </div>

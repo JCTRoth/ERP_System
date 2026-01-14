@@ -17,7 +17,7 @@ export default function MainLayout() {
         <Header />
 
         {/* Main */}
-        <main className="mx-auto w-full max-w-screen-2xl p-4 md:p-6 2xl:p-10 flex-1 flex flex-col min-h-0">
+        <main className="mx-auto w-full max-w-none p-6 md:p-8 2xl:p-12 flex-1 flex flex-col min-h-0">
           <Outlet />
         </main>
       </div>
