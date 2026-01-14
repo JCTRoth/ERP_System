@@ -58,6 +58,8 @@ export default function UIBuilderPage() {
   const [isPageManagerOpen, setIsPageManagerOpen] = useState(false);
   const [isScriptEditorOpen, setIsScriptEditorOpen] = useState(false);
   const [isComponentModalOpen, setIsComponentModalOpen] = useState(false);
+  const [isImportDropdownOpen, setIsImportDropdownOpen] = useState(false);
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   const [pendingSlotInfo, setPendingSlotInfo] = useState<{ rowId: string; slotIndex: number } | null>(null);
   const [editingScriptComponentId, setEditingScriptComponentId] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -134,6 +136,22 @@ export default function UIBuilderPage() {
       setHasUnsavedChanges(true);
     }
   }, [rows, scripts]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        setIsImportDropdownOpen(false);
+        setIsExportDropdownOpen(false);
+      }
+    };
+
+    if (isImportDropdownOpen || isExportDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isImportDropdownOpen, isExportDropdownOpen]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -746,54 +764,72 @@ export default function UIBuilderPage() {
           </button>
           
           {/* Import dropdown */}
-          <div className="relative group">
+          <div className="relative dropdown-container">
             <button
+              onClick={() => setIsImportDropdownOpen(!isImportDropdownOpen)}
               className="btn-secondary flex items-center gap-2"
               title={t('uiBuilder.import')}
             >
               <ArrowUpTrayIcon className="h-5 w-5" />
               Import
             </button>
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block bg-white dark:bg-gray-800 shadow-lg rounded-md border dark:border-gray-700 z-10">
-              <button
-                onClick={handleImportJSON}
-                className="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-              >
-                Import JSON
-              </button>
-              <button
-                onClick={handleImportZIP}
-                className="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-              >
-                Import ZIP (with scripts)
-              </button>
-            </div>
+            {isImportDropdownOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 shadow-lg rounded-md border dark:border-gray-700 z-10">
+                <button
+                  onClick={() => {
+                    handleImportJSON();
+                    setIsImportDropdownOpen(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                >
+                  Import JSON
+                </button>
+                <button
+                  onClick={() => {
+                    handleImportZIP();
+                    setIsImportDropdownOpen(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                >
+                  Import ZIP (with scripts)
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Export dropdown */}
-          <div className="relative group">
+          <div className="relative dropdown-container">
             <button
+              onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
               className="btn-secondary flex items-center gap-2"
               title={t('uiBuilder.exportCode')}
             >
               <ArrowDownTrayIcon className="h-5 w-5" />
               Export
             </button>
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block bg-white dark:bg-gray-800 shadow-lg rounded-md border dark:border-gray-700 z-10">
-              <button
-                onClick={() => setIsCodeExportOpen(true)}
-                className="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-              >
-                <CodeBracketIcon className="h-4 w-4 inline mr-2" />
-                Export as Code
-              </button>
-              <button
-                onClick={handleExportZIP}
-                className="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-              >
-                Export ZIP (with scripts)
-              </button>
-            </div>
+            {isExportDropdownOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 shadow-lg rounded-md border dark:border-gray-700 z-10">
+                <button
+                  onClick={() => {
+                    setIsCodeExportOpen(true);
+                    setIsExportDropdownOpen(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                >
+                  <CodeBracketIcon className="h-4 w-4 inline mr-2" />
+                  Export as Code
+                </button>
+                <button
+                  onClick={() => {
+                    handleExportZIP();
+                    setIsExportDropdownOpen(false);
+                  }}
+                  className="block w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                >
+                  Export ZIP (with scripts)
+                </button>
+              </div>
+            )}
           </div>
 
           <button

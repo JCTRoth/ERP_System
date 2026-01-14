@@ -81,7 +81,7 @@ export default function SettingsPage() {
       setSmtpLoading(true);
       setSmtpMessage(null);
       
-      const response = await fetch('http://localhost:8082/api/smtp-configuration', {
+      const response = await fetch('/api/smtp-configuration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(smtpConfig),
@@ -113,7 +113,7 @@ export default function SettingsPage() {
       setSmtpLoading(true);
       setSmtpMessage(null);
       
-      const response = await fetch('http://localhost:8082/api/smtp-configuration/test', {
+      const response = await fetch('/api/smtp-configuration/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(smtpConfig),

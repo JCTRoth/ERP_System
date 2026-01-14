@@ -15,6 +15,7 @@ services:
       - /app/node_modules
     environment:
       - VITE_GATEWAY_URL=http://gateway:4000
+      - VITE_NOTIFICATION_URL=http://notification-service:8082
     depends_on:
       - gateway
 
