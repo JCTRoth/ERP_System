@@ -193,6 +193,8 @@
   "customPage.notFoundDescription": "Запрошенная пользовательская страница не найдена.",
   "dashboard.growth": "Рост",
   "dashboard.noRecentActivity": "Нет недавней активности",
+  "dashboard.shopServiceUnavailable": "Сервис магазина недоступен - пожалуйста, попробуйте позже",
+  "dashboard.errorLoadingOrders": "Ошибка загрузки заказов - пожалуйста, обновите страницу",
   "dashboard.overview": "Обзор",
   "dashboard.recentCustomers": "Недавние клиенты",
   "dashboard.recentOrders": "Недавние заказы",

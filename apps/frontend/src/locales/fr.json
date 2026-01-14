@@ -193,6 +193,8 @@
   "customPage.notFoundDescription": "La page personnalisée demandée n'a pas pu être trouvée.",
   "dashboard.growth": "Croissance",
   "dashboard.noRecentActivity": "Aucune activité récente",
+  "dashboard.shopServiceUnavailable": "Service boutique indisponible - veuillez réessayer plus tard",
+  "dashboard.errorLoadingOrders": "Erreur de chargement des commandes - veuillez actualiser la page",
   "dashboard.overview": "Aperçu",
   "dashboard.recentOrders": "Commandes récentes",
   "dashboard.recentUsers": "Utilisateurs récents",

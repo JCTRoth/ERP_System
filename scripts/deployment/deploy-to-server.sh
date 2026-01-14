@@ -470,9 +470,6 @@ services:
     container_name: erp_system-frontend
     environment:
       VITE_API_URL: https://${DEPLOY_DOMAIN}/graphql
-    ports:
-      - "5173:5173"
-    expose: []
     restart: unless-stopped
     networks:
       - erp-network
@@ -549,7 +546,7 @@ server {
     
     # Frontend
     location / {
-        proxy_pass http://frontend:5173;
+        proxy_pass http://frontend;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;

@@ -42,6 +42,7 @@
     "npm": ">=10.0.0"
   },
   "dependencies": {
-    "@monaco-editor/react": "^4.7.0"
+    "@monaco-editor/react": "^4.7.0",
+    "jszip": "^3.10.1"
   }
 }

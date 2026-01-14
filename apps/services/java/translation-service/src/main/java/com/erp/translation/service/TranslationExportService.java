@@ -137,6 +137,7 @@ public class TranslationExportService {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public String exportToJson(String language, String namespace) {
         TranslationBundleDto bundle = translationService.getTranslationBundle(language, null, namespace);
         

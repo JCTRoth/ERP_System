@@ -24,7 +24,6 @@ import {
 import JSZip from 'jszip';
 import { useI18n } from '../../providers/I18nProvider';
 import { useUIBuilderStore, UIPage } from '../../stores/uiBuilderStore';
-import ComponentPalette from './components/ComponentPalette';
 import Canvas from './components/Canvas';
 import PropertiesPanel from './components/PropertiesPanel';
 import PreviewModal from './components/PreviewModal';
@@ -35,10 +34,12 @@ import {
   UIComponent, 
   UIRow, 
   ComponentType, 
+  ColumnSpan,
   getDefaultColumnSpan, 
   canAddToRow,
   getComponentDefinition,
-  hasOverlap
+  hasOverlap,
+  COMPONENT_DEFINITIONS
 } from './types';
 import { generateId } from './utils';
 
@@ -56,10 +57,46 @@ export default function UIBuilderPage() {
   const [isCodeExportOpen, setIsCodeExportOpen] = useState(false);
   const [isPageManagerOpen, setIsPageManagerOpen] = useState(false);
   const [isScriptEditorOpen, setIsScriptEditorOpen] = useState(false);
+  const [isComponentModalOpen, setIsComponentModalOpen] = useState(false);
+  const [pendingSlotInfo, setPendingSlotInfo] = useState<{ rowId: string; slotIndex: number } | null>(null);
   const [editingScriptComponentId, setEditingScriptComponentId] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const dragPositionRef = useRef<{ x: number; y: number } | null>(null);
   const [activeDragType, setActiveDragType] = useState<ComponentType | null>(null);
+
+  const handleAddComponentToSlot = useCallback((componentType: ComponentType) => {
+    if (!pendingSlotInfo) return;
+
+    const { rowId, slotIndex } = pendingSlotInfo;
+    const rowIdx = rows.findIndex(r => r.id === rowId);
+    if (rowIdx === -1) return;
+
+    const newComponent: UIComponent = {
+      id: generateId(),
+      type: componentType,
+      props: getDefaultProps(componentType),
+      columnSpan: 1,
+      startColumn: (slotIndex + 1) as 1 | 2 | 3,
+      children: [],
+    };
+
+    const newRows = rows.map((row, idx) => {
+      if (idx === rowIdx) {
+        return {
+          ...row,
+          components: [...row.components, newComponent].sort((a, b) => (a.startColumn ?? 1) - (b.startColumn ?? 1))
+        };
+      }
+      return row;
+    });
+
+    setRows(newRows);
+    setSelectedComponent(newComponent);
+    setSelectedRow(rows[rowIdx]);
+    setIsComponentModalOpen(false);
+    setPendingSlotInfo(null);
+    setHasUnsavedChanges(true);
+  }, [pendingSlotInfo, rows]);
 
   // Load current page
   useEffect(() => {
@@ -305,13 +342,27 @@ export default function UIBuilderPage() {
     setRows((prevRows) =>
       prevRows.map((row) => ({
         ...row,
-        components: row.components.map((c) =>
-          c.id === id ? { ...c, ...updates } : c
-        ),
+        components: row.components.map((c) => {
+          if (c.id === id) {
+            const updated = { ...c, ...updates };
+            if (updates.columnSpan) {
+              updated.columnSpan = Math.max(1, updates.columnSpan) as ColumnSpan;
+            }
+            return updated;
+          }
+          return c;
+        }),
       }))
     );
     if (selectedComponent?.id === id) {
-      setSelectedComponent((prev) => prev ? { ...prev, ...updates } : null);
+      setSelectedComponent((prev) => {
+        if (!prev) return null;
+        const updated = { ...prev, ...updates };
+        if (updates.columnSpan) {
+          updated.columnSpan = Math.max(1, updates.columnSpan) as ColumnSpan;
+        }
+        return updated;
+      });
     }
   }, [selectedComponent]);
 
@@ -766,11 +817,6 @@ export default function UIBuilderPage() {
         onDragEnd={handleDragEnd}
       >
         <div className="flex flex-1 gap-4 overflow-hidden">
-          {/* Left Panel - Component Palette */}
-          <div className="w-64 flex-shrink-0">
-            <ComponentPalette />
-          </div>
-
           {/* Center - Canvas */}
           <div className="flex-1 overflow-auto">
             <Canvas
@@ -794,6 +840,10 @@ export default function UIBuilderPage() {
               onDeleteRow={handleDeleteRow}
               onEditScript={handleEditScript}
               activeDragType={activeDragType}
+              onOpenComponentModal={(rowId, slotIndex) => {
+                setPendingSlotInfo({ rowId, slotIndex });
+                setIsComponentModalOpen(true);
+              }}
             />
           </div>
 
@@ -849,6 +899,61 @@ export default function UIBuilderPage() {
           script={scripts[editingComponent.id] || ''}
           onSave={handleSaveScript}
         />
+      )}
+
+      {/* Component Selection Modal */}
+      {isComponentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/60">
+          <div className="card max-h-[90vh] w-full max-w-2xl overflow-y-auto">
+            <div className="sticky top-0 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold">{t('uiBuilder.selectComponent')}</h2>
+              <button
+                onClick={() => {
+                  setIsComponentModalOpen(false);
+                  setPendingSlotInfo(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-4">
+              {[
+                { key: 'basic', label: t('uiBuilder.basicComponents') },
+                { key: 'form', label: t('uiBuilder.formComponents') },
+                { key: 'layout', label: t('uiBuilder.layoutComponents') },
+                { key: 'data', label: t('uiBuilder.dataComponents') },
+              ].map((category) => {
+                const categoryComponents = COMPONENT_DEFINITIONS.filter(
+                  (d) => d.category === category.key
+                );
+                
+                if (categoryComponents.length === 0) return null;
+                
+                return (
+                  <div key={category.key} className="mb-6">
+                    <h3 className="mb-3 text-sm font-semibold uppercase text-gray-600 dark:text-gray-400">
+                      {category.label}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {categoryComponents.map((definition) => (
+                        <button
+                          key={definition.type}
+                          onClick={() => handleAddComponentToSlot(definition.type)}
+                          className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 transition-colors hover:border-primary-500 hover:bg-primary-50 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-primary-500 dark:hover:bg-gray-600"
+                        >
+                          <span className="text-2xl">{definition.icon}</span>
+                          <span className="font-medium">{definition.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

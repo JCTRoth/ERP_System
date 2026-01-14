@@ -201,6 +201,8 @@
   "customPage.notFoundDescription": "Die angeforderte benutzerdefinierte Seite konnte nicht gefunden werden.",
   "dashboard.growth": "Wachstum",
   "dashboard.noRecentActivity": "Keine aktuellen Aktivitäten",
+  "dashboard.shopServiceUnavailable": "Shop-Service nicht verfügbar - bitte versuchen Sie es später erneut",
+  "dashboard.errorLoadingOrders": "Fehler beim Laden der Bestellungen - bitte aktualisieren Sie die Seite",
   "dashboard.overview": "Übersicht",
   "dashboard.recentCustomers": "Neue Kunden",
   "dashboard.recentOrders": "Neue Bestellungen",

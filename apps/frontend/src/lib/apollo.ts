@@ -117,6 +117,11 @@ export const shopApolloClient = new ApolloClient({
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'cache-and-network',
+      errorPolicy: 'all',
+    },
+    query: {
+      fetchPolicy: 'network-only',
+      errorPolicy: 'all',
     },
   },
 });

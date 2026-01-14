@@ -43,6 +43,7 @@ public class DynamicFieldDataFetcher {
     }
 
     @DgsMutation
+    @SuppressWarnings("unchecked")
     public DynamicFieldDefinitionDto createDynamicFieldDefinition(
             @InputArgument Map<String, Object> input) {
         
@@ -59,6 +60,7 @@ public class DynamicFieldDataFetcher {
     }
 
     @DgsMutation
+    @SuppressWarnings("unchecked")
     public DynamicFieldDefinitionDto updateDynamicFieldDefinition(
             @InputArgument String id,
             @InputArgument Map<String, Object> input) {

@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useI18n } from '../providers/I18nProvider';
 import { useAuthStore } from '../stores/authStore';
 import { useQuery, gql } from '@apollo/client';
-import { shopApolloClient } from '../lib/apollo';
 import {
   BuildingOfficeIcon,
   UsersIcon,
@@ -131,7 +130,6 @@ export default function DashboardPage() {
   const { data: ordersData, loading: ordersLoading, error: ordersError } = useQuery(GET_RECENT_ORDERS, {
     variables: { first: 20 },
     errorPolicy: 'all',
-    client: shopApolloClient,
   });
 
   // Check if user is authenticated

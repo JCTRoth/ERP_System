@@ -1,0 +1,10 @@
+--- apps/services/dotnet/ShopService/GraphQL/Types.cs
++++ apps/services/dotnet/ShopService/GraphQL/Types.cs
+@@ -290,6 +290,7 @@ public class OrderResolvers
+ 
+     // Customer resolver - fetches real customer data from ShopService database
+     // The ShopService Customer table is synchronized with MasterdataService for consistency
+     public User? GetCustomer([Parent] Order order, [Service] ShopDbContext context)
+     {
++        try
+         {

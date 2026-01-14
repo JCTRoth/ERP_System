@@ -42,6 +42,7 @@ public class EdifactDataFetcher {
     }
     
     @DgsMutation
+    @SuppressWarnings("unchecked")
     public EdifactMessage generateEdifact(@InputArgument Map<String, Object> input) throws Exception {
         return edifactService.generateOutbound(
                 UUID.fromString((String) input.get("companyId")),

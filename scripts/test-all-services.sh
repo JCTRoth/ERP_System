@@ -222,6 +222,21 @@ if curl -s "$GATEWAY_URL/health" &>/dev/null || curl -s "$GATEWAY_URL/graphql" &
         "{orders{id status}}" \
         "Federated orders query"
     
+    # Test GetRecentOrders with variables
+    log "Testing GetRecentOrders query with variables..."
+    response=$(curl -s -X POST "$GATEWAY_URL/graphql" \
+        -H "Content-Type: application/json" \
+        -d '{"query":"query GetRecentOrders($first: Int!) { shopOrders(first: $first, order: {createdAt: DESC}) { nodes { id orderNumber customer { id firstName lastName email } status total createdAt } pageInfo { hasNextPage } } }","variables":{"first":20}}' 2>&1)
+    
+    if echo "$response" | grep -q '"errors"'; then
+        error_msg=$(echo "$response" | jq -r '.errors[0].message' 2>/dev/null || echo "$response")
+        print_error "GetRecentOrders query failed: $error_msg"
+    elif echo "$response" | grep -q '"shopOrders"'; then
+        print_success "GetRecentOrders query returned shop orders"
+    else
+        print_error "GetRecentOrders query produced unexpected response: $response"
+    fi
+    
     # Test cross-service queries
     test_graphql_query "gateway" "$GATEWAY_URL" \
         "{users{id email} orders{id status}}" \

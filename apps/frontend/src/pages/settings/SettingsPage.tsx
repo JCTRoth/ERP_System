@@ -45,7 +45,7 @@ export default function SettingsPage() {
     try {
       console.log('Loading SMTP configuration from API...');
       setSmtpLoading(true);
-      const response = await fetch('http://localhost:8082/api/smtp-configuration');
+      const response = await fetch('/api/smtp-configuration');
       const data = await response.json();
       console.log('SMTP API response:', data);
       

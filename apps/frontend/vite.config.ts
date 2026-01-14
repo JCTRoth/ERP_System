@@ -26,7 +26,7 @@ export default defineConfig({
         target: shopUrl,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/shop\/graphql/, '/graphql'),
+        rewrite: (path: string) => path.replace(/^\/shop\/graphql/, '/graphql'),
       },
       // Gateway endpoints
       '/graphql': {

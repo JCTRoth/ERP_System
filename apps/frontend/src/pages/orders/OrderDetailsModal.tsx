@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
-import { apolloClient, shopApolloClient } from '../../lib/apollo';
+import { apolloClient } from '../../lib/apollo';
 
 // Helper function to format document titles
 const formatDocumentTitle = (documentType: string, templateKey?: string) => {
@@ -158,7 +158,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
 
   const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, {
     variables: { id: orderId },
-    client: shopApolloClient,
+    client: apolloClient,
     pollInterval: 5000,
   });
 
@@ -176,11 +176,11 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   }, [data]);
 
   const [updateStatus] = useMutation(UPDATE_ORDER_STATUS, {
-    client: shopApolloClient,
+    client: apolloClient,
   });
 
   const [updateAddresses] = useMutation(UPDATE_ORDER_ADDRESSES, {
-    client: shopApolloClient,
+    client: apolloClient,
   });
 
   const order = data?.shopOrder;

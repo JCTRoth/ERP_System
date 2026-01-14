@@ -46,6 +46,7 @@ public class CompanyDataFetcher {
     }
 
     @DgsMutation
+    @SuppressWarnings("unchecked")
     public CompanyDto createCompany(@InputArgument Map<String, Object> input) {
         CreateCompanyRequest request = CreateCompanyRequest.builder()
                 .name((String) input.get("name"))
@@ -58,6 +59,7 @@ public class CompanyDataFetcher {
     }
 
     @DgsMutation
+    @SuppressWarnings("unchecked")
     public CompanyDto updateCompany(@InputArgument String id, @InputArgument Map<String, Object> input) {
         UpdateCompanyRequest request = UpdateCompanyRequest.builder()
                 .name((String) input.get("name"))

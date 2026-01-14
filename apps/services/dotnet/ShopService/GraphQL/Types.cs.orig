@@ -288,53 +288,44 @@ public class OrderResolvers
     
     // Customer resolver - fetches real customer data from ShopService database
     // The ShopService Customer table is synchronized with MasterdataService for consistency
-    // Customer resolver - fetches real customer data from ShopService database
-    // The ShopService Customer table is synchronized with MasterdataService for consistency
     public User? GetCustomer([Parent] Order order, [Service] ShopDbContext context)
     {
-        try
+        // Get the CustomerId from the parent Order
+        var customerId = order.CustomerId;
+        if (customerId == Guid.Empty)
         {
-            // Get the CustomerId from the parent Order
-            var customerId = order.CustomerId;
-            if (customerId == Guid.Empty)
-            {
-                // If CustomerId is empty on the parent, try loading from DB
-                var dbOrder = context.Orders.AsNoTracking().Where(o => o.Id == order.Id).Select(o => o.CustomerId).FirstOrDefault();
-                customerId = dbOrder;
-            }
-
-            if (customerId == Guid.Empty)
-            {
-                return null;
-            }
-
-            // Fetch the customer data from the Customers table (synced with MasterdataService)
-            var customer = context.Customers.AsNoTracking().FirstOrDefault(c => c.Id == customerId);
-            
-            if (customer == null)
-            {
-                // Customer not found in local table, return null (avoid crashes)
-                return null;
-            }
-
-            // Return User object populated with customer data
-            // This data is kept in sync with MasterdataService
-            return new User
-            {
-                Id = customer.Id,
-                FirstName = customer.FirstName ?? string.Empty,
-                LastName = customer.LastName ?? string.Empty,
-                Email = customer.Email,
-                Phone = customer.Phone
-            };
+            // If CustomerId is empty on the parent, try loading from DB
+            var dbOrder = context.Orders.AsNoTracking().Where(o => o.Id == order.Id).Select(o => o.CustomerId).FirstOrDefault();
+            customerId = dbOrder;
         }
-        catch (Exception ex)
+
+        if (customerId == Guid.Empty)
         {
-            // Log the error and return null to prevent the entire query from failing
-            Console.WriteLine($"Error in GetCustomer resolver: {ex.Message}");
             return null;
         }
-    }    public IQueryable<OrderDocument> GetDocuments([Parent] Order order, [Service] ShopDbContext context)
+
+        // Fetch the customer data from the Customers table (synced with MasterdataService)
+        var customer = context.Customers.AsNoTracking().FirstOrDefault(c => c.Id == customerId);
+        
+        if (customer == null)
+        {
+            // Customer not found in local table, return null (avoid crashes)
+            return null;
+        }
+
+        // Return User object populated with customer data
+        // This data is kept in sync with MasterdataService
+        return new User
+        {
+            Id = customer.Id,
+            FirstName = customer.FirstName ?? string.Empty,
+            LastName = customer.LastName ?? string.Empty,
+            Email = customer.Email,
+            Phone = customer.Phone
+        };
+    }
+
+    public IQueryable<OrderDocument> GetDocuments([Parent] Order order, [Service] ShopDbContext context)
     {
         return context.OrderDocuments.Where(d => d.OrderId == order.Id).OrderByDescending(d => d.GeneratedAt);
     }

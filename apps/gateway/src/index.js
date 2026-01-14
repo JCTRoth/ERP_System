@@ -252,8 +252,23 @@ async function startServer() {
 
   // Shop service proxy (separate from federated graph due to type conflicts)
   app.use('/shop/graphql', express.json(), async (req, res) => {
+    const startTime = Date.now();
+    const requestId = `shop-${startTime}`;
+    
+    console.log(`${requestId} Shop proxy request started`);
+    console.log(`${requestId} Headers:`, {
+      authorization: req.headers.authorization ? 'present' : 'missing',
+      'x-user-id': req.headers['x-user-id'] || 'missing',
+      'x-company-id': req.headers['x-company-id'] || 'missing',
+      'accept-language': req.headers['accept-language'] || 'missing',
+      'user-agent': req.headers['user-agent'] || 'missing'
+    });
+    console.log(`${requestId} Query: ${req.body?.query?.substring(0, 200)}...`);
+    console.log(`${requestId} Variables:`, req.body?.variables);
+    
     try {
       const shopServiceUrl = process.env.SHOP_SERVICE_URL || 'http://shop-service:5003/graphql';
+      
       const response = await fetch(shopServiceUrl, {
         method: 'POST',
         headers: {
@@ -264,13 +279,62 @@ async function startServer() {
           'Accept-Language': req.headers['accept-language'] || 'en',
         },
         body: JSON.stringify(req.body),
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(10000),
       });
       
       const data = await response.json();
+      const duration = Date.now() - startTime;
+      console.log(`${requestId} Shop proxy response status: ${response.status} (${duration}ms)`);
+      
+      if (response.status !== 200) {
+        console.error(`${requestId} Non-200 response from shop service:`, data);
+      }
+      
       res.status(response.status).json(data);
     } catch (error) {
-      console.error('Shop service proxy error:', error);
-      res.status(500).json({ errors: [{ message: 'Shop service unavailable' }] });
+      const duration = Date.now() - startTime;
+      console.error(`${requestId} Shop service proxy error after ${duration}ms:`, error);
+      console.error(`${requestId} Error stack:`, error.stack);
+      
+      if (error.name === 'TimeoutError') {
+        console.error(`${requestId} Shop service request timed out`);
+        res.status(504).json({ 
+          errors: [{ 
+            message: 'Shop service request timed out', 
+            code: 'SHOP_TIMEOUT',
+            requestId 
+          }] 
+        });
+      } else if (error.name === 'AbortError') {
+        console.error(`${requestId} Shop service request aborted`);
+        res.status(503).json({ 
+          errors: [{ 
+            message: 'Shop service temporarily unavailable', 
+            code: 'SHOP_UNAVAILABLE',
+            requestId 
+          }] 
+        });
+      } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
+        console.error(`${requestId} Shop service connection refused or not found`);
+        res.status(503).json({ 
+          errors: [{ 
+            message: 'Shop service connection failed', 
+            code: 'SHOP_CONNECTION_FAILED',
+            requestId 
+          }] 
+        });
+      } else {
+        console.error(`${requestId} Unexpected shop service proxy error`);
+        res.status(500).json({ 
+          errors: [{ 
+            message: 'Shop service unavailable', 
+            details: error.message,
+            code: 'SHOP_ERROR',
+            requestId 
+          }] 
+        });
+      }
     }
   });
 

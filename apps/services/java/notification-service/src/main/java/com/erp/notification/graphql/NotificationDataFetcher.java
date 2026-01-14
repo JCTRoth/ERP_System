@@ -67,6 +67,7 @@ public class NotificationDataFetcher {
     }
     
     @DgsMutation
+    @SuppressWarnings("unchecked")
     public EmailNotification sendEmail(@InputArgument Map<String, Object> input) {
         return emailService.sendEmail(new EmailService.SendEmailRequest(
                 input.get("companyId") != null ? UUID.fromString((String) input.get("companyId")) : null,

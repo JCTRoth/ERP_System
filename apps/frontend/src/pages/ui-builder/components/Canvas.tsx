@@ -27,8 +27,6 @@ function SortableComponent({
   onEditScript 
 }: SortableComponentProps) {
   const {
-    attributes,
-    listeners,
     setNodeRef,
     transform,
     transition,
@@ -62,19 +60,6 @@ function SortableComponent({
         onSelect();
       }}
     >
-      {/* Drag Handle */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute -left-2 top-1/2 -translate-y-1/2 cursor-grab opacity-0 transition-opacity group-hover:opacity-100 z-10 bg-white dark:bg-gray-800 rounded p-1"
-      >
-        <div className="flex flex-col gap-0.5">
-          <div className="h-1 w-1 rounded-full bg-gray-400" />
-          <div className="h-1 w-1 rounded-full bg-gray-400" />
-          <div className="h-1 w-1 rounded-full bg-gray-400" />
-        </div>
-      </div>
-
       {/* Actions */}
       <div className="absolute -top-3 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 z-20">
         {component.type === 'button' && onEditScript && (
@@ -133,6 +118,7 @@ interface SortableRowProps {
   activeDragType?: ComponentType | null;
   rowIndex: number;
   onInsertRowBelow?: (rowId: string) => void;
+  onOpenComponentModal?: (rowId: string, slotIndex: number) => void;
 }
 
 function SortableRow({ 
@@ -144,8 +130,9 @@ function SortableRow({
   onDeleteRow,
   onEditScript,
   activeDragType,
-  rowIndex
-  , onInsertRowBelow
+  rowIndex,
+  onInsertRowBelow,
+  onOpenComponentModal
 }: SortableRowProps) {
   const {
     attributes,
@@ -224,45 +211,38 @@ function SortableRow({
             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
         }`}
       >
-        {/* Slot indicators - background guides */}
-        <div className="absolute inset-0 grid grid-cols-3 gap-2 p-2 pointer-events-none rounded-lg">
+        {/* Slot indicators with add buttons for empty slots */}
+        <div className="absolute inset-0 grid grid-cols-3 gap-2 p-2 pointer-events-none rounded-lg z-5">
           {slots.map((component, idx) => (
             <div
               key={idx}
-              className={`rounded transition-colors ${
+              className={`rounded transition-colors relative ${
                 component
                   ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700'
                   : 'bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600'
               }`}
             >
               {!component && (
-                <div className="flex items-center justify-center h-full text-xs text-gray-400">
-                  Slot
+                <div className="flex items-center justify-center h-full">
+                  {onOpenComponentModal && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenComponentModal(row.id, idx);
+                      }}
+                      className="pointer-events-auto rounded-full p-1 bg-primary-500 hover:bg-primary-600 text-white shadow-md transition-all transform hover:scale-110"
+                      title="Add component"
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           ))}
         </div>
       
-        {/* Slot indicators - background guides */}
-        <div className="absolute inset-0 grid grid-cols-3 gap-2 p-2 pointer-events-none rounded-lg">
-          {slots.map((component, idx) => (
-            <div
-              key={idx}
-              className={`rounded transition-colors ${
-                component
-                  ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700'
-                  : 'bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600'
-              }`}
-            >
-              {!component && (
-                <div className="flex items-center justify-center h-full text-xs text-gray-400">
-                  Slot
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        {/* Slot indicators - background guides - REMOVED to avoid duplication */}
 
         {/* Components - rendered on top of slot indicators */}
         <div className="relative z-10 contents">
@@ -322,6 +302,7 @@ interface CanvasProps {
   onDeleteRow: (rowId: string) => void;
   onEditScript: (componentId: string) => void;
   activeDragType?: ComponentType | null;
+  onOpenComponentModal?: (rowId: string, slotIndex: number) => void;
 }
 
 export default function Canvas({ 
@@ -334,7 +315,8 @@ export default function Canvas({
   onInsertRowBelow,
   onDeleteRow,
   onEditScript,
-  activeDragType
+  activeDragType,
+  onOpenComponentModal
 }: CanvasProps) {
   const { t } = useI18n();
   const { setNodeRef, isOver } = useDroppable({ 
@@ -386,6 +368,7 @@ export default function Canvas({
                 onEditScript={onEditScript}
                 activeDragType={activeDragType}
                 onInsertRowBelow={onInsertRowBelow}
+                onOpenComponentModal={onOpenComponentModal}
               />
             ))}
           </SortableContext>

@@ -9,7 +9,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import ProductModal from './ProductModal';
-import { shopApolloClient } from '../../lib/apollo';
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 
 const GET_PRODUCTS = gql`

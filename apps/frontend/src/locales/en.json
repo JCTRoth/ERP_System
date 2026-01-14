@@ -204,6 +204,8 @@
   "customPage.notFoundDescription": "The requested custom page could not be found.",
   "dashboard.growth": "Growth",
   "dashboard.noRecentActivity": "No recent activity",
+  "dashboard.shopServiceUnavailable": "Shop service unavailable - please try again later",
+  "dashboard.errorLoadingOrders": "Error loading orders - please refresh the page",
   "dashboard.overview": "Overview",
   "dashboard.recentCustomers": "Recent Customers",
   "dashboard.recentOrders": "Recent Orders",
