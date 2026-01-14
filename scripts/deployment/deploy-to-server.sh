@@ -404,9 +404,11 @@ services:
     container_name: erp_system-company-service
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/company_db
-      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_USERNAME: erp_company
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: prod
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ""
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
     depends_on:
       postgres:
         condition: service_healthy
@@ -433,14 +435,52 @@ services:
     networks:
       - erp-network
 
-  # NOTE: shop-service and orders-service disabled in production
-  # Both services define overlapping Order mutations, causing Apollo Federation conflicts
-  # Users: Use orders-service for dedicated order management functionality
-  # Future: Implement @shareable directives if full shop integration needed
-  # shop-service: 
-  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-shop-service:${IMAGE_VERSION}
-  # orders-service:
-  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
+  notification-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-notification-service:${IMAGE_VERSION}
+    container_name: erp_system-notification-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notificationdb
+      SPRING_DATASOURCE_USERNAME: erp_notification
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  shop-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-shop-service:${IMAGE_VERSION}
+    container_name: erp_system-shop-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=shop_db;User Id=postgres;Password=${DB_PASSWORD};"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5003:5003"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  orders-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
+    container_name: erp_system-orders-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=orders_db;User Id=postgres;Password=${DB_PASSWORD};"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5004:5004"
+    restart: unless-stopped
+    networks:
+      - erp-network
 
   gateway:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-gateway:${IMAGE_VERSION}
@@ -544,6 +584,15 @@ server {
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-XSS-Protection "1; mode=block" always;
     
+    # Notification Service API
+    location /api/ {
+        proxy_pass http://notification-service:8082/api/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
     # Frontend
     location / {
         proxy_pass http://frontend;

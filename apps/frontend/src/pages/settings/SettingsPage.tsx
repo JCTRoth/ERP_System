@@ -354,11 +354,11 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {t('settings.masterdataServiceApiDesc') || 'Core business entities including customers, suppliers, employees, assets, currencies, and reference data management. Health check.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:5002/swagger/index.html</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">{baseUrl}:5002/swagger/index.html</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <a
-                      href="${baseUrl}:5002/swagger/index.html"
+                      href={`${baseUrl}:5002/swagger/index.html`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary flex items-center gap-2"
@@ -377,11 +377,11 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {t('settings.shopServiceApiDesc') || 'E-commerce functionality including products, categories, orders, shopping cart, and inventory management.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:5003/swagger</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">{baseUrl}:5003/swagger</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <a
-                      href="${baseUrl}:5003/swagger"
+                      href={`${baseUrl}:5003/swagger`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary flex items-center gap-2"
@@ -400,11 +400,11 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {t('settings.companyServiceApiDesc') || 'Multi-tenant company management, organizational structure, and company settings. Java/Spring Boot service.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:8080/swagger-ui/index.html</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">{baseUrl}:8080/swagger-ui/index.html</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <a
-                      href="${baseUrl}:8080/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true"
+                      href={`${baseUrl}:8080/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary flex items-center gap-2"
@@ -423,11 +423,11 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       {t('settings.translationServiceApiDesc') || 'Internationalization and localization. Manages translation keys, supported languages, and dynamic content translation.'}
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:8081/swagger-ui.html</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">{baseUrl}:8081/swagger-ui.html</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <a
-                      href="${baseUrl}:8081/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true"
+                      href={`${baseUrl}:8081/swagger-ui/index.html?docExpansion=full&tryItOutEnabled=true&displayRequestDuration=true&filter=true`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary flex items-center gap-2"
@@ -458,11 +458,11 @@ export default function SettingsPage() {
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                       Visualize metrics, logs, and system performance with interactive dashboards.
                     </p>
-                    <p className="mt-2 font-mono text-xs text-gray-500">${baseUrl}:3001</p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">{baseUrl}:3001</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <a
-                      href="${baseUrl}:3001"
+                      href={`${baseUrl}:3001`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary flex items-center gap-2"
