@@ -10,6 +10,7 @@ using System.Security.Claims;
 using Prometheus;
 using BCrypt.Net;
 using System.Linq;
+using Swashbuckle.AspNetCore.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,10 +39,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // Services
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 
 // GraphQL
 builder.Services
@@ -106,23 +109,9 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Databas
     var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
     db.Database.EnsureCreated();
 
-    // Seed test user
-    if (!db.Users.Any(u => u.Email == "admin@erp-system.local"))
-    {
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!");
-        db.Users.Add(new UserService.Models.User
-        {
-            Id = Guid.NewGuid(),
-            Email = "admin@erp-system.local",
-            PasswordHash = passwordHash,
-            FirstName = "Admin",
-            LastName = "User",
-            IsActive = true,
-            EmailVerified = true,
-            PreferredLanguage = "en"
-        });
-        db.SaveChanges();
-    }
+    // Use SeedDataService to seed demo data
+    var seedService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
+    await seedService.SeedAsync();
 }
 
 app.Run();

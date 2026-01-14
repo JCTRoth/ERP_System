@@ -211,39 +211,6 @@ function SortableRow({
             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
         }`}
       >
-        {/* Slot indicators with add buttons for empty slots */}
-        <div className="absolute inset-0 grid grid-cols-3 gap-2 p-2 pointer-events-none rounded-lg z-5">
-          {slots.map((component, idx) => (
-            <div
-              key={idx}
-              className={`rounded transition-colors relative ${
-                component
-                  ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700'
-                  : 'bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600'
-              }`}
-            >
-              {!component && (
-                <div className="flex items-center justify-center h-full">
-                  {onOpenComponentModal && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenComponentModal(row.id, idx);
-                      }}
-                      className="pointer-events-auto rounded-full p-1 bg-primary-500 hover:bg-primary-600 text-white shadow-md transition-all transform hover:scale-110"
-                      title="Add component"
-                    >
-                      <PlusIcon className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      
-        {/* Slot indicators - background guides - REMOVED to avoid duplication */}
-
         {/* Components - rendered on top of slot indicators */}
         <div className="relative z-10 contents">
           <SortableContext
@@ -264,6 +231,39 @@ function SortableRow({
             ))}
           </SortableContext>
         </div>
+
+        {/* Slot indicators with add buttons for empty slots (rendered after components to be on top) */}
+        <div className="absolute inset-0 grid grid-cols-3 gap-2 p-2 rounded-lg z-30 pointer-events-none">
+          {slots.map((component, idx) => (
+            <div
+              key={idx}
+              className={`rounded transition-colors relative ${
+                component
+                  ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 pointer-events-none'
+                  : 'bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600 pointer-events-none'
+              }`}
+            >
+              {!component && (
+                <div className="flex items-center justify-center h-full">
+                  {onOpenComponentModal && (
+                    <button
+                      onClick={() => {
+                        console.log('Add component button clicked', { rowId: row.id, slotIndex: idx });
+                        onOpenComponentModal(row.id, idx);
+                      }}
+                      className="pointer-events-auto rounded-full p-1 bg-primary-500 hover:bg-primary-600 text-white shadow-md transition-all transform hover:scale-110 z-40 relative"
+                      title="Add component"
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      
+        {/* Slot indicators - background guides - REMOVED to avoid duplication */}
         
         {row.components.length === 0 && (
           <div className="col-span-3 flex items-center justify-center text-gray-400 text-sm relative z-20">
@@ -272,9 +272,9 @@ function SortableRow({
         )}
       </div>
 
-      {/* Component Type Selector - Floating Menu */}
-      <div className="absolute -right-12 top-2 opacity-0 transition-opacity group-hover/row:opacity-100">
-          <div className="relative group">
+      {/* Component Type Selector - Floating Menu (always visible/clickable) */}
+      <div className="absolute -right-12 top-2">
+        <div className="relative">
           <button
             onClick={(e) => {
               e.stopPropagation();

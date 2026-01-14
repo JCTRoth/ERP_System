@@ -62,6 +62,7 @@ const allSubgraphs = [
   { name: 'masterdata-service', url: process.env.MASTERDATA_SERVICE_URL !== undefined ? process.env.MASTERDATA_SERVICE_URL : 'http://masterdata-service:5002/graphql' },
   { name: 'accounting-service', url: process.env.ACCOUNTING_SERVICE_URL !== undefined ? process.env.ACCOUNTING_SERVICE_URL : 'http://accounting-service:5001/graphql' },
   { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL !== undefined ? process.env.TRANSLATION_SERVICE_URL : 'http://translation-service:8081/graphql' },
+  { name: 'notification-service', url: process.env.NOTIFICATION_SERVICE_URL !== undefined ? process.env.NOTIFICATION_SERVICE_URL : 'http://notification-service:8082/graphql' },
   { name: 'shop-service', url: process.env.SHOP_SERVICE_URL !== undefined ? process.env.SHOP_SERVICE_URL : 'http://shop-service:5003/graphql' },
   { name: 'orders-service', url: process.env.ORDERS_SERVICE_URL !== undefined ? process.env.ORDERS_SERVICE_URL : 'http://orders-service:5004/graphql' },
 ];

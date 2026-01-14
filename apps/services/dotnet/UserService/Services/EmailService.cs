@@ -1,4 +1,5 @@
 using UserService.Models;
+using System.Text.Json;
 
 namespace UserService.Services;
 
@@ -12,83 +13,187 @@ public interface IEmailService
 public class EmailService : IEmailService
 {
     private readonly ILogger<EmailService> _logger;
+    private readonly HttpClient _httpClient;
+    private readonly IConfiguration _configuration;
 
-    public EmailService(ILogger<EmailService> logger)
+    public EmailService(ILogger<EmailService> logger, HttpClient httpClient, IConfiguration configuration)
     {
         _logger = logger;
+        _httpClient = httpClient;
+        _configuration = configuration;
     }
 
     public async Task SendPasswordResetEmailAsync(User user, string resetToken)
     {
-        // TODO: Implement actual email sending
-        // For now, just log the email content
-        var subject = "Password Reset Request";
-        var body = $@"
-Hello {user.FirstName},
+        try
+        {
+            var notificationServiceUrl = _configuration["NotificationService:Url"] ?? "http://notification-service:8082";
+            var websiteUrl = _configuration["Website:Url"] ?? "http://localhost:5173";
+            var resetUrl = $"{websiteUrl}/reset-password?token={resetToken}";
 
-You have requested to reset your password for your ERP System account.
+            var graphQLRequest = new
+            {
+                query = @"
+                    mutation SendPasswordResetEmail($input: SendEmailInput!) {
+                        sendEmail(input: $input) {
+                            id
+                            toEmail
+                            subject
+                            status
+                        }
+                    }",
+                variables = new
+                {
+                    input = new
+                    {
+                        toEmail = user.Email,
+                        toName = user.FirstName,
+                        templateName = "password-reset",
+                        templateData = new
+                        {
+                            firstName = user.FirstName,
+                            resetUrl = resetUrl,
+                            expirationTime = "1 hour"
+                        },
+                        language = user.PreferredLanguage ?? "en"
+                    }
+                }
+            };
 
-Please use the following token to reset your password: {resetToken}
+            var json = JsonSerializer.Serialize(graphQLRequest);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-This token will expire in 1 hour.
+            var response = await _httpClient.PostAsync($"{notificationServiceUrl}/graphql", content);
 
-If you did not request this password reset, please ignore this email.
-
-Best regards,
-ERP System Team
-";
-
-        _logger.LogInformation("Password reset email would be sent to {Email} with token: {Token}", user.Email, resetToken);
-
-        // In production, you would use an email service like SendGrid, Mailgun, etc.
-        // Example with SendGrid:
-        // var client = new SendGridClient(_sendGridApiKey);
-        // var msg = new SendGridMessage()
-        // {
-        //     From = new EmailAddress("noreply@erp-system.com", "ERP System"),
-        //     Subject = subject,
-        //     PlainTextContent = body,
-        //     HtmlContent = body.Replace("\n", "<br>")
-        // };
-        // msg.AddTo(new EmailAddress(user.Email, user.FullName));
-        // await client.SendEmailAsync(msg);
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Password reset email sent successfully to {Email}", user.Email);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to send password reset email to {Email}. Status: {Status}, Response: {Response}",
+                    user.Email, response.StatusCode, errorContent);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending password reset email to {Email}", user.Email);
+        }
     }
 
     public async Task SendEmailVerificationEmailAsync(User user, string verificationToken)
     {
-        // TODO: Implement actual email sending
-        var subject = "Email Verification";
-        var body = $@"
-Hello {user.FirstName},
+        try
+        {
+            var notificationServiceUrl = _configuration["NotificationService:Url"] ?? "http://notification-service:8082";
+            var websiteUrl = _configuration["Website:Url"] ?? "http://localhost:5173";
+            var verificationUrl = $"{websiteUrl}/verify-email?token={verificationToken}";
 
-Thank you for registering with the ERP System.
+            var graphQLRequest = new
+            {
+                query = @"
+                    mutation SendEmailVerificationEmail($input: SendEmailInput!) {
+                        sendEmail(input: $input) {
+                            id
+                            toEmail
+                            subject
+                            status
+                        }
+                    }",
+                variables = new
+                {
+                    input = new
+                    {
+                        toEmail = user.Email,
+                        toName = user.FirstName,
+                        templateName = "email-verification",
+                        templateData = new
+                        {
+                            firstName = user.FirstName,
+                            verificationUrl = verificationUrl
+                        },
+                        language = user.PreferredLanguage ?? "en"
+                    }
+                }
+            };
 
-Please verify your email address by using the following token: {verificationToken}
+            var json = JsonSerializer.Serialize(graphQLRequest);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-If you did not create this account, please ignore this email.
+            var response = await _httpClient.PostAsync($"{notificationServiceUrl}/graphql", content);
 
-Best regards,
-ERP System Team
-";
-
-        _logger.LogInformation("Email verification email would be sent to {Email} with token: {Token}", user.Email, verificationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Email verification email sent successfully to {Email}", user.Email);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to send email verification email to {Email}. Status: {Status}, Response: {Response}",
+                    user.Email, response.StatusCode, errorContent);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending email verification email to {Email}", user.Email);
+        }
     }
 
     public async Task SendWelcomeEmailAsync(User user)
     {
-        // TODO: Implement actual email sending
-        var subject = "Welcome to ERP System";
-        var body = $@"
-Hello {user.FirstName},
+        try
+        {
+            var notificationServiceUrl = _configuration["NotificationService:Url"] ?? "http://notification-service:8082";
+            var websiteUrl = _configuration["Website:Url"] ?? "http://localhost:5173";
 
-Welcome to the ERP System! Your account has been successfully created.
+            var graphQLRequest = new
+            {
+                query = @"
+                    mutation SendWelcomeEmail($input: SendEmailInput!) {
+                        sendEmail(input: $input) {
+                            id
+                            toEmail
+                            subject
+                            status
+                        }
+                    }",
+                variables = new
+                {
+                    input = new
+                    {
+                        toEmail = user.Email,
+                        toName = user.FirstName,
+                        templateName = "welcome",
+                        templateData = new
+                        {
+                            firstName = user.FirstName,
+                            websiteUrl = websiteUrl
+                        },
+                        language = user.PreferredLanguage ?? "en"
+                    }
+                }
+            };
 
-You can now log in to your account using your email address.
+            var json = JsonSerializer.Serialize(graphQLRequest);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-Best regards,
-ERP System Team
-";
+            var response = await _httpClient.PostAsync($"{notificationServiceUrl}/graphql", content);
 
-        _logger.LogInformation("Welcome email would be sent to {Email}", user.Email);
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Welcome email sent successfully to {Email}", user.Email);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to send welcome email to {Email}. Status: {Status}, Response: {Response}",
+                    user.Email, response.StatusCode, errorContent);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending welcome email to {Email}", user.Email);
+        }
     }
 }

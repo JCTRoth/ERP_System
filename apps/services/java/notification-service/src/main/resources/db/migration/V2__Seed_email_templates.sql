@@ -3,87 +3,117 @@
 
 -- Welcome Email Templates
 INSERT INTO email_templates (name, subject, body_html, body_text, language, description) VALUES
-('welcome', 'Welcome to MediVita - Crafting Health for Life', 
+('welcome', 'Welcome to ERP System - Your Business Management Solution', 
 '<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-<h1 style="color: #2563eb;">Welcome to MediVita!</h1>
+<h1 style="color: #2563eb;">Welcome to ERP System!</h1>
 <p>Hello <span th:text="${firstName}">User</span>,</p>
-<p>Your account has been successfully created. At MediVita, we specialize in innovative pharmaceuticals, blending advanced science with a passion for well-being.</p>
-<p>Our mission: to deliver trusted, effective solutions for a healthier world.</p>
-<p>Best regards,<br>The MediVita Team</p>
+<p>Your account has been successfully created in our comprehensive Enterprise Resource Planning system.</p>
+<p>You can now access your dashboard and start managing your business operations efficiently.</p>
+<p><a th:href="${websiteUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;">Access Your Account</a></p>
+<p>If you have any questions, please don''t hesitate to contact our support team.</p>
+<p>Best regards,<br>The ERP System Team</p>
 </body>
 </html>',
-'Welcome to MediVita - Crafting Health for Life
+'Welcome to ERP System - Your Business Management Solution
 
 Hello ${firstName},
 
-Your account has been successfully created. At MediVita, we specialize in innovative pharmaceuticals, blending advanced science with a passion for well-being.
+Your account has been successfully created in our comprehensive Enterprise Resource Planning system.
 
-Our mission: to deliver trusted, effective solutions for a healthier world.
+You can now access your dashboard and start managing your business operations efficiently.
+
+Access your account here: ${websiteUrl}
+
+If you have any questions, please don''t hesitate to contact our support team.
 
 Best regards,
-The MediVita Team', 'en', 'Welcome email for new MediVita users'),
+The ERP System Team', 'en', 'Welcome email for new ERP System users'),
 
-('welcome', 'Willkommen bei MediVita - Gesundheit fürs Leben',
+('welcome', 'Willkommen beim ERP System - Ihre Business-Management-Lösung',
 '<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-<h1 style="color: #2563eb;">Willkommen bei MediVita!</h1>
+<h1 style="color: #2563eb;">Willkommen beim ERP System!</h1>
 <p>Hallo <span th:text="${firstName}">Benutzer</span>,</p>
-<p>Ihr Konto wurde erfolgreich erstellt. Bei MediVita spezialisieren wir uns auf innovative Pharmazeutika und verbinden fortschrittliche Wissenschaft mit Leidenschaft für das Wohlbefinden.</p>
-<p>Unsere Mission: vertrauenswürdige, effektive Lösungen für eine gesündere Welt zu liefern.</p>
-<p>Mit freundlichen Grüßen,<br>Das MediVita-Team</p>
+<p>Ihr Konto wurde erfolgreich in unserem umfassenden Enterprise Resource Planning System erstellt.</p>
+<p>Sie können jetzt auf Ihr Dashboard zugreifen und Ihre Geschäftsprozesse effizient verwalten.</p>
+<p><a th:href="${websiteUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;">Auf Konto zugreifen</a></p>
+<p>Bei Fragen zögern Sie bitte nicht, unser Support-Team zu kontaktieren.</p>
+<p>Mit freundlichen Grüßen,<br>Das ERP System Team</p>
 </body>
 </html>',
-'Willkommen bei MediVita - Gesundheit fürs Leben
+'Willkommen beim ERP System - Ihre Business-Management-Lösung
 
 Hallo ${firstName},
 
-Ihr Konto wurde erfolgreich erstellt. Bei MediVita spezialisieren wir uns auf innovative Pharmazeutika und verbinden fortschrittliche Wissenschaft mit Leidenschaft für das Wohlbefinden.
+Ihr Konto wurde erfolgreich in unserem umfassenden Enterprise Resource Planning System erstellt.
 
-Unsere Mission: vertrauenswürdige, effektive Lösungen für eine gesündere Welt zu liefern.
+Sie können jetzt auf Ihr Dashboard zugreifen und Ihre Geschäftsprozesse effizient verwalten.
+
+Greifen Sie auf Ihr Konto zu: ${websiteUrl}
+
+Bei Fragen zögern Sie bitte nicht, unser Support-Team zu kontaktieren.
 
 Mit freundlichen Grüßen,
-Das MediVita-Team', 'de', 'Willkommens-E-Mail für neue MediVita-Benutzer'),
+Das ERP System Team', 'de', 'Willkommens-E-Mail für neue ERP System Benutzer'),
 
-('welcome', 'Bienvenue sur ERP System',
+('welcome', 'Bienvenue sur ERP System - Votre solution de gestion d''entreprise',
 '<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-<h1 style="color: #3b82f6;">Bienvenue sur ERP System!</h1>
+<h1 style="color: #2563eb;">Bienvenue sur ERP System!</h1>
 <p>Bonjour <span th:text="${firstName}">Utilisateur</span>,</p>
-<p>Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter et utiliser le système.</p>
-<p>Cordialement,<br>L équipe ERP</p>
+<p>Votre compte a été créé avec succès dans notre système de planification des ressources d''entreprise complet.</p>
+<p>Vous pouvez maintenant accéder à votre tableau de bord et commencer à gérer vos opérations commerciales efficacement.</p>
+<p><a th:href="${websiteUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;">Accéder à votre compte</a></p>
+<p>Si vous avez des questions, n''hésitez pas à contacter notre équipe de support.</p>
+<p>Cordialement,<br>L''équipe ERP System</p>
 </body>
 </html>',
-'Bienvenue sur ERP System!
+'Bienvenue sur ERP System - Votre solution de gestion d''entreprise!
 
 Bonjour ${firstName},
 
-Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter et utiliser le système.
+Votre compte a été créé avec succès dans notre système de planification des ressources d''entreprise complet.
+
+Vous pouvez maintenant accéder à votre tableau de bord et commencer à gérer vos opérations commerciales efficacement.
+
+Accédez à votre compte ici: ${websiteUrl}
+
+Si vous avez des questions, n''hésitez pas à contacter notre équipe de support.
 
 Cordialement,
-L équipe ERP', 'fr', 'Email de bienvenue pour les nouveaux utilisateurs'),
+L''équipe ERP System', 'fr', 'Email de bienvenue pour les nouveaux utilisateurs d''ERP System'),
 
-('welcome', 'Добро пожаловать в ERP System',
+('welcome', 'Добро пожаловать в ERP System - Ваше решение для управления бизнесом',
 '<!DOCTYPE html>
 <html>
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-<h1 style="color: #3b82f6;">Добро пожаловать в ERP System!</h1>
+<h1 style="color: #2563eb;">Добро пожаловать в ERP System!</h1>
 <p>Здравствуйте, <span th:text="${firstName}">Пользователь</span>,</p>
-<p>Ваша учётная запись успешно создана. Теперь вы можете войти в систему и начать работу.</p>
-<p>С уважением,<br>Команда ERP</p>
+<p>Ваша учётная запись успешно создана в нашей комплексной системе планирования ресурсов предприятия.</p>
+<p>Теперь вы можете получить доступ к своей панели управления и начать эффективно управлять бизнес-процессами.</p>
+<p><a th:href="${websiteUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;">Доступ к аккаунту</a></p>
+<p>Если у вас есть вопросы, пожалуйста, не стесняйтесь обращаться в нашу службу поддержки.</p>
+<p>С уважением,<br>Команда ERP System</p>
 </body>
 </html>',
-'Добро пожаловать в ERP System!
+'Добро пожаловать в ERP System - Ваше решение для управления бизнесом!
 
 Здравствуйте, ${firstName},
 
-Ваша учётная запись успешно создана. Теперь вы можете войти в систему и начать работу.
+Ваша учётная запись успешно создана в нашей комплексной системе планирования ресурсов предприятия.
+
+Теперь вы можете получить доступ к своей панели управления и начать эффективно управлять бизнес-процессами.
+
+Доступ к аккаунту: ${websiteUrl}
+
+Если у вас есть вопросы, пожалуйста, не стесняйтесь обращаться в нашу службу поддержки.
 
 С уважением,
-Команда ERP', 'ru', 'Приветственное письмо для новых пользователей');
+Команда ERP System', 'ru', 'Приветственное письмо для новых пользователей ERP System');
 
 -- Password Reset Templates
 INSERT INTO email_templates (name, subject, body_html, body_text, language, description) VALUES

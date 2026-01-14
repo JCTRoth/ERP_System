@@ -210,7 +210,7 @@ public class AuthService : IAuthService
         return true;
     }
 
-    public async Task<bool> VerifyEmailAsync(string token)
+    public Task<bool> VerifyEmailAsync(string token)
     {
         // For email verification, we could use a similar token system
         // For now, this is a placeholder implementation
@@ -224,7 +224,7 @@ public class AuthService : IAuthService
         // 2. Marking the user's email as verified
         // 3. Invalidating the token
 
-        return false; // Placeholder
+        return Task.FromResult(false); // Placeholder
     }
 
     private static string GenerateSecureToken()

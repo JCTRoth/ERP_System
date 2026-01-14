@@ -67,6 +67,7 @@ export default function UIBuilderPage() {
   const [activeDragType, setActiveDragType] = useState<ComponentType | null>(null);
 
   const handleAddComponentToSlot = useCallback((componentType: ComponentType) => {
+    console.log('handleAddComponentToSlot called', { componentType, pendingSlotInfo });
     if (!pendingSlotInfo) return;
 
     const { rowId, slotIndex } = pendingSlotInfo;
@@ -347,6 +348,7 @@ export default function UIBuilderPage() {
   };
 
   const handleSelectComponent = (component: UIComponent | null) => {
+    console.log('handleSelectComponent called', { component });
     setSelectedComponent(component);
     if (component) {
       const row = rows.find(r => r.components.some(c => c.id === component.id));

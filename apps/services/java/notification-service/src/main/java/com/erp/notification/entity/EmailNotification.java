@@ -39,7 +39,7 @@ public class EmailNotification {
     @Column(name = "template_name")
     private String templateName;
     
-    @Column(name = "template_data", columnDefinition = "jsonb")
+    @Column(name = "template_data", columnDefinition = "text")
     private String templateData;
     
     @Column(name = "body_html", columnDefinition = "text")

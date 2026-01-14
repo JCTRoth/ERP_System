@@ -10,7 +10,7 @@ CREATE TABLE email_notifications (
     to_name VARCHAR(255),
     subject VARCHAR(500) NOT NULL,
     template_name VARCHAR(100),
-    template_data JSONB,
+    template_data TEXT,
     body_html TEXT,
     body_text TEXT,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',

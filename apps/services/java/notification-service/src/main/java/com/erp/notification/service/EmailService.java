@@ -19,7 +19,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.time.OffsetDateTime;
@@ -36,7 +35,6 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final EmailNotificationRepository notificationRepository;
     private final EmailTemplateRepository templateRepository;
-    private final TemplateEngine templateEngine;
     private final ObjectMapper objectMapper;
     
     @Value("${notification.email.from}")
@@ -154,20 +152,21 @@ public class EmailService {
         if (!templates.isEmpty()) {
             EmailTemplate template = templates.get(0);
             
-            // Process with Thymeleaf
+            // Process template content with variable substitution
             Context context = new Context();
             if (data != null) {
                 data.forEach(context::setVariable);
             }
             
-            String processedHtml = templateEngine.process(template.getBodyHtml(), context);
-            String processedSubject = templateEngine.process(template.getSubject(), context);
+            // Use string template processing for HTML content
+            String processedHtml = processStringTemplate(template.getBodyHtml(), context);
+            String processedSubject = processStringTemplate(template.getSubject(), context);
             
             notification.setBodyHtml(processedHtml);
             notification.setSubject(processedSubject);
             
             if (template.getBodyText() != null) {
-                String processedText = templateEngine.process(template.getBodyText(), context);
+                String processedText = processStringTemplate(template.getBodyText(), context);
                 notification.setBodyText(processedText);
             }
             
@@ -175,6 +174,20 @@ public class EmailService {
         } else {
             log.warn("Template not found: {}", notification.getTemplateName());
         }
+    }
+    
+    private String processStringTemplate(String template, Context context) {
+        if (template == null) return null;
+        
+        String result = template;
+        // Process Thymeleaf variable expressions like ${variableName}
+        for (String key : context.getVariableNames()) {
+            Object value = context.getVariable(key);
+            if (value != null) {
+                result = result.replaceAll("\\$\\{" + key + "\\}", java.util.regex.Matcher.quoteReplacement(value.toString()));
+            }
+        }
+        return result;
     }
     
     private String serializeTemplateData(Map<String, Object> data) {

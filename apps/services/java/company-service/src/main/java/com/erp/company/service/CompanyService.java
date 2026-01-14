@@ -172,8 +172,11 @@ public class CompanyService {
         return companyRepository.findByNameAndIsDemo(demoCompanyName, true)
                 .map(companyMapper::toDto)
                 .orElseGet(() -> {
+                    String slug = demoCompanyName.toLowerCase().replace("_", "-").replace(" ", "-");
+                    log.info("Intending to create demo company with name '{}' and slug '{}'", demoCompanyName, slug);
                     Company demoCompany = Company.builder()
                             .name(demoCompanyName)
+                            .slug(slug)
                             .isDemo(true)
                             .settingsJson(Map.of(
                                     "theme", "default",
