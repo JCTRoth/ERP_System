@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, gql, useMutation } from '@apollo/client';
 import {
   PlusIcon,
   FolderIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { AccountModal } from './AccountModal';
 
 const GET_ACCOUNTS = gql`
   query GetAccounts {
@@ -24,6 +26,36 @@ const GET_ACCOUNTS = gql`
         description
       }
       totalCount
+    }
+  }
+`;
+
+const CREATE_ACCOUNT = gql`
+  mutation CreateAccount($input: CreateAccountInput!) {
+    createAccount(input: $input) {
+      id
+      accountNumber
+      name
+      type
+      category
+      balance
+      isActive
+      description
+    }
+  }
+`;
+
+const UPDATE_ACCOUNT = gql`
+  mutation UpdateAccount($id: UUID!, $input: UpdateAccountInput!) {
+    updateAccount(id: $id, input: $input) {
+      id
+      accountNumber
+      name
+      type
+      category
+      balance
+      isActive
+      description
     }
   }
 `;
@@ -53,10 +85,56 @@ export default function AccountsTab() {
   const { t } = useI18n();
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE']));
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    mode: 'create' | 'edit';
+    account: Account | null;
+  }>({
+    isOpen: false,
+    mode: 'create',
+    account: null,
+  });
 
-  const { data, loading, error } = useQuery(GET_ACCOUNTS, {
+  const { data, loading, error, refetch } = useQuery(GET_ACCOUNTS, {
     errorPolicy: 'all',
   });
+
+  const [createAccount] = useMutation(CREATE_ACCOUNT, {
+    onCompleted: () => {
+      refetch();
+      setModalState({ isOpen: false, mode: 'create', account: null });
+    },
+  });
+
+  const [updateAccount] = useMutation(UPDATE_ACCOUNT, {
+    onCompleted: () => {
+      refetch();
+      setModalState({ isOpen: false, mode: 'create', account: null });
+    },
+  });
+
+  const handleCreateAccount = (accountData: any) => {
+    createAccount({
+      variables: {
+        input: accountData,
+      },
+    });
+  };
+
+  const handleEditAccount = (account: Account) => {
+    setModalState({ isOpen: true, mode: 'edit', account });
+  };
+
+  const handleUpdateAccount = (accountData: any) => {
+    if (modalState.account) {
+      updateAccount({
+        variables: {
+          id: modalState.account.id,
+          input: accountData,
+        },
+      });
+    }
+  };
 
   const getAccountDisplayName = (account: Account): string => {
     if (account.isSystemAccount) {
@@ -155,7 +233,10 @@ export default function AccountsTab() {
             <option value="EXPENSE">{t('accounting.accountType.expense')}</option>
           </select>
         </div>
-        <button className="btn-primary flex items-center gap-2">
+        <button 
+          className="btn-primary flex items-center gap-2"
+          onClick={() => setModalState({ isOpen: true, mode: 'create', account: null })}
+        >
           <PlusIcon className="h-5 w-5" />
           {t('accounting.addAccount')}
         </button>
@@ -226,7 +307,7 @@ export default function AccountsTab() {
                             {account.isActive ? t('common.active') : t('common.inactive')}
                           </span>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex items-center gap-2">
                           <p
                             className={`font-medium ${
                               account.balance < 0 ? 'text-red-600' : ''
@@ -237,6 +318,13 @@ export default function AccountsTab() {
                           <p className="text-xs text-gray-500">
                             {t(`accounting.category.${account.category.toLowerCase()}`)}
                           </p>
+                          <button
+                            onClick={() => handleEditAccount(account)}
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                            title={t('common.edit')}
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -263,6 +351,14 @@ export default function AccountsTab() {
           </div>
         </div>
       )}
+      
+      <AccountModal
+        isOpen={modalState.isOpen}
+        mode={modalState.mode}
+        account={modalState.account}
+        onClose={() => setModalState({ isOpen: false, mode: 'create', account: null })}
+        onSave={modalState.mode === 'create' ? handleCreateAccount : handleUpdateAccount}
+      />
     </div>
   );
 }

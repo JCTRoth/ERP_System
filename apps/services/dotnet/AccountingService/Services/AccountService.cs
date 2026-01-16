@@ -84,13 +84,14 @@ public class AccountService : IAccountService
         var account = new Account
         {
             Id = Guid.NewGuid(),
-            AccountCode = input.AccountCode,
+            AccountNumber = input.AccountNumber,
+            AccountCode = input.AccountCode ?? input.AccountNumber,
             Name = input.Name,
             Description = input.Description,
             Type = Enum.Parse<AccountType>(input.Type),
             Category = Enum.Parse<AccountCategory>(input.Category),
             ParentAccountId = input.ParentAccountId,
-            IsActive = true,
+            IsActive = input.IsActive,
             IsSystemAccount = false,
             Balance = 0,
             Currency = input.Currency ?? "USD",

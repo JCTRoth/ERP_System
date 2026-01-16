@@ -132,6 +132,28 @@ public class Mutation
         return payment;
     }
 
+    [GraphQLDescription("Create a new account")]
+    public async Task<Account> CreateAccount(
+        CreateAccountInput input,
+        [Service] IAccountService accountService)
+    {
+        return await accountService.CreateAsync(input);
+    }
+
+    [GraphQLDescription("Update an existing account")]
+    public async Task<Account> UpdateAccount(
+        Guid id,
+        UpdateAccountInput input,
+        [Service] IAccountService accountService)
+    {
+        var account = await accountService.UpdateAsync(id, input);
+        if (account == null)
+        {
+            throw new GraphQLException($"Account with ID {id} not found");
+        }
+        return account;
+    }
+
     [GraphQLDescription("Delete a payment record")]
     public async Task<bool> DeletePaymentRecord(
         Guid id,
