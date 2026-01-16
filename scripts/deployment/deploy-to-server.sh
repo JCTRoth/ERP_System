@@ -334,6 +334,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres-init/init-multi-db.sh:/docker-entrypoint-initdb.d/init-multi-db.sh
+      - ./postgres-init/grant-permissions.sh:/opt/erp-system/postgres-init/grant-permissions.sh
     ports:
       - "5432:5432"
     healthcheck:
@@ -501,6 +502,12 @@ services:
       - translation-service
     ports:
       - "4000:4000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4000/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
     restart: unless-stopped
     networks:
       - erp-network
@@ -678,6 +685,10 @@ EOF
     print_info "Uploading docker-compose.yml..."
     scp_to_server "$compose_file" "/opt/erp-system/docker-compose.yml"
     
+    # Copy database permission grant script
+    print_info "Uploading database permission grant script..."
+    scp_to_server "$PROJECT_ROOT/infrastructure/postgres-init/grant-permissions.sh" "/opt/erp-system/postgres-init/grant-permissions.sh"
+    
     # Create nginx.conf file (required before docker compose tries to mount it)
     print_step "Creating nginx configuration files..."
     local nginx_main_conf="$TEMP_DIR/nginx.conf"
@@ -736,6 +747,11 @@ EOF
     local start_cmd="cd /opt/erp-system && docker compose --env-file .env up -d"
     ssh_exec "$start_cmd"
     sleep 10
+    
+    # Grant database permissions
+    print_step "Granting database permissions..."
+    local grant_cmd="cd /opt/erp-system && docker compose --env-file .env exec -T postgres bash /opt/erp-system/postgres-init/grant-permissions.sh"
+    ssh_exec "$grant_cmd"
 }
 
 # Verify deployment

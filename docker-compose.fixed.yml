@@ -1,0 +1,221 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp_system-postgres
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=pg_stat_statements"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init/init-multi-db.sh:/docker-entrypoint-initdb.d/init-multi-db.sh
+      - ./postgres-init/grant-permissions.sh:/opt/erp-system/postgres-init/grant-permissions.sh
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  user-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-user-service:${IMAGE_VERSION}
+    container_name: erp_system-user-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=user_db;User Id=postgres;Password=${DB_PASSWORD};"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  accounting-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-accounting-service:${IMAGE_VERSION}
+    container_name: erp_system-accounting-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=accounting_db;User Id=postgres;Password=${DB_PASSWORD};"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5001:5001"
+    expose: []
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  masterdata-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-masterdata-service:${IMAGE_VERSION}
+    container_name: erp_system-masterdata-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=masterdata_db;User Id=postgres;Password=${DB_PASSWORD};"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5002:5002"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  company-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-company-service:${IMAGE_VERSION}
+    container_name: erp_system-company-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/company_db
+      SPRING_DATASOURCE_USERNAME: erp_company
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-securepassword123}
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ""
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  translation-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-translation-service:${IMAGE_VERSION}
+    container_name: erp_system-translation-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/translationdb
+      SPRING_DATASOURCE_USERNAME: erp_translation
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-securepassword123}
+      SPRING_PROFILES_ACTIVE: prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  notification-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-notification-service:${IMAGE_VERSION}
+    container_name: erp_system-notification-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notificationdb
+      SPRING_DATASOURCE_USERNAME: erp_notification
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-securepassword123}
+      SPRING_PROFILES_ACTIVE: prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  shop-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-shop-service:${IMAGE_VERSION}
+    container_name: erp_system-shop-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=shopdb;User Id=postgres;Password=${DB_PASSWORD};"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5003:5003"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  orders-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
+    container_name: erp_system-orders-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=ordersdb;User Id=postgres;Password=${DB_PASSWORD};"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5004:5004"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  gateway:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-gateway:${IMAGE_VERSION}
+    container_name: erp_system-gateway
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      USER_SERVICE_URL: http://user-service:5000/graphql/
+      ACCOUNTING_SERVICE_URL: http://accounting-service:5001/graphql/
+      MASTERDATA_SERVICE_URL: http://masterdata-service:5002/graphql/
+      COMPANY_SERVICE_URL: http://company-service:8080/graphql
+      TRANSLATION_SERVICE_URL: http://translation-service:8081/graphql
+      NOTIFICATION_SERVICE_URL: http://notification-service:8082/graphql
+      SHOP_SERVICE_URL: http://shop-service:5003/graphql
+      ORDERS_SERVICE_URL: http://orders-service:5004/graphql
+    depends_on:
+      - user-service
+      - accounting-service
+      - masterdata-service
+      - company-service
+      - translation-service
+      - notification-service
+      - shop-service
+      - orders-service
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4000/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  frontend:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-frontend:${IMAGE_VERSION}
+    container_name: erp_system-frontend
+    environment:
+      VITE_API_URL: https://${DEPLOY_DOMAIN}/graphql
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+  nginx:
+    image: nginx:latest
+    container_name: erp_system-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      - frontend
+      - gateway
+    restart: unless-stopped
+    networks:
+      - erp-network
+
+volumes:
+  postgres_data:
+
+networks:
+  erp-network:
+    driver: bridge
