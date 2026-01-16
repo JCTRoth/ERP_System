@@ -8,7 +8,8 @@ const CREATE_ASSET = gql`
   mutation CreateAsset($input: CreateAssetInput!) {
     createAsset(input: $input) {
       id
-      assetTag
+      assetNumber
+      name
     }
   }
 `;
@@ -17,22 +18,21 @@ const UPDATE_ASSET = gql`
   mutation UpdateAsset($id: UUID!, $input: UpdateAssetInput!) {
     updateAsset(id: $id, input: $input) {
       id
-      assetTag
+      assetNumber
+      name
     }
   }
 `;
 
 export interface Asset {
   id: string;
-  assetTag: string;
   name: string;
   description: string | null;
-  category: string;
+  type: string;
   status: string;
   purchaseDate: string | null;
   purchasePrice: number;
   currentValue: number;
-  location: string | null;
   assignedTo: { id: string; firstName: string; lastName: string } | null;
 }
 
@@ -49,12 +49,11 @@ export default function AssetModal({ asset, onClose, onSuccess }: AssetModalProp
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: 'IT_EQUIPMENT',
-    status: 'ACTIVE',
+    type: 'Equipment',
+    status: 'Active',
     purchaseDate: new Date().toISOString().split('T')[0],
     purchasePrice: 0,
     currentValue: 0,
-    location: '',
     notes: '',
   });
 
@@ -79,12 +78,11 @@ export default function AssetModal({ asset, onClose, onSuccess }: AssetModalProp
       setFormData({
         name: asset.name,
         description: asset.description || '',
-        category: asset.category,
-        status: asset.status,
-        purchaseDate: asset.purchaseDate ? asset.purchaseDate.split('T')[0] : '',
+        type: asset.type || 'Equipment',
+        status: asset.status || 'Active',
+        purchaseDate: asset.purchaseDate ? asset.purchaseDate.split('T')[0] : new Date().toISOString().split('T')[0],
         purchasePrice: asset.purchasePrice,
         currentValue: asset.currentValue,
-        location: asset.location || '',
         notes: '',
       });
     }
@@ -94,20 +92,59 @@ export default function AssetModal({ asset, onClose, onSuccess }: AssetModalProp
     e.preventDefault();
 
     try {
+      const isoPurchaseDate = formData.purchaseDate
+        ? new Date(formData.purchaseDate).toISOString()
+        : new Date().toISOString();
+
       const input = {
         name: formData.name,
         description: formData.description || null,
-        category: formData.category,
-        purchaseDate: formData.purchaseDate || null,
+        type: formData.type,
         purchasePrice: formData.purchasePrice,
-        currentValue: formData.currentValue,
-        location: formData.location || null,
+        purchaseDate: isoPurchaseDate,
+        salvageValue: null,
+        usefulLifeMonths: 60,
+        depreciationMethod: null,
+        currency: 'EUR',
+        serialNumber: null,
+        barcode: null,
+        manufacturer: null,
+        model: null,
+        assignedToId: null,
+        departmentId: null,
+        locationId: null,
+        costCenterId: null,
+        warrantyExpiry: null,
         notes: formData.notes || null,
       };
 
       if (isEditing) {
         await updateAsset({
-          variables: { id: asset.id, input: { ...input, status: formData.status } },
+          variables: {
+            id: asset.id,
+            input: {
+              name: input.name!,
+              description: input.description,
+              type: input.type,
+              status: formData.status,
+              currentValue: formData.currentValue,
+              salvageValue: input.salvageValue,
+              usefulLifeMonths: input.usefulLifeMonths,
+              depreciationMethod: input.depreciationMethod,
+              serialNumber: input.serialNumber,
+              barcode: input.barcode,
+              manufacturer: input.manufacturer,
+              model: input.model,
+              assignedToId: input.assignedToId,
+              departmentId: input.departmentId,
+              locationId: input.locationId,
+              costCenterId: input.costCenterId,
+              warrantyExpiry: input.warrantyExpiry,
+              lastMaintenanceDate: null,
+              nextMaintenanceDate: null,
+              notes: input.notes,
+            },
+          },
         });
       } else {
         await createAsset({ variables: { input } });
@@ -159,16 +196,16 @@ export default function AssetModal({ asset, onClose, onSuccess }: AssetModalProp
                 {t('masterdata.type')} *
               </label>
               <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="input mt-1 w-full"
               >
-                <option value="IT_EQUIPMENT">{t('masterdata.assetType.it_equipment')}</option>
-                <option value="FURNITURE">{t('masterdata.assetType.furniture')}</option>
-                <option value="VEHICLE">{t('masterdata.assetType.vehicle')}</option>
-                <option value="MACHINERY">{t('masterdata.assetType.machinery')}</option>
-                <option value="BUILDING">{t('masterdata.assetType.building')}</option>
-                <option value="LAND">{t('masterdata.assetType.land')}</option>
+                <option value="Equipment">{t('masterdata.assetType.it_equipment')}</option>
+                <option value="Furniture">{t('masterdata.assetType.furniture')}</option>
+                <option value="Vehicle">{t('masterdata.assetType.vehicle')}</option>
+                <option value="Machinery">{t('masterdata.assetType.machinery')}</option>
+                <option value="Building">{t('masterdata.assetType.building')}</option>
+                <option value="Land">{t('masterdata.assetType.land')}</option>
               </select>
             </div>
             {isEditing && (
@@ -215,17 +252,7 @@ export default function AssetModal({ asset, onClose, onSuccess }: AssetModalProp
                 className="input mt-1 w-full"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('masterdata.location')}
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="input mt-1 w-full"
-              />
-            </div>
+            <div />
           </div>
 
           {/* Purchase Price and Current Value */}

@@ -10,6 +10,7 @@ import {
   BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import AssetModal, { type Asset as AssetModalAsset } from './AssetModal';
 
 const GET_ASSETS = gql`
   query GetAssets($first: Int, $where: AssetFilterInput) {
@@ -45,22 +46,13 @@ const GET_ASSETS = gql`
   }
 `;
 
-interface Asset {
-  id: string;
+type Asset = AssetModalAsset & {
   assetNumber: string;
-  name: string;
-  description: string;
-  type: string;
-  status: string;
-  serialNumber: string;
-  purchaseDate: string;
-  purchasePrice: number;
-  currentValue: number;
+  serialNumber: string | null;
   accumulatedDepreciation: number;
   category: { id: string; name: string } | null;
   location: { id: string; name: string } | null;
-  assignedTo: { id: string; firstName: string; lastName: string } | null;
-}
+};
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
@@ -82,8 +74,10 @@ export default function AssetsTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showModal, setShowModal] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
 
-  const { data, loading, error } = useQuery(GET_ASSETS, {
+  const { data, loading, error, refetch } = useQuery(GET_ASSETS, {
     variables: {
       first: 100,
       where: {
@@ -130,6 +124,21 @@ export default function AssetsTab() {
   const activeAssets = data?.assets?.nodes?.filter(
     (asset: Asset) => asset.status === 'ACTIVE'
   ).length || 0;
+
+  const handleAddClick = () => {
+    setEditingAsset(null);
+    setShowModal(true);
+  };
+
+  const handleEditClick = (asset: Asset) => {
+    setEditingAsset(asset);
+    setShowModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setEditingAsset(null);
+  };
 
   return (
     <div>
@@ -187,7 +196,7 @@ export default function AssetsTab() {
             <option value="DISPOSED">{t('masterdata.disposed')}</option>
           </select>
         </div>
-        <button className="btn-primary flex items-center gap-2">
+        <button onClick={handleAddClick} className="btn-primary flex items-center gap-2">
           <PlusIcon className="h-5 w-5" />
           {t('masterdata.addAsset')}
         </button>
@@ -291,7 +300,10 @@ export default function AssetsTab() {
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-right">
-                        <button className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200">
+                        <button
+                          onClick={() => handleEditClick(asset)}
+                          className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                        >
                           <PencilIcon className="h-5 w-5" />
                         </button>
                       </td>
@@ -303,6 +315,16 @@ export default function AssetsTab() {
           </table>
         </div>
       </div>
+
+      {showModal && (
+        <AssetModal
+          asset={editingAsset}
+          onClose={handleModalClose}
+          onSuccess={() => {
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }
