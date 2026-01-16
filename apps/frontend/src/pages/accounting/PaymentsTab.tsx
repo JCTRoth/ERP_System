@@ -3,6 +3,14 @@ import { useQuery, useMutation, gql } from "@apollo/client";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useI18n } from "../../providers/I18nProvider";
 
+interface Account {
+  id: string;
+  accountNumber: string;
+  name: string;
+  type: string;
+  category: string;
+}
+
 const GET_PAYMENT_RECORDS = gql`
   query GetPaymentRecords($first: Int, $where: PaymentRecordFilterInput) {
     paymentRecords(first: $first, where: $where, order: { paymentDate: DESC }) {
@@ -40,6 +48,20 @@ const GET_INVOICES = gql`
         invoiceNumber
       }
       totalCount
+    }
+  }
+`;
+
+const GET_ACCOUNTS = gql`
+  query GetAccounts {
+    accounts(order: { accountNumber: ASC }) {
+      nodes {
+        id
+        accountNumber
+        name
+        type
+        category
+      }
     }
   }
 `;
@@ -119,6 +141,7 @@ export default function PaymentsTab() {
     reference: "",
     notes: "",
     invoiceId: "",
+    accountId: "",
   });
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -130,6 +153,10 @@ export default function PaymentsTab() {
   });
 
   const { data: invoicesData } = useQuery(GET_INVOICES, {
+    errorPolicy: "all",
+  });
+
+  const { data: accountsData } = useQuery(GET_ACCOUNTS, {
     errorPolicy: "all",
   });
 
@@ -180,6 +207,7 @@ export default function PaymentsTab() {
       reference: "",
       notes: "",
       invoiceId: "",
+      accountId: "",
     });
     setShowModal(true);
   };
@@ -194,6 +222,7 @@ export default function PaymentsTab() {
       reference: payment.reference || "",
       notes: payment.notes || "",
       invoiceId: payment.invoiceId || "",
+      accountId: "", // TODO: Add accountId to PaymentRecord type and backend
     });
     setShowModal(true);
   };
@@ -545,6 +574,29 @@ export default function PaymentsTab() {
                     (invoice: Invoice) => (
                       <option key={invoice.id} value={invoice.id}>
                         {invoice.invoiceNumber}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t("accounting.account") || "Account"}
+                </label>
+                <select
+                  name="accountId"
+                  value={formState.accountId}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                >
+                  <option value="">
+                    {t("accounting.selectAccount") || "Select an account..."}
+                  </option>
+                  {(accountsData?.accounts?.nodes || []).map(
+                    (account: Account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.accountNumber} - {account.name}
                       </option>
                     ),
                   )}

@@ -29,6 +29,11 @@ public class PaymentRecord
 
     public BankAccount? BankAccount { get; set; }
 
+    // Link to account from chart of accounts
+    public Guid? AccountId { get; set; }
+
+    public Account? Account { get; set; }
+
     public PaymentMethod Method { get; set; }
 
     [NotMapped]
