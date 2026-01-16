@@ -111,24 +111,37 @@ export default function EmployeeModal({ employee, onClose, onSuccess }: Employee
     e.preventDefault();
 
     try {
-      const input = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email || null,
-        phone: formData.phone || null,
-        jobTitle: formData.jobTitle || null,
-        employmentType: formData.employmentType,
-        hireDate: formData.hireDate || null,
-        departmentId: formData.departmentId || null,
-        notes: formData.notes || null,
-      };
-
       if (isEditing) {
+        // For updates, only send fields that are supported by UpdateEmployeeInput
+        const updateInput = {
+          firstName: formData.firstName || null,
+          lastName: formData.lastName || null,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          jobTitle: formData.jobTitle || null,
+          employmentType: formData.employmentType,
+          departmentId: formData.departmentId ? formData.departmentId : null,
+          status: formData.status,
+        };
+
         await updateEmployee({
-          variables: { id: employee.id, input: { ...input, status: formData.status } },
+          variables: { id: employee.id, input: updateInput },
         });
       } else {
-        await createEmployee({ variables: { input } });
+        // For creation, send all fields including hireDate
+        const createInput = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          jobTitle: formData.jobTitle || null,
+          employmentType: formData.employmentType,
+          hireDate: formData.hireDate || null,
+          departmentId: formData.departmentId ? formData.departmentId : null,
+          notes: formData.notes || null,
+        };
+
+        await createEmployee({ variables: { input: createInput } });
       }
     } catch (error) {
       console.error('Error saving employee:', error);

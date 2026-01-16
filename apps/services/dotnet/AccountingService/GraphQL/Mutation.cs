@@ -63,18 +63,13 @@ public class Mutation
     [GraphQLDescription("Update an existing payment record")]
     public async Task<PaymentRecord> UpdatePaymentRecord(
         UpdatePaymentRecordInput input,
-        [Service] AccountingDbContext context,
-        [Service] IInvoiceService invoiceService)
+        [Service] AccountingDbContext context)
     {
         var payment = await context.PaymentRecords.FindAsync(input.Id);
         if (payment == null)
         {
             throw new GraphQLException($"Payment record with ID {input.Id} not found");
         }
-
-        // Store original values for invoice adjustment
-        var originalAmount = payment.Amount;
-        var originalInvoiceId = payment.InvoiceId;
 
         // Update fields if provided
         if (input.Type != null)
@@ -132,30 +127,6 @@ public class Mutation
         }
 
         payment.UpdatedAt = DateTime.UtcNow;
-
-        // Handle invoice payment adjustments
-        if (originalInvoiceId.HasValue && originalInvoiceId != payment.InvoiceId)
-        {
-            // Remove payment from old invoice
-            await invoiceService.RecordPaymentAsync(originalInvoiceId.Value, -originalAmount, $"Reversal: {payment.Reference}");
-        }
-        if (payment.InvoiceId.HasValue)
-        {
-            if (originalInvoiceId == payment.InvoiceId)
-            {
-                // Same invoice, adjust the difference
-                var amountDifference = payment.Amount - originalAmount;
-                if (amountDifference != 0)
-                {
-                    await invoiceService.RecordPaymentAsync(payment.InvoiceId.Value, amountDifference, payment.Reference);
-                }
-            }
-            else
-            {
-                // New invoice, add the payment
-                await invoiceService.RecordPaymentAsync(payment.InvoiceId.Value, payment.Amount, payment.Reference);
-            }
-        }
 
         await context.SaveChangesAsync();
         return payment;

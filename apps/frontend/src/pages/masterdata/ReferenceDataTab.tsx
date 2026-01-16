@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import CurrencyModal from './CurrencyModal';
+import PaymentTermModal from './PaymentTermModal';
+import UnitOfMeasureModal from './UnitOfMeasureModal';
 
 const GET_CURRENCIES = gql`
   query GetCurrencies {
@@ -11,8 +14,9 @@ const GET_CURRENCIES = gql`
         code
         name
         symbol
+        decimalPlaces
         exchangeRate
-        isDefault
+        isBaseCurrency
         isActive
       }
     }
@@ -28,7 +32,7 @@ const GET_PAYMENT_TERMS = gql`
         name
         description
         type
-        netDays
+        dueDays
         discountDays
         discountPercent
         isActive
@@ -44,9 +48,11 @@ const GET_UNITS_OF_MEASURE = gql`
         id
         code
         name
+        symbol
         type
         baseUnit
         conversionFactor
+        isBaseUnit
         isActive
       }
     }
@@ -57,9 +63,10 @@ interface Currency {
   id: string;
   code: string;
   name: string;
-  symbol: string;
+  symbol: string | null;
+  decimalPlaces: number;
   exchangeRate: number;
-  isDefault: boolean;
+  isBaseCurrency: boolean;
   isActive: boolean;
 }
 
@@ -67,11 +74,11 @@ interface PaymentTerm {
   id: string;
   code: string;
   name: string;
-  description: string;
+  description: string | null;
   type: string;
-  netDays: number;
-  discountDays: number;
-  discountPercent: number;
+  dueDays: number;
+  discountDays: number | null;
+  discountPercent: number | null;
   isActive: boolean;
 }
 
@@ -79,9 +86,11 @@ interface UnitOfMeasure {
   id: string;
   code: string;
   name: string;
+  symbol: string | null;
   type: string;
   baseUnit: string | null;
   conversionFactor: number;
+  isBaseUnit: boolean;
   isActive: boolean;
 }
 
@@ -90,6 +99,12 @@ type ReferenceType = 'currencies' | 'paymentTerms' | 'units';
 export default function ReferenceDataTab() {
   const { t } = useI18n();
   const [activeType, setActiveType] = useState<ReferenceType>('currencies');
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [editingCurrency, setEditingCurrency] = useState<Currency | null>(null);
+  const [showPaymentTermModal, setShowPaymentTermModal] = useState(false);
+  const [editingPaymentTerm, setEditingPaymentTerm] = useState<PaymentTerm | null>(null);
+  const [showUnitOfMeasureModal, setShowUnitOfMeasureModal] = useState(false);
+  const [editingUnitOfMeasure, setEditingUnitOfMeasure] = useState<UnitOfMeasure | null>(null);
 
   const { data: currenciesData, loading: currenciesLoading, error: currenciesError } = useQuery(GET_CURRENCIES, {
     skip: activeType !== 'currencies',
@@ -118,6 +133,54 @@ export default function ReferenceDataTab() {
     );
   }
 
+  const handleAddClick = () => {
+    switch (activeType) {
+      case 'currencies':
+        setEditingCurrency(null);
+        setShowCurrencyModal(true);
+        break;
+      case 'paymentTerms':
+        setEditingPaymentTerm(null);
+        setShowPaymentTermModal(true);
+        break;
+      case 'units':
+        setEditingUnitOfMeasure(null);
+        setShowUnitOfMeasureModal(true);
+        break;
+    }
+  };
+
+  const handleEditCurrency = (currency: Currency) => {
+    setEditingCurrency(currency);
+    setShowCurrencyModal(true);
+  };
+
+  const handleEditPaymentTerm = (paymentTerm: PaymentTerm) => {
+    setEditingPaymentTerm(paymentTerm);
+    setShowPaymentTermModal(true);
+  };
+
+  const handleEditUnitOfMeasure = (unitOfMeasure: UnitOfMeasure) => {
+    setEditingUnitOfMeasure(unitOfMeasure);
+    setShowUnitOfMeasureModal(true);
+  };
+
+  const handleModalSuccess = () => {
+    // Refetch the current active query
+    switch (activeType) {
+      case 'currencies':
+        // currenciesData.refetch(); // Would need to add refetch to queries
+        window.location.reload(); // Simple refresh for now
+        break;
+      case 'paymentTerms':
+        window.location.reload();
+        break;
+      case 'units':
+        window.location.reload();
+        break;
+    }
+  };
+
   const referenceTypes = [
     { key: 'currencies', labelKey: 'masterdata.currencies' },
     { key: 'paymentTerms', labelKey: 'masterdata.paymentTerms' },
@@ -145,7 +208,7 @@ export default function ReferenceDataTab() {
             </button>
           ))}
         </div>
-        <button className="btn-primary flex items-center gap-2">
+        <button className="btn-primary flex items-center gap-2" onClick={handleAddClick}>
           <PlusIcon className="h-5 w-5" />
           {t('common.add')}
         </button>
@@ -173,6 +236,9 @@ export default function ReferenceDataTab() {
                         {t('masterdata.symbol')}
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                        {t('masterdata.decimalPlaces')}
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                         {t('masterdata.exchangeRate')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -188,14 +254,17 @@ export default function ReferenceDataTab() {
                       <tr key={currency.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="whitespace-nowrap px-6 py-4">
                           <span className="font-mono font-medium">{currency.code}</span>
-                          {currency.isDefault && (
+                          {currency.isBaseCurrency && (
                             <span className="ml-2 rounded bg-primary-100 px-1.5 py-0.5 text-xs text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
-                              {t('masterdata.default')}
+                              {t('masterdata.isBaseCurrency')}
                             </span>
                           )}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4">{currency.name}</td>
                         <td className="whitespace-nowrap px-6 py-4">{currency.symbol}</td>
+                        <td className="whitespace-nowrap px-6 py-4 text-right font-mono">
+                          {currency.decimalPlaces}
+                        </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right font-mono">
                           {currency.exchangeRate.toFixed(4)}
                         </td>
@@ -211,7 +280,10 @@ export default function ReferenceDataTab() {
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right">
-                          <button className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                          <button 
+                            className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                            onClick={() => handleEditCurrency(currency)}
+                          >
                             <PencilIcon className="h-5 w-5" />
                           </button>
                         </td>
@@ -240,7 +312,7 @@ export default function ReferenceDataTab() {
                         {t('masterdata.type')}
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                        {t('masterdata.netDays')}
+                        {t('masterdata.dueDays')}
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                         {t('masterdata.discount')}
@@ -271,10 +343,10 @@ export default function ReferenceDataTab() {
                           {t(`masterdata.paymentTermType.${term.type.toLowerCase()}`)}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right">
-                          {term.netDays} {t('masterdata.days')}
+                          {term.dueDays} {t('masterdata.days')}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right">
-                          {term.discountPercent > 0 ? (
+                          {term.discountPercent && term.discountPercent > 0 ? (
                             <span>
                               {term.discountPercent}% / {term.discountDays} {t('masterdata.days')}
                             </span>
@@ -294,7 +366,10 @@ export default function ReferenceDataTab() {
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right">
-                          <button className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                          <button 
+                            className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                            onClick={() => handleEditPaymentTerm(term)}
+                          >
                             <PencilIcon className="h-5 w-5" />
                           </button>
                         </td>
@@ -364,7 +439,10 @@ export default function ReferenceDataTab() {
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right">
-                          <button className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                          <button 
+                            className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                            onClick={() => handleEditUnitOfMeasure(unit)}
+                          >
                             <PencilIcon className="h-5 w-5" />
                           </button>
                         </td>
@@ -376,6 +454,29 @@ export default function ReferenceDataTab() {
             </div>
           )}
         </>
+      )}
+
+      {/* Modals */}
+      {showCurrencyModal && (
+        <CurrencyModal
+          currency={editingCurrency}
+          onClose={() => setShowCurrencyModal(false)}
+          onSuccess={handleModalSuccess}
+        />
+      )}
+      {showPaymentTermModal && (
+        <PaymentTermModal
+          paymentTerm={editingPaymentTerm}
+          onClose={() => setShowPaymentTermModal(false)}
+          onSuccess={handleModalSuccess}
+        />
+      )}
+      {showUnitOfMeasureModal && (
+        <UnitOfMeasureModal
+          unitOfMeasure={editingUnitOfMeasure}
+          onClose={() => setShowUnitOfMeasureModal(false)}
+          onSuccess={handleModalSuccess}
+        />
       )}
     </div>
   );

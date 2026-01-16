@@ -71,17 +71,33 @@ export default function CustomerModal({ customer, onClose }: CustomerModalProps)
   useEffect(() => {
     if (customer) {
       setFormData({
-        name: customer.name,
+        name: customer.name || '',
         legalName: customer.legalName || '',
-        type: customer.type,
+        type: customer.type || 'COMPANY',
         email: customer.email || '',
         phone: customer.phone || '',
         website: customer.website || '',
         taxId: customer.taxId || '',
-        creditLimit: customer.creditLimit,
-        paymentTermDays: customer.paymentTermDays,
-        currency: customer.currency,
-        status: customer.status,
+        creditLimit: customer.creditLimit || 0,
+        paymentTermDays: customer.paymentTermDays || 30,
+        currency: customer.currency || 'USD',
+        status: customer.status || 'ACTIVE',
+        notes: '',
+      });
+    } else {
+      // Reset form for create mode
+      setFormData({
+        name: '',
+        legalName: '',
+        type: 'COMPANY',
+        email: '',
+        phone: '',
+        website: '',
+        taxId: '',
+        creditLimit: 0,
+        paymentTermDays: 30,
+        currency: 'USD',
+        status: 'ACTIVE',
         notes: '',
       });
     }
