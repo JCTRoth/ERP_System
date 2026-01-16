@@ -197,7 +197,24 @@ public record CreatePaymentRecordInput(
     string? ReferenceNumber
 );
 
-// Bank Account DTOs
+public record UpdatePaymentRecordInput(
+    Guid Id,
+    string? Type,
+    Guid? InvoiceId,
+    Guid? BankAccountId,
+    string? Method,
+    decimal? Amount,
+    string? Currency,
+    DateTime? PaymentDate,
+    string? Reference,
+    string? PayerName,
+    string? PayeeName,
+    string? PayerIban,
+    string? PayeeIban,
+    string? Notes,
+    string? PaymentMethod,
+    string? ReferenceNumber
+);
 public record BankAccountDto(
     Guid Id,
     string Name,

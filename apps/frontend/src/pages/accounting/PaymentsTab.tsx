@@ -68,6 +68,26 @@ const CREATE_PAYMENT_RECORD = gql`
   }
 `;
 
+const UPDATE_PAYMENT_RECORD = gql`
+  mutation UpdatePaymentRecord($input: UpdatePaymentRecordInput!) {
+    updatePaymentRecord(input: $input) {
+      id
+      paymentDate
+      amount
+      currency
+      paymentMethod
+      reference
+      notes
+      invoiceId
+      invoice {
+        id
+        invoiceNumber
+      }
+      createdAt
+    }
+  }
+`;
+
 interface PaymentRecord {
   id: string;
   paymentDate: string;
@@ -129,6 +149,18 @@ export default function PaymentsTab() {
     onError: (err) => {
       console.error('CreatePaymentRecord error:', err);
       setFormError(err.message || 'Failed to save payment');
+    },
+  });
+
+  const [updatePaymentRecord, { loading: updating }] = useMutation(UPDATE_PAYMENT_RECORD, {
+    onCompleted: () => {
+      setShowModal(false);
+      setEditingPayment(null);
+      refetch();
+    },
+    onError: (err) => {
+      console.error('UpdatePaymentRecord error:', err);
+      setFormError(err.message || 'Failed to update payment');
     },
   });
 
@@ -196,21 +228,41 @@ export default function PaymentsTab() {
       ? new Date(formState.paymentDate).toISOString()
       : new Date().toISOString();
 
-    const input: any = {
-      type: 'CustomerPayment',
-      amount: amountNumber,
-      currency: formState.currency || 'EUR',
-      method: formState.method,
-      paymentDate: isoDate,
-      reference: formState.reference || null,
-      notes: formState.notes || null,
-    };
+    if (editingPayment) {
+      // Update existing payment
+      const input: any = {
+        id: editingPayment.id,
+        amount: amountNumber,
+        currency: formState.currency || 'EUR',
+        method: formState.method,
+        paymentDate: isoDate,
+        reference: formState.reference || null,
+        notes: formState.notes || null,
+      };
 
-    if (formState.invoiceId) {
-      input.invoiceId = formState.invoiceId;
+      if (formState.invoiceId) {
+        input.invoiceId = formState.invoiceId;
+      }
+
+      await updatePaymentRecord({ variables: { input } });
+    } else {
+      // Create new payment
+      const input: any = {
+        type: 'CustomerPayment',
+        amount: amountNumber,
+        currency: formState.currency || 'EUR',
+        method: formState.method,
+        paymentDate: isoDate,
+        reference: formState.reference || null,
+        notes: formState.notes || null,
+      };
+
+      if (formState.invoiceId) {
+        input.invoiceId = formState.invoiceId;
+      }
+
+      await createPaymentRecord({ variables: { input } });
     }
-
-    await createPaymentRecord({ variables: { input } });
   };
 
   const formatCurrency = (amount: number, currency: string = 'USD') => {
@@ -474,17 +526,17 @@ export default function PaymentsTab() {
                   type="button"
                   onClick={handleModalClose}
                   className="btn-secondary"
-                  disabled={saving}
+                  disabled={saving || updating}
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="btn-primary"
-                  disabled={saving}
+                  disabled={saving || updating}
                 >
-                  {saving
-                    ? t('common.saving') || 'Saving...'
+                  {(saving || updating)
+                    ? (updating ? t('common.updating') || 'Updating...' : t('common.saving') || 'Saving...')
                     : editingPayment
                       ? t('common.save') || 'Save'
                       : t('common.create') || 'Create'}

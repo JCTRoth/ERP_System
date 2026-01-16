@@ -60,6 +60,131 @@ public class Mutation
         return payment;
     }
 
+    [GraphQLDescription("Update an existing payment record")]
+    public async Task<PaymentRecord> UpdatePaymentRecord(
+        UpdatePaymentRecordInput input,
+        [Service] AccountingDbContext context,
+        [Service] IInvoiceService invoiceService)
+    {
+        var payment = await context.PaymentRecords.FindAsync(input.Id);
+        if (payment == null)
+        {
+            throw new GraphQLException($"Payment record with ID {input.Id} not found");
+        }
+
+        // Store original values for invoice adjustment
+        var originalAmount = payment.Amount;
+        var originalInvoiceId = payment.InvoiceId;
+
+        // Update fields if provided
+        if (input.Type != null)
+        {
+            payment.Type = TryParseEnum<global::AccountingService.Models.PaymentRecordType>(
+                input.Type, payment.Type);
+        }
+        if (input.InvoiceId.HasValue)
+        {
+            payment.InvoiceId = input.InvoiceId;
+        }
+        if (input.BankAccountId.HasValue)
+        {
+            payment.BankAccountId = input.BankAccountId;
+        }
+        if (input.Method != null || input.PaymentMethod != null)
+        {
+            payment.Method = TryParsePaymentMethod(input.Method ?? input.PaymentMethod);
+        }
+        if (input.Amount.HasValue)
+        {
+            payment.Amount = input.Amount.Value;
+        }
+        if (input.Currency != null)
+        {
+            payment.Currency = input.Currency;
+        }
+        if (input.PaymentDate.HasValue)
+        {
+            payment.PaymentDate = input.PaymentDate.Value;
+        }
+        if (input.Reference != null || input.ReferenceNumber != null)
+        {
+            payment.Reference = input.Reference ?? input.ReferenceNumber;
+        }
+        if (input.PayerName != null)
+        {
+            payment.PayerName = input.PayerName;
+        }
+        if (input.PayeeName != null)
+        {
+            payment.PayeeName = input.PayeeName;
+        }
+        if (input.PayerIban != null)
+        {
+            payment.PayerIban = input.PayerIban;
+        }
+        if (input.PayeeIban != null)
+        {
+            payment.PayeeIban = input.PayeeIban;
+        }
+        if (input.Notes != null)
+        {
+            payment.Notes = input.Notes;
+        }
+
+        payment.UpdatedAt = DateTime.UtcNow;
+
+        // Handle invoice payment adjustments
+        if (originalInvoiceId.HasValue && originalInvoiceId != payment.InvoiceId)
+        {
+            // Remove payment from old invoice
+            await invoiceService.RecordPaymentAsync(originalInvoiceId.Value, -originalAmount, $"Reversal: {payment.Reference}");
+        }
+        if (payment.InvoiceId.HasValue)
+        {
+            if (originalInvoiceId == payment.InvoiceId)
+            {
+                // Same invoice, adjust the difference
+                var amountDifference = payment.Amount - originalAmount;
+                if (amountDifference != 0)
+                {
+                    await invoiceService.RecordPaymentAsync(payment.InvoiceId.Value, amountDifference, payment.Reference);
+                }
+            }
+            else
+            {
+                // New invoice, add the payment
+                await invoiceService.RecordPaymentAsync(payment.InvoiceId.Value, payment.Amount, payment.Reference);
+            }
+        }
+
+        await context.SaveChangesAsync();
+        return payment;
+    }
+
+    [GraphQLDescription("Delete a payment record")]
+    public async Task<bool> DeletePaymentRecord(
+        Guid id,
+        [Service] AccountingDbContext context,
+        [Service] IInvoiceService invoiceService)
+    {
+        var payment = await context.PaymentRecords.FindAsync(id);
+        if (payment == null)
+        {
+            throw new GraphQLException($"Payment record with ID {id} not found");
+        }
+
+        // If this payment was linked to an invoice, we need to reverse the payment amount
+        if (payment.InvoiceId.HasValue)
+        {
+            await invoiceService.RecordPaymentAsync(payment.InvoiceId.Value, -payment.Amount, $"Reversal: {payment.Reference}");
+        }
+
+        context.PaymentRecords.Remove(payment);
+        await context.SaveChangesAsync();
+
+        return true;
+    }
+
     private static PaymentMethod TryParsePaymentMethod(string? method)
     {
         if (!string.IsNullOrWhiteSpace(method) &&

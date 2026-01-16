@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using HotChocolate.Types;
 
 namespace AccountingService.Models;
 
@@ -124,13 +125,22 @@ public enum InvoiceType
 
 public enum InvoiceStatus
 {
+    [GraphQLName("DRAFT")]
     Draft,
+    [GraphQLName("SENT")]
     Sent,
+    [GraphQLName("VIEWED")]
     Viewed,
+    [GraphQLName("PARTIAL")]
     PartiallyPaid,
+    [GraphQLName("PAID")]
     Paid,
+    [GraphQLName("OVERDUE")]
     Overdue,
+    [GraphQLName("CANCELLED")]
     Cancelled,
+    [GraphQLName("DISPUTED")]
     Disputed,
+    [GraphQLName("VOID")]
     Void
 }

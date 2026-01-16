@@ -283,7 +283,22 @@ export default function InvoicesTab() {
                       {formatCurrency(invoice.totalAmount, invoice.currency)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
-                      <span className={invoice.balanceDue > 0 ? 'font-medium text-red-600' : 'text-green-600'}>
+                      <span
+                        className={
+                          invoice.balanceDue > 0
+                            ? 'font-medium text-red-600'
+                            : invoice.balanceDue < 0
+                              ? 'font-medium text-blue-600'
+                              : 'text-green-600'
+                        }
+                        title={
+                          invoice.balanceDue > 0
+                            ? t('accounting.balanceTooltip.unpaid') || 'Amount still owed by customer'
+                            : invoice.balanceDue < 0
+                              ? t('accounting.balanceTooltip.overpaid') || 'Customer overpaid - credit balance'
+                              : t('accounting.balanceTooltip.paid') || 'Invoice fully paid'
+                        }
+                      >
                         {formatCurrency(invoice.balanceDue, invoice.currency)}
                       </span>
                     </td>
