@@ -39,11 +39,11 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const result = await authService.resetPassword(token!, password);
-      if (result.success) {
+      const ok = await authService.resetPassword(token!, password);
+      if (ok) {
         setSuccess(true);
       } else {
-        setError(result.message || t('auth.resetError'));
+        setError(t('auth.resetError'));
       }
     } catch (err: any) {
       setError(err.message || t('auth.resetError'));

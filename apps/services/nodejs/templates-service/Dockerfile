@@ -2,23 +2,19 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install asciidoctor-pdf via Ruby gems
+# Install asciidoctor-pdf via Ruby gems (simplified)
 RUN apk add --no-cache ruby ruby-dev build-base && \
-    gem install asciidoctor-pdf
+    gem install --no-document asciidoctor-pdf
 
 # Create non-root user
 RUN addgroup -g 1001 appgroup && \
     adduser -u 1001 -G appgroup -s /bin/sh -D appuser
 
 COPY package*.json ./
-# Install Node dependencies before copying source to leverage Docker layer caching.
-# Prefer `npm ci` for reproducible builds when package-lock.json is present,
-# otherwise fall back to `npm install` to remain tolerant in development.
-RUN if [ -f package-lock.json ]; then \
-            npm ci --only=production --no-audit --no-fund; \
-        else \
-            npm install --no-audit --no-fund; \
-        fi
+
+# Install Node dependencies with increased memory and simplified flags
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+RUN npm ci --only=production --no-audit --no-fund --prefer-offline
 
 COPY . .
 

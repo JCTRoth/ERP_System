@@ -36,28 +36,19 @@ const LOGOUT_MUTATION = gql`
 
 const REQUEST_PASSWORD_RESET_MUTATION = gql`
   mutation RequestPasswordReset($email: String!) {
-    requestPasswordReset(email: $email) {
-      success
-      message
-    }
+    requestPasswordReset(email: $email)
   }
 `;
 
 const RESET_PASSWORD_MUTATION = gql`
   mutation ResetPassword($token: String!, $password: String!) {
-    resetPassword(token: $token, password: $password) {
-      success
-      message
-    }
+    resetPassword(token: $token, password: $password)
   }
 `;
 
 const CHANGE_PASSWORD_MUTATION = gql`
   mutation ChangePassword($currentPassword: String!, $newPassword: String!) {
-    changePassword(currentPassword: $currentPassword, newPassword: $newPassword) {
-      success
-      message
-    }
+    changePassword(currentPassword: $currentPassword, newPassword: $newPassword)
   }
 `;
 
@@ -94,10 +85,7 @@ export interface LoginResult {
   refreshToken: string;
 }
 
-export interface PasswordResetResult {
-  success: boolean;
-  message: string;
-}
+export type PasswordResetResult = boolean;
 
 class AuthService {
   private refreshPromise: Promise<boolean> | null = null;
@@ -194,7 +182,8 @@ class AuthService {
       mutation: REQUEST_PASSWORD_RESET_MUTATION,
       variables: { email },
     });
-    return data.requestPasswordReset;
+    // Backend returns a boolean indicating success
+    return Boolean(data.requestPasswordReset);
   }
 
   async resetPassword(token: string, password: string): Promise<PasswordResetResult> {
@@ -203,7 +192,8 @@ class AuthService {
       mutation: RESET_PASSWORD_MUTATION,
       variables: { token, password },
     });
-    return data.resetPassword;
+    // Backend returns a boolean
+    return Boolean(data.resetPassword);
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<PasswordResetResult> {
@@ -212,7 +202,8 @@ class AuthService {
       mutation: CHANGE_PASSWORD_MUTATION,
       variables: { currentPassword, newPassword },
     });
-    return data.changePassword;
+    // Backend returns a boolean
+    return Boolean(data.changePassword);
   }
 
   async getCurrentUser() {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import {
   PlusIcon,
@@ -36,6 +36,38 @@ const DELETE_PAYMENT_RECORD = gql`
   }
 `;
 
+const GET_INVOICES = gql`
+  query GetInvoices {
+    invoices(first: 100) {
+      nodes {
+        id
+        invoiceNumber
+      }
+      totalCount
+    }
+  }
+`;
+
+const CREATE_PAYMENT_RECORD = gql`
+  mutation CreatePaymentRecord($input: CreatePaymentRecordInput!) {
+    createPaymentRecord(input: $input) {
+      id
+      paymentDate
+      amount
+      currency
+      paymentMethod
+      reference
+      notes
+      invoiceId
+      invoice {
+        id
+        invoiceNumber
+      }
+      createdAt
+    }
+  }
+`;
+
 interface PaymentRecord {
   id: string;
   paymentDate: string;
@@ -49,16 +81,35 @@ interface PaymentRecord {
   createdAt: string;
 }
 
+interface Invoice {
+  id: string;
+  invoiceNumber: string;
+}
+
 export default function PaymentsTab() {
   const { t } = useI18n();
   const [showModal, setShowModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<PaymentRecord | null>(null);
+  const [formState, setFormState] = useState({
+    amount: '',
+    currency: 'EUR',
+    paymentDate: new Date().toISOString().split('T')[0],
+    method: 'BankTransfer',
+    reference: '',
+    notes: '',
+    invoiceId: '',
+  });
+  const [formError, setFormError] = useState<string | null>(null);
 
   const { data, loading, refetch, error } = useQuery(GET_PAYMENT_RECORDS, {
     variables: {
       first: 100,
     },
+    errorPolicy: 'all',
+  });
+
+  const { data: invoicesData } = useQuery(GET_INVOICES, {
     errorPolicy: 'all',
   });
 
@@ -69,13 +120,43 @@ export default function PaymentsTab() {
     },
   });
 
+  const [createPaymentRecord, { loading: saving }] = useMutation(CREATE_PAYMENT_RECORD, {
+    onCompleted: () => {
+      setShowModal(false);
+      setEditingPayment(null);
+      refetch();
+    },
+    onError: (err) => {
+      console.error('CreatePaymentRecord error:', err);
+      setFormError(err.message || 'Failed to save payment');
+    },
+  });
+
   const handleAddClick = () => {
     setEditingPayment(null);
+    setFormState({
+      amount: '',
+      currency: 'EUR',
+      paymentDate: new Date().toISOString().split('T')[0],
+      method: 'BankTransfer',
+      reference: '',
+      notes: '',
+      invoiceId: '',
+    });
     setShowModal(true);
   };
 
   const handleEditClick = (payment: PaymentRecord) => {
     setEditingPayment(payment);
+    setFormState({
+      amount: String(payment.amount),
+      currency: payment.currency || 'EUR',
+      paymentDate: payment.paymentDate.split('T')[0],
+      method: payment.paymentMethod || 'BankTransfer',
+      reference: payment.reference || '',
+      notes: payment.notes || '',
+      invoiceId: payment.invoiceId || '',
+    });
     setShowModal(true);
   };
 
@@ -92,6 +173,44 @@ export default function PaymentsTab() {
   const handleModalClose = () => {
     setShowModal(false);
     setEditingPayment(null);
+    setFormError(null);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormState((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    const amountNumber = parseFloat(formState.amount);
+    if (Number.isNaN(amountNumber) || amountNumber <= 0) {
+      setFormError(t('accounting.invalidAmount') || 'Please enter a valid amount');
+      return;
+    }
+
+    // Convert date from YYYY-MM-DD format to ISO 8601 format
+    const isoDate = formState.paymentDate
+      ? new Date(formState.paymentDate).toISOString()
+      : new Date().toISOString();
+
+    const input: any = {
+      type: 'CustomerPayment',
+      amount: amountNumber,
+      currency: formState.currency || 'EUR',
+      method: formState.method,
+      paymentDate: isoDate,
+      reference: formState.reference || null,
+      notes: formState.notes || null,
+    };
+
+    if (formState.invoiceId) {
+      input.invoiceId = formState.invoiceId;
+    }
+
+    await createPaymentRecord({ variables: { input } });
   };
 
   const formatCurrency = (amount: number, currency: string = 'USD') => {
@@ -228,24 +347,150 @@ export default function PaymentsTab() {
         </div>
       </div>
 
-      {/* Payment Modal would go here - simplified for now */}
+      {/* Payment Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
             <h3 className="text-lg font-semibold">
               {editingPayment ? t('accounting.editPayment') || 'Edit Payment' : t('accounting.addPayment') || 'Add Payment'}
             </h3>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Payment modal implementation pending - will be added in next iteration.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={handleModalClose}
-                className="btn-secondary"
-              >
-                {t('common.close')}
-              </button>
-            </div>
+            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('accounting.amount')}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="amount"
+                    value={formState.amount}
+                    onChange={handleInputChange}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('accounting.currency')}
+                  </label>
+                  <input
+                    type="text"
+                    name="currency"
+                    value={formState.currency}
+                    onChange={handleInputChange}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('accounting.paymentDate')}
+                  </label>
+                  <input
+                    type="date"
+                    name="paymentDate"
+                    value={formState.paymentDate}
+                    onChange={handleInputChange}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('accounting.paymentMethod')}
+                  </label>
+                  <select
+                    name="method"
+                    value={formState.method}
+                    onChange={handleInputChange}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                  >
+                    <option value="BankTransfer">{t('accounting.paymentMethod.banktransfer') || 'Bank Transfer'}</option>
+                    <option value="CreditCard">{t('accounting.paymentMethod.creditcard') || 'Credit Card'}</option>
+                    <option value="DebitCard">{t('accounting.paymentMethod.debitcard') || 'Debit Card'}</option>
+                    <option value="Cash">{t('accounting.paymentMethod.cash') || 'Cash'}</option>
+                    <option value="PayPal">PayPal</option>
+                    <option value="Other">{t('common.other') || 'Other'}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('accounting.reference')}
+                </label>
+                <input
+                  type="text"
+                  name="reference"
+                  value={formState.reference}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                  placeholder={t('accounting.referencePlaceholder') || 'Optional reference or transaction ID'}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('accounting.invoice') || 'Invoice (optional)'}
+                </label>
+                <select
+                  name="invoiceId"
+                  value={formState.invoiceId}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                >
+                  <option value="">{t('accounting.selectInvoice') || 'Select an invoice...'}</option>
+                  {(invoicesData?.invoices?.nodes || []).map((invoice: Invoice) => (
+                    <option key={invoice.id} value={invoice.id}>
+                      {invoice.invoiceNumber}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t('accounting.notes')}
+                </label>
+                <textarea
+                  name="notes"
+                  value={formState.notes}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                  placeholder={t('accounting.paymentNotesPlaceholder') || 'Optional notes about this payment'}
+                />
+              </div>
+
+              {formError && (
+                <p className="text-sm text-red-600 dark:text-red-400">{formError}</p>
+              )}
+
+              <div className="mt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleModalClose}
+                  className="btn-secondary"
+                  disabled={saving}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={saving}
+                >
+                  {saving
+                    ? t('common.saving') || 'Saving...'
+                    : editingPayment
+                      ? t('common.save') || 'Save'
+                      : t('common.create') || 'Create'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

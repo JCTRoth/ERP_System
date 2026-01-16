@@ -165,37 +165,28 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapMetrics();
 
-// Apply migrations on startup
-if (true)
+// Apply migrations and seed data on startup
+app.Logger.LogInformation("Initializing database...");
+try
 {
-    app.Logger.LogInformation("Applying database migrations...");
-    try
-    {
-        using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ShopDbContext>();
-        var seedService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
-        
-        // Get applied migrations
-        var appliedMigrations = db.Database.GetAppliedMigrations();
-        app.Logger.LogInformation("Applied migrations: {AppliedMigrations}", string.Join(", ", appliedMigrations));
-        
-        // Get pending migrations
-        var pendingMigrations = db.Database.GetPendingMigrations();
-        app.Logger.LogInformation("Pending migrations: {PendingMigrations}", string.Join(", ", pendingMigrations));
-        
-        app.Logger.LogInformation("Applying migrations...");
-        db.Database.EnsureCreated();
-        app.Logger.LogInformation("Database tables created successfully");
-        
-        // Seed data if empty
-        app.Logger.LogInformation("Seeding database...");
-        await seedService.SeedAsync();
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(ex, "Failed to apply database migrations");
-        throw;
-    }
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ShopDbContext>();
+    var seedService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
+
+    // Ensure database exists and migrations are applied
+    app.Logger.LogInformation("Ensuring database is created and migrated...");
+    await db.Database.MigrateAsync();
+    app.Logger.LogInformation("Database migration completed successfully");
+
+    // Always attempt to seed data (the SeedDataService handles checking for existing data)
+    app.Logger.LogInformation("Checking and seeding initial data...");
+    await seedService.SeedAsync();
+    app.Logger.LogInformation("Database initialization completed successfully");
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Failed to initialize database");
+    throw;
 }
 
 app.Run();

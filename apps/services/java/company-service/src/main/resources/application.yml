@@ -48,7 +48,7 @@ minio:
 # Application Configuration
 app:
   demo-company:
-    name: Demo_Corporation
+    name: MediVita
     auto-create: true
   logo:
     max-size-bytes: 4194304

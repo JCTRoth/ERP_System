@@ -75,7 +75,7 @@ dgs:
 # Notification Settings
 notification:
   email:
-    from: ${EMAIL_FROM:noreply@erp-system.local}
+    from: ${EMAIL_FROM:${SMTP_USERNAME:admin@erp-system.local}}
     from-name: ${EMAIL_FROM_NAME:ERP System}
     retry-attempts: 3
     retry-delay-ms: 1000

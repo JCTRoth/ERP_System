@@ -264,6 +264,29 @@ setup_server_infrastructure() {
     fi
 }
 
+# Configure firewall to allow traffic on service ports
+configure_firewall() {
+    print_header "Configuring Firewall"
+
+    print_step "Allowing traffic on service ports..."
+    
+    # List of ports to allow
+    # 3001: Grafana
+    # 5002: Masterdata Service
+    # 5003: Shop Service
+    # 8080: Company Service
+    # 8081: Translation Service
+    
+    local ports="3001 5002 5003 8080 8081 80 443"
+    
+    for port in $ports; do
+        print_info "Opening port $port/tcp..."
+        ssh_exec "ufw allow $port/tcp"
+    done
+    
+    print_status "Firewall configuration completed"
+}
+
 # Execute SSH command on remote server with sudo password support
 ssh_exec() {
     local command=$1
@@ -453,6 +476,22 @@ services:
     networks:
       - erp-network
 
+  templates-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-templates-service:${IMAGE_VERSION}
+    container_name: erp_system-templates-service
+    environment:
+      NODE_ENV: production
+      PORT: 8087
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@postgres:5432/templatesdb
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8087:8087"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
   shop-service:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-shop-service:${IMAGE_VERSION}
     container_name: erp_system-shop-service
@@ -468,20 +507,20 @@ services:
     networks:
       - erp-network
 
-  orders-service:
-    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
-    container_name: erp_system-orders-service
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=orders_db;User Id=postgres;Password=${DB_PASSWORD};"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "5004:5004"
-    restart: unless-stopped
-    networks:
-      - erp-network
+  # orders-service:
+  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
+  #   container_name: erp_system-orders-service
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Development
+  #     ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=orders_db;User Id=postgres;Password=${DB_PASSWORD};"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   ports:
+  #     - "5004:5004"
+  #   restart: unless-stopped
+  #   networks:
+  #     - erp-network
 
   gateway:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-gateway:${IMAGE_VERSION}
@@ -494,6 +533,8 @@ services:
       MASTERDATA_SERVICE_URL: http://masterdata-service:5002/graphql/
       COMPANY_SERVICE_URL: http://company-service:8080/graphql
       TRANSLATION_SERVICE_URL: http://translation-service:8081/graphql
+      SHOP_SERVICE_URL: http://shop-service:5003/graphql/
+      # ORDERS_SERVICE_URL: http://orders-service:5004/graphql/
     depends_on:
       - user-service
       - accounting-service
@@ -591,9 +632,18 @@ server {
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-XSS-Protection "1; mode=block" always;
     
+    # Templates Service API
+    location /api/templates {
+        proxy_pass http://templates-service:8087/api/templates;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
     # Notification Service API
-    location /api/ {
-        proxy_pass http://notification-service:8082/api/;
+    location /api/smtp-configuration {
+        proxy_pass http://notification-service:8082/api/smtp-configuration;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -911,6 +961,9 @@ main() {
     
     # Setup server infrastructure (Docker, Nginx, Firewall, SSH hardening)
     setup_server_infrastructure || exit 1
+    
+    # Configure custom firewall rules for services
+    configure_firewall || exit 1
     
     # Deploy application
     deploy_application || exit 1

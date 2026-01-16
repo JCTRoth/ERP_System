@@ -18,10 +18,10 @@ export default function ForgotPasswordPage() {
 
     try {
       const result = await authService.requestPasswordReset(email);
-      if (result.success) {
+      if (result) {
         setSuccess(true);
       } else {
-        setError(result.message || t('auth.resetError'));
+        setError(t('auth.resetError'));
       }
     } catch (err: any) {
       setError(err.message || t('auth.resetError'));

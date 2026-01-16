@@ -2,6 +2,9 @@ using UserService.Data;
 using UserService.Models;
 using Microsoft.EntityFrameworkCore;
 using BCrypt.Net;
+using System;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace UserService.Services;
 
@@ -48,71 +51,123 @@ public class SeedDataService : ISeedDataService
     {
         var users = new[]
         {
+            // Admin user
             new User
             {
                 Id = Guid.NewGuid(),
-                Email = "admin@erp-system.local",
+                Email = "admin@medivita.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
-                FirstName = "Admin",
-                LastName = "User",
+                FirstName = "Marcus",
+                LastName = "Johnson",
                 IsActive = true,
                 EmailVerified = true,
                 PreferredLanguage = "en",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Role = "admin"
             },
+            // CEO
             new User
             {
                 Id = Guid.NewGuid(),
-                Email = "john.doe@erp-system.local",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("User123!"),
-                FirstName = "John",
-                LastName = "Doe",
+                Email = "ceo@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Ceo123!"),
+                FirstName = "Dr. Sarah",
+                LastName = "Williams",
                 IsActive = true,
                 EmailVerified = true,
                 PreferredLanguage = "en",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
             },
+            // CFO
             new User
             {
                 Id = Guid.NewGuid(),
-                Email = "jane.smith@erp-system.local",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("User123!"),
-                FirstName = "Jane",
-                LastName = "Smith",
+                Email = "cfo@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Cfo123!"),
+                FirstName = "Michael",
+                LastName = "Chen",
                 IsActive = true,
                 EmailVerified = true,
                 PreferredLanguage = "en",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
             },
+            // Head of Research
             new User
             {
                 Id = Guid.NewGuid(),
-                Email = "max.mueller@erp-system.local",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("User123!"),
-                FirstName = "Max",
-                LastName = "Müller",
+                Email = "research@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Research123!"),
+                FirstName = "Dr. Elena",
+                LastName = "Rodriguez",
                 IsActive = true,
                 EmailVerified = true,
-                PreferredLanguage = "de",
-                CreatedAt = DateTime.UtcNow
+                PreferredLanguage = "en",
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
             },
+            // Sales Manager
             new User
             {
                 Id = Guid.NewGuid(),
-                Email = "marie.dupont@erp-system.local",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("User123!"),
-                FirstName = "Marie",
-                LastName = "Dupont",
+                Email = "sales@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Sales123!"),
+                FirstName = "James",
+                LastName = "Thompson",
                 IsActive = true,
                 EmailVerified = true,
-                PreferredLanguage = "fr",
-                CreatedAt = DateTime.UtcNow
+                PreferredLanguage = "en",
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
+            },
+            // Procurement Manager
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "procurement@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Procurement123!"),
+                FirstName = "Lisa",
+                LastName = "Anderson",
+                IsActive = true,
+                EmailVerified = true,
+                PreferredLanguage = "en",
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
+            },
+            // Warehouse Manager
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "warehouse@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Warehouse123!"),
+                FirstName = "Robert",
+                LastName = "Davis",
+                IsActive = true,
+                EmailVerified = true,
+                PreferredLanguage = "en",
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
+            },
+            // Customer Service Rep
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "support@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Support123!"),
+                FirstName = "Maria",
+                LastName = "Garcia",
+                IsActive = true,
+                EmailVerified = true,
+                PreferredLanguage = "en",
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
             }
         };
 
         await _context.Users.AddRangeAsync(users);
         await _context.SaveChangesAsync();
         
-        _logger.LogInformation("Seeded {Count} demo users successfully", users.Length);
+        _logger.LogInformation("Seeded {Count} MediVita users successfully", users.Length);
     }
 }

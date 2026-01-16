@@ -26,47 +26,29 @@ public class SeedDataService : ISeedDataService
         {
             _logger.LogInformation("Starting database seeding...");
 
-            if (!await _context.Brands.AnyAsync())
-            {
-                _logger.LogInformation("Seeding brands...");
-                await SeedBrands();
-            }
+            // Clear existing sample data and seed MediVita pharmaceutical data
+            await ClearExistingDataAsync();
 
-            if (!await _context.Categories.AnyAsync())
-            {
-                _logger.LogInformation("Seeding categories...");
-                await SeedCategories();
-            }
+            _logger.LogInformation("Seeding MediVita pharmaceutical brands...");
+            await SeedBrands();
 
-            if (!await _context.Suppliers.AnyAsync())
-            {
-                _logger.LogInformation("Seeding suppliers...");
-                await SeedSuppliers();
-            }
+            _logger.LogInformation("Seeding MediVita pharmaceutical categories...");
+            await SeedCategories();
 
-            if (!await _context.Products.AnyAsync())
-            {
-                _logger.LogInformation("Seeding products...");
-                await SeedProducts();
-            }
+            _logger.LogInformation("Seeding MediVita pharmaceutical suppliers...");
+            await SeedSuppliers();
 
-            if (!await _context.Customers.AnyAsync())
-            {
-                _logger.LogInformation("Seeding customers...");
-                await SeedCustomers();
-            }
+            _logger.LogInformation("Seeding MediVita pharmaceutical products...");
+            await SeedProducts();
 
-            if (!await _context.ShippingMethods.AnyAsync())
-            {
-                _logger.LogInformation("Seeding shipping methods...");
-                await SeedShippingMethods();
-            }
+            _logger.LogInformation("Seeding MediVita healthcare customers...");
+            await SeedCustomers();
 
-            if (!await _context.Orders.AnyAsync())
-            {
-                _logger.LogInformation("Seeding orders with items and payments...");
-                await SeedOrdersWithPayments();
-            }
+            _logger.LogInformation("Seeding shipping methods...");
+            await SeedShippingMethods();
+
+            _logger.LogInformation("Seeding sample orders with payments...");
+            await SeedOrdersWithPayments();
 
             _logger.LogInformation("Database seeding completed successfully");
         }
@@ -74,6 +56,42 @@ public class SeedDataService : ISeedDataService
         {
             _logger.LogError(ex, "Error during database seeding");
             throw;
+        }
+    }
+
+    private async Task ClearExistingDataAsync()
+    {
+        _logger.LogInformation("Clearing existing sample data...");
+
+        try
+        {
+            // Use raw SQL to truncate tables in reverse dependency order to avoid foreign key constraints
+            // This is more robust than EF Core queries when schema mismatches exist
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE audit_logs CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE inventory_movements CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE coupons CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE shipping_methods CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE brands CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE categories CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE suppliers CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE customers CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE products CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE product_attributes CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE product_variants CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE product_images CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE carts CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE cart_items CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE orders CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE order_items CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE payments CASCADE;");
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE order_documents CASCADE;");
+
+            _logger.LogInformation("Existing data cleared successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Some tables may not exist or have schema issues, continuing with seeding...");
+            // Continue with seeding even if clearing fails
         }
     }
 
@@ -85,7 +103,7 @@ public class SeedDataService : ISeedDataService
             new Brand { Id = Guid.NewGuid(), Name = "VitaWell", Slug = "vitawell", Description = "Advanced vitamin and supplement formulations" },
             new Brand { Id = Guid.NewGuid(), Name = "CardioCare", Slug = "cardiocare", Description = "Cardiovascular health and wellness products" },
             new Brand { Id = Guid.NewGuid(), Name = "ImmuneBoost", Slug = "immuneboost", Description = "Immune support and preventive care solutions" },
-            new Brand { Id = Guid.NewGuid(), Name = "WellnessFirst", Slug = "wellnessfirst", Description = "Holistic wellness and prevention products" }
+            new Brand { Id = Guid.NewGuid(), Name = "NeuroHealth", Slug = "neurohealth", Description = "Neurological health and cognitive enhancement products" }
         };
 
         await _context.Brands.AddRangeAsync(brands);
@@ -96,11 +114,13 @@ public class SeedDataService : ISeedDataService
     {
         var categories = new[]
         {
-            new Category { Id = Guid.NewGuid(), Name = "Cardiovascular Health", Slug = "cardiovascular-health", Description = "Heart and circulatory system wellness", SortOrder = 1 },
+            new Category { Id = Guid.NewGuid(), Name = "Cardiovascular Health", Slug = "cardiovascular-health", Description = "Heart and circulatory system wellness medications", SortOrder = 1 },
             new Category { Id = Guid.NewGuid(), Name = "Vitamins & Supplements", Slug = "vitamins-supplements", Description = "Essential nutrients and nutritional supplements", SortOrder = 2 },
-            new Category { Id = Guid.NewGuid(), Name = "Immune Support", Slug = "immune-support", Description = "Immune system strengthening products", SortOrder = 3 },
-            new Category { Id = Guid.NewGuid(), Name = "Pain Management", Slug = "pain-management", Description = "Relief and management of various pain conditions", SortOrder = 4 },
-            new Category { Id = Guid.NewGuid(), Name = "Wellness & Prevention", Slug = "wellness-prevention", Description = "Preventive health and overall wellness solutions", SortOrder = 5 }
+            new Category { Id = Guid.NewGuid(), Name = "Immune Support", Slug = "immune-support", Description = "Immune system strengthening medications and supplements", SortOrder = 3 },
+            new Category { Id = Guid.NewGuid(), Name = "Pain Management", Slug = "pain-management", Description = "Analgesics and pain relief medications", SortOrder = 4 },
+            new Category { Id = Guid.NewGuid(), Name = "Neurological Health", Slug = "neurological-health", Description = "Brain health and neurological medications", SortOrder = 5 },
+            new Category { Id = Guid.NewGuid(), Name = "Respiratory Health", Slug = "respiratory-health", Description = "Lung and respiratory system medications", SortOrder = 6 },
+            new Category { Id = Guid.NewGuid(), Name = "Digestive Health", Slug = "digestive-health", Description = "Gastrointestinal and digestive system medications", SortOrder = 7 }
         };
 
         await _context.Categories.AddRangeAsync(categories);
@@ -152,6 +172,20 @@ public class SeedDataService : ISeedDataService
                 PostalCode = "200000",
                 Address = "Pudong Medical Innovation Park 88",
                 VatNumber = "CN555888999"
+            },
+            new Supplier 
+            { 
+                Id = Guid.NewGuid(), 
+                Name = "MediSwiss AG", 
+                Code = "MSA-001",
+                ContactPerson = "Dr. Hans Mueller",
+                Email = "procurement@medischweiz.ch",
+                Phone = "+41-44-555-7890",
+                Country = "Switzerland",
+                City = "Zurich",
+                PostalCode = "8001",
+                Address = "Medizinische Innovationen Weg 15",
+                VatNumber = "CH123456789"
             }
         };
 
@@ -170,27 +204,111 @@ public class SeedDataService : ISeedDataService
             new Product 
             { 
                 Id = Guid.NewGuid(),
-                Name = "Wireless Bluetooth Headphones",
-                Sku = "WBH-001",
-                Ean = "5901234123457",
-                Description = "Premium wireless headphones with noise cancellation",
-                Price = 99.99m,
-                CompareAtPrice = 149.99m,
-                CostPrice = 45.00m,
+                Name = "MediVita CardioPro 50mg",
+                Sku = "MV-CP-050",
+                Ean = "4001234567890",
+                Description = "Advanced cardiovascular medication for heart health. Contains 50mg of active ingredient for optimal blood pressure management.",
+                Price = 29.99m,
+                CompareAtPrice = 39.99m,
+                CostPrice = 12.50m,
+                StockQuantity = 200,
+                LowStockThreshold = 25,
+                TrackInventory = true,
+                AllowBackorder = true,
+                Weight = 0.02m,
+                WeightUnit = "kg",
+                CategoryId = categories.FirstOrDefault(c => c.Slug == "cardiovascular-health")?.Id,
+                BrandId = brands.FirstOrDefault(b => b.Slug == "medivita")?.Id,
+                SupplierId = suppliers.First().Id,
+                Status = ProductStatus.Active,
+                IsFeatured = true,
+                Slug = "medivita-cardiapro-50mg",
+                MetaTitle = "MediVita CardioPro - Heart Health Medication",
+                MetaDescription = "Premium cardiovascular medication for blood pressure management and heart health",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                PublishedAt = DateTime.UtcNow
+            },
+            new Product 
+            { 
+                Id = Guid.NewGuid(),
+                Name = "VitaWell Vitamin D3 2000IU",
+                Sku = "VW-VD3-2000",
+                Ean = "4001234567891",
+                Description = "High-potency Vitamin D3 supplement for bone health and immune support. 2000IU per capsule for optimal daily intake.",
+                Price = 19.99m,
+                CompareAtPrice = 24.99m,
+                CostPrice = 8.00m,
+                StockQuantity = 500,
+                LowStockThreshold = 50,
+                TrackInventory = true,
+                AllowBackorder = true,
+                Weight = 0.015m,
+                WeightUnit = "kg",
+                CategoryId = categories.FirstOrDefault(c => c.Slug == "vitamins-supplements")?.Id,
+                BrandId = brands.FirstOrDefault(b => b.Slug == "vitawell")?.Id,
+                SupplierId = suppliers.Skip(1).First().Id,
+                Status = ProductStatus.Active,
+                IsFeatured = true,
+                Slug = "vitawell-vitamin-d3-2000iu",
+                MetaTitle = "Vitamin D3 2000IU - Bone Health Supplement",
+                MetaDescription = "High-potency Vitamin D3 supplement for immune support and bone health",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                PublishedAt = DateTime.UtcNow
+            },
+            new Product 
+            { 
+                Id = Guid.NewGuid(),
+                Name = "ImmuneBoost Elderberry Extract",
+                Sku = "IB-EB-500",
+                Ean = "4001234567892",
+                Description = "Natural elderberry extract supplement for immune system support. 500mg standardized extract per capsule.",
+                Price = 24.99m,
+                CompareAtPrice = 29.99m,
+                CostPrice = 10.00m,
+                StockQuantity = 300,
+                LowStockThreshold = 40,
+                TrackInventory = true,
+                AllowBackorder = true,
+                Weight = 0.018m,
+                WeightUnit = "kg",
+                CategoryId = categories.FirstOrDefault(c => c.Slug == "immune-support")?.Id,
+                BrandId = brands.FirstOrDefault(b => b.Slug == "immuneboost")?.Id,
+                SupplierId = suppliers.Skip(2).First().Id,
+                Status = ProductStatus.Active,
+                IsFeatured = true,
+                Slug = "immuneboost-elderberry-extract",
+                MetaTitle = "Elderberry Extract - Natural Immune Support",
+                MetaDescription = "Premium elderberry extract supplement for immune system health",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                PublishedAt = DateTime.UtcNow
+            },
+            new Product 
+            { 
+                Id = Guid.NewGuid(),
+                Name = "NeuroHealth Omega-3 Fish Oil",
+                Sku = "NH-OF-1000",
+                Ean = "4001234567893",
+                Description = "Pure omega-3 fish oil supplement for brain health and cognitive function. 1000mg EPA/DHA per softgel.",
+                Price = 34.99m,
+                CompareAtPrice = 44.99m,
+                CostPrice = 15.00m,
                 StockQuantity = 150,
                 LowStockThreshold = 20,
                 TrackInventory = true,
                 AllowBackorder = true,
-                Weight = 0.25m,
+                Weight = 0.025m,
                 WeightUnit = "kg",
-                CategoryId = categories.FirstOrDefault(c => c.Slug == "electronics")?.Id,
-                BrandId = brands.FirstOrDefault(b => b.Slug == "techpro")?.Id,
-                SupplierId = suppliers.First().Id,
+                CategoryId = categories.FirstOrDefault(c => c.Slug == "neurological-health")?.Id,
+                BrandId = brands.FirstOrDefault(b => b.Slug == "neurohealth")?.Id,
+                SupplierId = suppliers.Skip(3).First().Id,
                 Status = ProductStatus.Active,
                 IsFeatured = true,
-                Slug = "wireless-bluetooth-headphones",
-                MetaTitle = "Best Wireless Headphones",
-                MetaDescription = "Premium wireless headphones with noise cancellation technology",
+                Slug = "neurohealth-omega3-fish-oil",
+                MetaTitle = "Omega-3 Fish Oil - Brain Health Supplement",
+                MetaDescription = "Premium omega-3 fish oil for cognitive function and neurological health",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 PublishedAt = DateTime.UtcNow
@@ -198,27 +316,55 @@ public class SeedDataService : ISeedDataService
             new Product 
             { 
                 Id = Guid.NewGuid(),
-                Name = "USB-C Fast Charging Cable",
-                Sku = "USB-C-001",
-                Ean = "5901234123458",
-                Description = "High-speed USB-C charging and data cable",
-                Price = 14.99m,
-                CompareAtPrice = 24.99m,
-                CostPrice = 5.00m,
-                StockQuantity = 500,
-                LowStockThreshold = 100,
+                Name = "MediVita PainRelief 400mg",
+                Sku = "MV-PR-400",
+                Ean = "4001234567894",
+                Description = "Fast-acting pain relief medication. 400mg tablets for effective management of moderate to severe pain.",
+                Price = 12.99m,
+                CompareAtPrice = 16.99m,
+                CostPrice = 5.50m,
+                StockQuantity = 400,
+                LowStockThreshold = 60,
                 TrackInventory = true,
                 AllowBackorder = true,
-                Weight = 0.05m,
+                Weight = 0.01m,
                 WeightUnit = "kg",
-                CategoryId = categories.FirstOrDefault(c => c.Slug == "electronics")?.Id,
-                BrandId = brands.FirstOrDefault(b => b.Slug == "acme-corp")?.Id,
+                CategoryId = categories.FirstOrDefault(c => c.Slug == "pain-management")?.Id,
+                BrandId = brands.FirstOrDefault(b => b.Slug == "medivita")?.Id,
+                SupplierId = suppliers.First().Id,
+                Status = ProductStatus.Active,
+                IsFeatured = false,
+                Slug = "medivita-painrelief-400mg",
+                MetaTitle = "Pain Relief Medication 400mg",
+                MetaDescription = "Fast-acting pain relief tablets for effective pain management",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                PublishedAt = DateTime.UtcNow
+            },
+            new Product 
+            { 
+                Id = Guid.NewGuid(),
+                Name = "CardioCare Blood Pressure Monitor",
+                Sku = "CC-BPM-001",
+                Ean = "4001234567895",
+                Description = "Digital automatic blood pressure monitor with memory function. Clinically validated for accuracy.",
+                Price = 49.99m,
+                CompareAtPrice = 69.99m,
+                CostPrice = 22.00m,
+                StockQuantity = 75,
+                LowStockThreshold = 15,
+                TrackInventory = true,
+                AllowBackorder = false,
+                Weight = 0.35m,
+                WeightUnit = "kg",
+                CategoryId = categories.FirstOrDefault(c => c.Slug == "cardiovascular-health")?.Id,
+                BrandId = brands.FirstOrDefault(b => b.Slug == "cardiocare")?.Id,
                 SupplierId = suppliers.Skip(1).First().Id,
                 Status = ProductStatus.Active,
                 IsFeatured = true,
-                Slug = "usb-c-fast-charging-cable",
-                MetaTitle = "High-Speed USB-C Cable",
-                MetaDescription = "Reliable USB-C cable for fast charging and data transfer",
+                Slug = "cardiocare-blood-pressure-monitor",
+                MetaTitle = "Digital Blood Pressure Monitor",
+                MetaDescription = "Clinically validated automatic blood pressure monitor with memory function",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 PublishedAt = DateTime.UtcNow
@@ -226,55 +372,27 @@ public class SeedDataService : ISeedDataService
             new Product 
             { 
                 Id = Guid.NewGuid(),
-                Name = "Ergonomic Office Chair",
-                Sku = "EOC-001",
-                Ean = "5901234123459",
-                Description = "Comfortable ergonomic office chair with lumbar support",
-                Price = 249.99m,
-                CompareAtPrice = 399.99m,
-                CostPrice = 120.00m,
-                StockQuantity = 75,
-                LowStockThreshold = 10,
-                TrackInventory = true,
-                AllowBackorder = false,
-                Weight = 12.5m,
-                WeightUnit = "kg",
-                CategoryId = categories.FirstOrDefault(c => c.Slug == "office-supplies")?.Id,
-                BrandId = brands.FirstOrDefault(b => b.Slug == "premium-line")?.Id,
-                SupplierId = suppliers.First().Id,
-                Status = ProductStatus.Active,
-                IsFeatured = true,
-                Slug = "ergonomic-office-chair",
-                MetaTitle = "Best Office Chair",
-                MetaDescription = "Premium ergonomic office chair for maximum comfort",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                PublishedAt = DateTime.UtcNow
-            },
-            new Product 
-            { 
-                Id = Guid.NewGuid(),
-                Name = "4K Webcam",
-                Sku = "WC-4K-001",
-                Ean = "5901234123460",
-                Description = "Professional 4K webcam with auto-focus",
-                Price = 129.99m,
-                CompareAtPrice = 179.99m,
-                CostPrice = 60.00m,
-                StockQuantity = 200,
-                LowStockThreshold = 30,
+                Name = "MediVita Respiratory Relief Syrup",
+                Sku = "MV-RR-150",
+                Ean = "4001234567896",
+                Description = "Natural respiratory relief syrup for cough and congestion. 150ml bottle with honey and herbal extracts.",
+                Price = 16.99m,
+                CompareAtPrice = 21.99m,
+                CostPrice = 7.00m,
+                StockQuantity = 250,
+                LowStockThreshold = 35,
                 TrackInventory = true,
                 AllowBackorder = true,
-                Weight = 0.18m,
+                Weight = 0.2m,
                 WeightUnit = "kg",
-                CategoryId = categories.FirstOrDefault(c => c.Slug == "electronics")?.Id,
-                BrandId = brands.FirstOrDefault(b => b.Slug == "techpro")?.Id,
+                CategoryId = categories.FirstOrDefault(c => c.Slug == "respiratory-health")?.Id,
+                BrandId = brands.FirstOrDefault(b => b.Slug == "medivita")?.Id,
                 SupplierId = suppliers.Skip(2).First().Id,
                 Status = ProductStatus.Active,
-                IsFeatured = true,
-                Slug = "4k-webcam",
-                MetaTitle = "Professional 4K Webcam",
-                MetaDescription = "Crystal clear 4K video for meetings and streaming",
+                IsFeatured = false,
+                Slug = "medivita-respiratory-relief-syrup",
+                MetaTitle = "Natural Respiratory Relief Syrup",
+                MetaDescription = "Herbal cough syrup for respiratory health and congestion relief",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 PublishedAt = DateTime.UtcNow
@@ -282,27 +400,27 @@ public class SeedDataService : ISeedDataService
             new Product 
             { 
                 Id = Guid.NewGuid(),
-                Name = "Mechanical Keyboard RGB",
-                Sku = "KB-RGB-001",
-                Ean = "5901234123461",
-                Description = "Gaming mechanical keyboard with RGB lighting",
-                Price = 89.99m,
-                CompareAtPrice = 139.99m,
-                CostPrice = 40.00m,
+                Name = "VitaWell Probiotic Complex",
+                Sku = "VW-PC-50B",
+                Ean = "4001234567897",
+                Description = "Advanced probiotic supplement with 50 billion CFU for digestive health and immune support.",
+                Price = 39.99m,
+                CompareAtPrice = 49.99m,
+                CostPrice = 18.00m,
                 StockQuantity = 120,
-                LowStockThreshold = 15,
+                LowStockThreshold = 18,
                 TrackInventory = true,
                 AllowBackorder = true,
-                Weight = 0.95m,
+                Weight = 0.03m,
                 WeightUnit = "kg",
-                CategoryId = categories.FirstOrDefault(c => c.Slug == "electronics")?.Id,
-                BrandId = brands.FirstOrDefault(b => b.Slug == "budget-options")?.Id,
-                SupplierId = suppliers.First().Id,
+                CategoryId = categories.FirstOrDefault(c => c.Slug == "digestive-health")?.Id,
+                BrandId = brands.FirstOrDefault(b => b.Slug == "vitawell")?.Id,
+                SupplierId = suppliers.Skip(3).First().Id,
                 Status = ProductStatus.Active,
                 IsFeatured = true,
-                Slug = "mechanical-keyboard-rgb",
-                MetaTitle = "Gaming Mechanical Keyboard",
-                MetaDescription = "High-performance keyboard with customizable RGB lighting",
+                Slug = "vitawell-probiotic-complex-50b",
+                MetaTitle = "Probiotic Complex 50 Billion CFU",
+                MetaDescription = "Advanced probiotic supplement for digestive and immune health",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 PublishedAt = DateTime.UtcNow
@@ -320,50 +438,50 @@ public class SeedDataService : ISeedDataService
             new Customer 
             { 
                 Id = Guid.NewGuid(),
-                Email = "jonas.roth@mailbase.info",
-                FirstName = "Jonas",
-                LastName = "Roth",
-                Phone = "+49-30-123456",
-                Company = "Tech Solutions GmbH",
-                DefaultShippingAddress = "Hauptstr. 1",
-                DefaultShippingCity = "Berlin",
-                DefaultShippingPostalCode = "10115",
+                Email = "dr.sarah.mitchell@medivita.com",
+                FirstName = "Sarah",
+                LastName = "Mitchell",
+                Phone = "+1-555-0101",
+                Company = "MediVita Pharmaceuticals",
+                DefaultShippingAddress = "123 Health Plaza",
+                DefaultShippingCity = "Boston",
+                DefaultShippingPostalCode = "02101",
                 CreatedAt = DateTime.UtcNow.AddMonths(-6)
             },
             new Customer 
             { 
                 Id = Guid.NewGuid(),
-                Email = "sarah.johnson@email.com",
-                FirstName = "Sarah",
+                Email = "pharmacy.chain@wellnessrx.com",
+                FirstName = "Robert",
                 LastName = "Johnson",
-                Phone = "+1-555-0101",
-                Company = "Johnson & Associates",
-                DefaultShippingAddress = "123 Main St",
-                DefaultShippingCity = "New York",
-                DefaultShippingPostalCode = "10001",
+                Phone = "+1-555-0102",
+                Company = "WellnessRx Pharmacy Chain",
+                DefaultShippingAddress = "456 Medical Center Dr",
+                DefaultShippingCity = "Chicago",
+                DefaultShippingPostalCode = "60601",
                 CreatedAt = DateTime.UtcNow.AddMonths(-5)
             },
             new Customer 
             { 
                 Id = Guid.NewGuid(),
-                Email = "michael.chen@tech.com",
-                FirstName = "Michael",
+                Email = "clinic.director@heartcare.org",
+                FirstName = "Dr. Michael",
                 LastName = "Chen",
-                Phone = "+86-10-1234567",
-                Company = "Chen Tech Industries",
-                DefaultShippingAddress = "No. 1 Changan Avenue",
-                DefaultShippingCity = "Beijing",
-                DefaultShippingPostalCode = "100000",
+                Phone = "+1-555-0103",
+                Company = "HeartCare Medical Center",
+                DefaultShippingAddress = "789 Cardiology Blvd",
+                DefaultShippingCity = "Los Angeles",
+                DefaultShippingPostalCode = "90210",
                 CreatedAt = DateTime.UtcNow.AddMonths(-4)
             },
             new Customer 
             { 
                 Id = Guid.NewGuid(),
-                Email = "emma.schmidt@example.de",
+                Email = "procurement@vitacorp.eu",
                 FirstName = "Emma",
                 LastName = "Schmidt",
                 Phone = "+49-40-654321",
-                Company = "Schmidt Consulting",
+                Company = "VitaCorp Europe GmbH",
                 DefaultShippingAddress = "Friedrichstr. 42",
                 DefaultShippingCity = "Berlin",
                 DefaultShippingPostalCode = "10969",
@@ -372,15 +490,69 @@ public class SeedDataService : ISeedDataService
             new Customer 
             { 
                 Id = Guid.NewGuid(),
-                Email = "david.williams@corp.com",
+                Email = "health.retail@naturalwell.com",
                 FirstName = "David",
                 LastName = "Williams",
-                Phone = "+1-555-0102",
-                Company = "Williams Corporation",
-                DefaultShippingAddress = "10 Downing Street",
+                Phone = "+44-20-7946-0123",
+                Company = "NaturalWell Health Retail",
+                DefaultShippingAddress = "10 Health Street",
                 DefaultShippingCity = "London",
                 DefaultShippingPostalCode = "SW1A 2AA",
                 CreatedAt = DateTime.UtcNow.AddMonths(-2)
+            },
+            new Customer 
+            { 
+                Id = Guid.NewGuid(),
+                Email = "research@university.edu",
+                FirstName = "Dr. Lisa",
+                LastName = "Garcia",
+                Phone = "+1-555-0104",
+                Company = "University Medical Research Center",
+                DefaultShippingAddress = "321 Research Park",
+                DefaultShippingCity = "San Francisco",
+                DefaultShippingPostalCode = "94105",
+                CreatedAt = DateTime.UtcNow.AddMonths(-1)
+            }
+            ,
+            // Additional seeded customers
+            new Customer
+            {
+                Id = Guid.NewGuid(),
+                Email = "jonas.roth@mailbase.info",
+                FirstName = "Jonas",
+                LastName = "Roth",
+                Phone = "+49-170-555-1234",
+                Company = "Roth Consulting",
+                DefaultShippingAddress = "Hauptstrasse 12",
+                DefaultShippingCity = "Hamburg",
+                DefaultShippingPostalCode = "20354",
+                CreatedAt = DateTime.UtcNow.AddDays(-20)
+            },
+            new Customer
+            {
+                Id = Guid.NewGuid(),
+                Email = "lisa.bauer@medsupplies.de",
+                FirstName = "Lisa",
+                LastName = "Bauer",
+                Phone = "+49-40-223344",
+                Company = "MedSupplies GmbH",
+                DefaultShippingAddress = "Bergstr. 5",
+                DefaultShippingCity = "Munich",
+                DefaultShippingPostalCode = "80331",
+                CreatedAt = DateTime.UtcNow.AddDays(-10)
+            },
+            new Customer
+            {
+                Id = Guid.NewGuid(),
+                Email = "thomas.keller@clinicplus.org",
+                FirstName = "Thomas",
+                LastName = "Keller",
+                Phone = "+41-44-555-6789",
+                Company = "ClinicPlus",
+                DefaultShippingAddress = "Seestrasse 7",
+                DefaultShippingCity = "Zurich",
+                DefaultShippingPostalCode = "8002",
+                CreatedAt = DateTime.UtcNow.AddDays(-5)
             }
         };
 
@@ -458,7 +630,8 @@ public class SeedDataService : ISeedDataService
                 Id = Guid.NewGuid(),
                 OrderNumber = $"ORD-{DateTime.UtcNow.Year:0000}-{i + 1:0000}",
                 CustomerId = customer.Id,
-                Status = (OrderStatus)(i % 4),  // PENDING=0, CONFIRMED=1, SHIPPED=2, DELIVERED=3
+                // Force seeded orders into Pending state for consistent testing
+                Status = OrderStatus.Pending,
                 PaymentStatus = i % 2 == 0 ? PaymentStatus.Paid : PaymentStatus.Pending,
                 Currency = "EUR",
                 ShippingMethodId = shippingMethod.Id,
@@ -509,6 +682,57 @@ public class SeedDataService : ISeedDataService
             orders.Add(order);
         }
 
+        // Ensure Jonas has explicit pending orders
+        var jonas = customers.FirstOrDefault(c => c.Email == "jonas.roth@mailbase.info");
+        if (jonas != null)
+        {
+            for (int k = 0; k < 2; k++)
+            {
+                var shippingMethod = shippingMethods[random.Next(shippingMethods.Count)];
+                var jonasOrder = new Order
+                {
+                    Id = Guid.NewGuid(),
+                    OrderNumber = $"ORD-{DateTime.UtcNow.Year:0000}-J{DateTime.UtcNow.Ticks % 10000 + k}",
+                    CustomerId = jonas.Id,
+                    Status = OrderStatus.Pending,
+                    PaymentStatus = PaymentStatus.Pending,
+                    Currency = "EUR",
+                    ShippingMethodId = shippingMethod.Id,
+                    ShippingName = $"{jonas.FirstName} {jonas.LastName}",
+                    ShippingAddress = jonas.DefaultShippingAddress,
+                    ShippingCity = jonas.DefaultShippingCity,
+                    ShippingPostalCode = jonas.DefaultShippingPostalCode,
+                    ShippingCountry = "Germany",
+                    DiscountAmount = 0,
+                    Notes = "Test order for Jonas",
+                    CreatedAt = DateTime.UtcNow.AddDays(-2 + k),
+                    UpdatedAt = DateTime.UtcNow.AddDays(-2 + k)
+                };
+
+                // Add a single item to Jonas' orders
+                var product = products[random.Next(products.Count)];
+                jonasOrder.Items.Add(new OrderItem
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = jonasOrder.Id,
+                    ProductId = product.Id,
+                    ProductName = product.Name,
+                    Sku = product.Sku,
+                    Quantity = 1,
+                    UnitPrice = product.Price,
+                    TaxAmount = product.Price * 0.19m,
+                    Total = product.Price + (product.Price * 0.19m),
+                    CreatedAt = DateTime.UtcNow.AddDays(-2 + k)
+                });
+
+                jonasOrder.Subtotal = product.Price;
+                jonasOrder.TaxAmount = product.Price * 0.19m;
+                jonasOrder.ShippingAmount = shippingMethod.Price;
+                jonasOrder.Total = jonasOrder.Subtotal + jonasOrder.TaxAmount + jonasOrder.ShippingAmount - jonasOrder.DiscountAmount;
+
+                orders.Add(jonasOrder);
+            }
+        }
         await _context.Orders.AddRangeAsync(orders);
         await _context.SaveChangesAsync();
 

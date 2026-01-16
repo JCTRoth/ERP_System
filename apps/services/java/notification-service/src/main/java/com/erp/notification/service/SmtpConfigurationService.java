@@ -33,10 +33,10 @@ public class SmtpConfigurationService {
     @Value("${spring.mail.password:}")
     private String defaultSmtpPassword;
     
-    @Value("${erp.email.from:noreply@erp-system.local}")
+    @Value("${notification.email.from:noreply@erp-system.local}")
     private String defaultEmailFrom;
     
-    @Value("${erp.email.from-name:ERP System}")
+    @Value("${notification.email.from-name:ERP System}")
     private String defaultEmailFromName;
     
     /**
@@ -145,19 +145,41 @@ public class SmtpConfigurationService {
     public void sendTestEmail(SmtpConfiguration config, String testEmailAddress) {
         try {
             log.info("Sending test email to: {}", testEmailAddress);
-            
+
             JavaMailSenderImpl mailSender = createMailSender(config);
-            
+
             // Create test email
             org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
             message.setFrom(config.getEmailFrom());
             message.setTo(testEmailAddress);
             message.setSubject("ERP System - SMTP Test Email");
             message.setText("This is a test email from your ERP System.\n\nIf you received this email, your SMTP configuration is working correctly.\n\nSent at: " + java.time.LocalDateTime.now());
-            
-            mailSender.send(message);
-            log.info("Test email sent successfully to: {}", testEmailAddress);
-            
+
+            try {
+                mailSender.send(message);
+                log.info("Test email sent successfully to: {}", testEmailAddress);
+            } catch (Exception sendEx) {
+                log.warn("Initial send failed: {}", sendEx.getMessage());
+
+                // Some SMTP providers reject arbitrary From addresses. Retry using the SMTP username as sender
+                String smtpUser = mailSender.getUsername();
+                if (smtpUser != null && !smtpUser.isBlank() && !smtpUser.equalsIgnoreCase(config.getEmailFrom())) {
+                    log.info("Retrying test email using SMTP username as From: {}", smtpUser);
+                    message.setFrom(smtpUser);
+                    try {
+                        mailSender.send(message);
+                        log.info("Test email sent successfully to: {} using fallback From: {}", testEmailAddress, smtpUser);
+                        return;
+                    } catch (Exception retryEx) {
+                        log.error("Fallback send also failed: {}", retryEx.getMessage(), retryEx);
+                        throw new RuntimeException("Failed to send test email: " + retryEx.getMessage(), retryEx);
+                    }
+                }
+
+                // No fallback available or retry failed
+                throw new RuntimeException("Failed to send test email: " + sendEx.getMessage(), sendEx);
+            }
+
         } catch (Exception e) {
             log.error("Failed to send test email to: {} - Error: {}", testEmailAddress, e.getMessage(), e);
             throw new RuntimeException("Failed to send test email: " + e.getMessage(), e);

@@ -21,8 +21,9 @@ export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
   const isAdmin = useAuthStore((state) => state.isAdmin);
   
-  // Get base URL from environment or default to localhost for development
-  const baseUrl = import.meta.env.VITE_BASE_URL || 'http://localhost';
+  // Use current window location to construct dynamic URLs for API interfaces
+  // This ensures the links work regardless of the domain (localhost, shopping-now.net, etc.)
+  const baseUrl = `${window.location.protocol}//${window.location.hostname}`;
   
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [smtpConfig, setSmtpConfig] = useState({

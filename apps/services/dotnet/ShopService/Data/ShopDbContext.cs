@@ -63,6 +63,7 @@ public class ShopDbContext : DbContext
             entity.Property(e => e.Slug).HasColumnName("slug");
             entity.Property(e => e.MetaTitle).HasColumnName("meta_title");
             entity.Property(e => e.MetaDescription).HasColumnName("meta_description");
+            // entity.Property(e => e.CompanyId).HasColumnName("company_id"); // Temporarily commented out
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.PublishedAt).HasColumnName("published_at");

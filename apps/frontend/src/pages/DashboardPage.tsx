@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "../providers/I18nProvider";
 import { useAuthStore } from "../stores/authStore";
 import { useQuery, gql } from "@apollo/client";
@@ -10,6 +10,7 @@ import {
   CalendarIcon,
   EnvelopeIcon,
   CheckCircleIcon,
+  ChevronUpDownIcon,
 } from "@heroicons/react/24/outline";
 
 const GET_TOTAL_COMPANIES = gql`
@@ -73,6 +74,14 @@ const GET_RECENT_ORDERS = gql`
 export default function DashboardPage() {
   const { t } = useI18n();
   const user = useAuthStore((state) => state.user);
+
+  // Local UI state for sorting
+  const [customerSort, setCustomerSort] = useState<"name-asc" | "name-desc">(
+    "name-asc"
+  );
+  const [orderSort, setOrderSort] = useState<
+    "date-desc" | "date-asc" | "total-desc" | "total-asc"
+  >("date-desc");
 
   // Fetch real metrics with error handling and fallback
   const {
@@ -345,12 +354,26 @@ export default function DashboardPage() {
         {/* Recent Customers */}
         <div className="card shadow-lg">
           <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-            <h2 className="flex items-center gap-2 font-semibold">
-              <UsersIcon className="h-5 w-5 text-primary-600" />
-              {t("dashboard.recentCustomers")}
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <UsersIcon className="h-5 w-5 text-primary-600" />
+                {t("dashboard.recentCustomers")}
+              </h2>
+              <div className="flex items-center gap-2">
+                <ChevronUpDownIcon className="h-4 w-4 text-gray-500" />
+                <label className="sr-only">Sort customers</label>
+                <select
+                  className="rounded border border-gray-200 bg-white px-2 py-1 text-sm dark:bg-gray-800 dark:border-gray-700"
+                  value={customerSort}
+                  onChange={(e) => setCustomerSort(e.target.value as any)}
+                >
+                  <option value="name-asc">Name ↑</option>
+                  <option value="name-desc">Name ↓</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-80 overflow-y-auto">
             {customersLoading ? (
               <div className="p-6 text-center text-gray-500">
                 {t("common.loading")}
@@ -361,7 +384,16 @@ export default function DashboardPage() {
               </div>
             ) : customersData?.customers?.nodes?.length > 0 ? (
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {customersData.customers.nodes.map((customer: any) => (
+                {(() => {
+                  const nodes = customersData?.customers?.nodes || [];
+                  const sorted = [...nodes].sort((a: any, b: any) => {
+                    const an = (a.name || "").toLowerCase();
+                    const bn = (b.name || "").toLowerCase();
+                    return customerSort === "name-asc"
+                      ? an.localeCompare(bn)
+                      : bn.localeCompare(an);
+                  });
+                  return sorted.map((customer: any) => (
                   <li
                     key={customer.id}
                     className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -378,7 +410,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </li>
-                ))}
+                ));
+                })()}
               </ul>
             ) : (
               <div className="p-6 text-center text-gray-500">
@@ -391,12 +424,28 @@ export default function DashboardPage() {
         {/* Recent Orders */}
         <div className="card shadow-lg">
           <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-            <h2 className="flex items-center gap-2 font-semibold">
-              <CheckCircleIcon className="h-5 w-5 text-primary-600" />
-              {t("dashboard.recentOrders")}
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <CheckCircleIcon className="h-5 w-5 text-primary-600" />
+                {t("dashboard.recentOrders")}
+              </h2>
+              <div className="flex items-center gap-2">
+                <ChevronUpDownIcon className="h-4 w-4 text-gray-500" />
+                <label className="sr-only">Sort orders</label>
+                <select
+                  className="rounded border border-gray-200 bg-white px-2 py-1 text-sm dark:bg-gray-800 dark:border-gray-700"
+                  value={orderSort}
+                  onChange={(e) => setOrderSort(e.target.value as any)}
+                >
+                  <option value="date-desc">Newest</option>
+                  <option value="date-asc">Oldest</option>
+                  <option value="total-desc">Total ↓</option>
+                  <option value="total-asc">Total ↑</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-80 overflow-y-auto">
             {ordersLoading ? (
               <div className="p-6 text-center text-gray-500">
                 {t("common.loading")}
@@ -407,7 +456,22 @@ export default function DashboardPage() {
               </div>
             ) : ordersData?.shopOrders?.nodes?.length > 0 ? (
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {ordersData.shopOrders.nodes.map((order: any) => (
+                {(() => {
+                  const nodes = ordersData?.shopOrders?.nodes || [];
+                  const sorted = [...nodes].sort((a: any, b: any) => {
+                    if (orderSort.startsWith("date")) {
+                      const ad = new Date(a.createdAt).getTime();
+                      const bd = new Date(b.createdAt).getTime();
+                      return orderSort === "date-desc" ? bd - ad : ad - bd;
+                    }
+                    if (orderSort.startsWith("total")) {
+                      const at = Number(a.total || 0);
+                      const bt = Number(b.total || 0);
+                      return orderSort === "total-desc" ? bt - at : at - bt;
+                    }
+                    return 0;
+                  });
+                  return sorted.map((order: any) => (
                   <li
                     key={order.id}
                     className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -447,7 +511,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </li>
-                ))}
+                ));
+                })()}
               </ul>
             ) : (
               <div className="p-6 text-center text-gray-500">

@@ -180,11 +180,34 @@ public class CompanyService {
                             .isDemo(true)
                             .settingsJson(Map.of(
                                     "theme", "default",
-                                    "timezone", "UTC"
+                                    "timezone", "UTC",
+                                    "description", "Crafting Health for Life - We specialize in innovative pharmaceuticals, blending advanced science with a passion for well-being. Our mission: to deliver trusted, effective solutions for a healthier world.",
+                                    "industry", "Pharmaceuticals",
+                                    "website", "https://medivita.com",
+                                    "address", Map.of(
+                                            "street", "123 Health Street",
+                                            "city", "Medical City",
+                                            "state", "MC",
+                                            "postalCode", "12345",
+                                            "country", "Germany"
+                                    ),
+                                    "contact", Map.of(
+                                            "email", "info@medivita.com",
+                                            "phone", "+49 123 456789"
+                                    ),
+                                    "businessHours", Map.of(
+                                            "monday", "08:00-18:00",
+                                            "tuesday", "08:00-18:00",
+                                            "wednesday", "08:00-18:00",
+                                            "thursday", "08:00-18:00",
+                                            "friday", "08:00-17:00",
+                                            "saturday", "closed",
+                                            "sunday", "closed"
+                                    )
                             ))
                             .build();
                     Company saved = companyRepository.save(demoCompany);
-                    log.info("Created demo company: {} ({})", saved.getName(), saved.getId());
+                    log.info("Created MediVita demo company: {} ({})", saved.getName(), saved.getId());
                     return companyMapper.toDto(saved);
                 });
     }
