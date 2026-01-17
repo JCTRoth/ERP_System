@@ -939,18 +939,12 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
     // Render using fallback renderer on original template content; prefer Mustache if available
     let renderedAdoc;
     try {
-      if (Mustache && typeof Mustache.render === 'function') {
-        // Convert our simple {var} and {#...}{#end} syntax to Mustache before rendering
-        const normalized = normalizeTemplateToMustache(template.content);
-        console.log('DEBUG: normalized template preview:\n', normalized.slice(0,400).replace(/\n/g,'\\n'));
-        renderedAdoc = Mustache.render(normalized, context);
-      } else {
-        const errorsLocal = [];
-        renderedAdoc = renderWithoutMustache(template.content, context, errorsLocal);
-        if (errorsLocal.length) console.warn('Template renderWithoutMustache warnings:', errorsLocal);
-      }
+      // Always use renderWithoutMustache for consistent fallback support
+      const errorsLocal = [];
+      renderedAdoc = renderWithoutMustache(template.content, context, errorsLocal);
+      if (errorsLocal.length) console.warn('Template renderWithoutMustache warnings:', errorsLocal);
     } catch (err) {
-      console.error('Mustache render error:', err);
+      console.error('Template render error:', err);
       return res.status(500).json({ error: 'Template rendering failed' });
     }
 

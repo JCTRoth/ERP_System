@@ -290,12 +290,32 @@ public class OrderJobProcessor : IOrderJobProcessor
                         {
                             name = $"{customer?.FirstName} {customer?.LastName}".Trim(),
                             email = customer?.Email ?? string.Empty,
+                            phone = customer?.Phone ?? string.Empty,
+                            company = customer?.Company ?? string.Empty,
+                            vatNumber = customer?.VatNumber ?? string.Empty,
+                            // Primary address (shipping for delivery, billing for invoices)
                             address = new
                             {
                                 street = order.ShippingAddress ?? "N/A",
                                 city = order.ShippingCity ?? "N/A",
                                 postalCode = order.ShippingPostalCode ?? "N/A",
                                 country = order.ShippingCountry ?? "N/A"
+                            },
+                            // Billing address from customer defaults
+                            billing = new
+                            {
+                                street = customer?.DefaultBillingAddress ?? string.Empty,
+                                city = customer?.DefaultBillingCity ?? string.Empty,
+                                postalCode = customer?.DefaultBillingPostalCode ?? string.Empty,
+                                country = customer?.DefaultBillingCountry ?? string.Empty
+                            },
+                            // Shipping address from customer defaults
+                            shipping = new
+                            {
+                                street = customer?.DefaultShippingAddress ?? string.Empty,
+                                city = customer?.DefaultShippingCity ?? string.Empty,
+                                postalCode = customer?.DefaultShippingPostalCode ?? string.Empty,
+                                country = customer?.DefaultShippingCountry ?? string.Empty
                             }
                         }
                     };
