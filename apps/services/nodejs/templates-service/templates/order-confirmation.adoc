@@ -6,65 +6,76 @@
 :pdf-page-size: A4
 :pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
 :nofooter:
+:sectnums!
+// Styles automatically injected from shared-styles.css
 
-// ============================================================================
-// HEADER - Company Information
-// ============================================================================
+[.header]
 [.text-right]
-*{company.name}* +
-{company.address} +
-{company.postalCode} {company.city} +
-{company.country} +
-Email: {company.email} +
-Phone: {company.phone} +
-Website: {company.website}
+**{company.name}** +
+_{company.address}_ +
+_{company.postalCode} {company.city}, {company.country}_ +
+[.small]#📧 {company.email} | 📞 {company.phone} | {company.website}#
 
-'''
-
-// ============================================================================
-// DOCUMENT TITLE AND DETAILS
-// ============================================================================
+[.order-header]
 [.text-center]
 == ORDER CONFIRMATION #{order.number}
+[.text-center.small]
+_{order.date}_
 
+[.highlight]
 Dear {customer.name},
 
 Thank you for your order! We are pleased to confirm receipt of your order and will process it promptly.
 
+[.address-block]
 [cols="1,1", frame="none", grid="none"]
 |===
 a|
-*Shipping Address:* +
-{shipping.name} +
-{shipping.street} +
-{shipping.postalCode} {shipping.city} +
+[.section-title]#Shipping Address#
+
+{shipping.name}
+
+{shipping.street}
+
+{shipping.postalCode} {shipping.city}
+
 {shipping.country}
 
 a|
-*Order Details:* +
-Order No: *{order.number}* +
-Date: {order.date} +
-Status: {order.status} +
-Payment Method: {order.paymentMethod||paymentMethod} +
+[.section-title]#Order Details#
+
+Order #: {order.number}
+
+Order Date: {order.date}
+
+Status: {order.status}
+
+Payment Method: {order.paymentMethod||paymentMethod}
+
 Shipping: {shipment.carrier}
 |===
 
 '''
 
-// ============================================================================
-// MAIN CONTENT - Items Table
-// ============================================================================
-[cols="1,4,1,>1,>1,>1", options="header"]
+[.items-section]
+[.section-title]#Order Items#
+
+[cols="1,4,1,>1,>1,>1", options="header,autowidth"]
 |===
-|#|Description|SKU|Qty|Unit Price|Total
+^|#
+^|Description
+^|SKU
+^|Qty
+>|Unit Price
+>|Total
 
 {#order.items}
-|{index}
+^|{index}
 |{item.description}
 |{item.sku}
-|{item.quantity}
-|{item.unitPrice}
-|{item.total}
+^|{item.quantity}
+>|{item.unitPrice}
+>|*{item.total}*
 {#end}
 
 |===
@@ -82,19 +93,23 @@ Shipping: {shipment.carrier}
 
 '''
 
-// ============================================================================
-// ADDITIONAL INFORMATION
-// ============================================================================
-*Estimated Delivery:* {shipment.date}
+[.info-section]
+**Estimated Delivery:** {shipment.date}
 
-*Questions?* Contact our customer service: +
-Email: {company.email} | Phone: {company.phone}
+**Next Steps:** Your order will be processed and shipped within 1-2 business days.
+
+---
+
+**Questions?** Contact our customer service:
+
+📧 {company.email} | 📞 {company.phone}
 
 // ============================================================================
 // FOOTER - Company Information and Page Number
 // ============================================================================
 '''
 
+[.footer]
 [.text-center.small]
 {company.name} | {company.address}, {company.postalCode} {company.city} | {company.email} | {company.phone} +
 Page {page-number} of {page-count}

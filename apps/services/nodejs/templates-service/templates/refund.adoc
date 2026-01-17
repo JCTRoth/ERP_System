@@ -3,6 +3,8 @@
 = REFUND NOTICE
 :doctype: article
 :icons: font
+:sectnums!
+// Styles automatically injected from shared-styles.css
 :pdf-page-size: A4
 :pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
 :nofooter:
@@ -34,9 +36,9 @@ Your refund has been processed.
 a|
 *Customer:* +
 {customer.name} +
-{customer.billing.street} +
-{customer.billing.postalCode} {customer.billing.city} +
-{customer.billing.country} +
+{customer.address.street||customer.billing.street||shipping.street||""} +
+{customer.address.postalCode||customer.billing.postalCode||shipping.postalCode||""} {customer.address.city||customer.billing.city||shipping.city||""} +
+{customer.address.country||customer.billing.country||shipping.country||""} +
 {customer.email}
 
 a|
@@ -80,10 +82,8 @@ Method: {order.paymentMethod||paymentMethod||refund.method||""}
 
 '''
 
-{#refund.notes}
 *Additional Notes:* +
-{refund.notes}
-{#end}
+{refund.notes||order.notes||""}
 
 // ============================================================================
 // IMPORTANT INFORMATION

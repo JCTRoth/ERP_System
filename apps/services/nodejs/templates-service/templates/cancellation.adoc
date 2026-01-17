@@ -3,6 +3,8 @@
 = ORDER CANCELLATION
 :doctype: article
 :icons: font
+:sectnums!
+// Styles automatically injected from shared-styles.css
 :pdf-page-size: A4
 :pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
 :nofooter:
@@ -34,9 +36,9 @@ Your order has been cancelled.
 a|
 *Customer:* +
 {customer.name} +
-{customer.billing.street} +
-{customer.billing.postalCode} {customer.billing.city} +
-{customer.billing.country} +
+{customer.address.street||customer.billing.street||shipping.street||""} +
+{customer.address.postalCode||customer.billing.postalCode||shipping.postalCode||""} {customer.address.city||customer.billing.city||shipping.city||""} +
+{customer.address.country||customer.billing.country||shipping.country||""} +
 {customer.email}
 
 a|
@@ -79,10 +81,8 @@ Refund Method: {cancellation.method||order.refundMethod||""}
 
 '''
 
-{#cancellation.notes}
 *Additional Notes:* +
-{cancellation.notes}
-{#end}
+{cancellation.notes||order.notes||""}
 
 // ============================================================================
 // IMPORTANT INFORMATION

@@ -6,75 +6,101 @@
 :pdf-page-size: A4
 :pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
 :nofooter:
+:toc: macro
+:sectnums!:
+:sectlinks:
+:sectanchors:
+:data-uri:
+:source-highlighter: rouge
+:toc-title:
 
-// ============================================================================
-// HEADER - Company Information
-// ============================================================================
+// Styles automatically injected from shared-styles.css
+
+[.header]
 [.text-right]
-*{company.name}* +
-{company.address} +
-{company.postalCode} {company.city} +
-{company.country} +
-📧 {company.email} +
-📞 {company.phone} +
-Tax ID: {company.taxId}
+**{company.name}** +
+_{company.address}_ +
+_{company.postalCode} {company.city}, {company.country}_ +
+[.small]#📧 {company.email} | 📞 {company.phone} | Tax ID: {company.taxId}#
 
 '''
 
-// ============================================================================
-// DOCUMENT TITLE AND DETAILS
-// ============================================================================
+\n[.invoice-header]
 [.text-center]
 == INVOICE #{order.number}
+[.text-center.small]
+_{order.date}_
 
+[.address-block]
 [cols="1,1", frame="none", grid="none"]
 |===
 a|
-*Bill To:* +
-{customer.name} +
-{customer.billing.street} +
-{customer.billing.postalCode} {customer.billing.city} +
-{customer.billing.country} +
+[.section-title]#Bill To#
+
+{customer.name}
+
+{customer.address.street||customer.billing.street||customer.shipping.street||""}
+
+{customer.address.postalCode||customer.billing.postalCode||customer.shipping.postalCode||""} {customer.address.city||customer.billing.city||customer.shipping.city||""}
+
+{customer.address.country||customer.billing.country||customer.shipping.country||""}
+
 {customer.email}
 
 a|
-*Invoice Details:* +
-Invoice No: *{order.number}* +
-Date: {order.date} +
-Due Date: {order.dueDate} +
-Status: {order.status} +
+[.section-title]#Invoice Details#
+
+[.details-grid]
+Invoice #: {order.number}
+
+Issue Date: {order.date}
+
+Due Date: {order.dueDate||"Upon Receipt"}
+
+Status: {order.status}
+
 Payment Terms: Net 30 Days
 |===
 
 '''
 
-// ============================================================================
-// MAIN CONTENT - Items Table
-// ============================================================================
-[cols="1,4,1,>1,>1,>1", options="header"]
+\n[.items-section]
+[.section-title]#Line Items#
+
+[cols="1,4,1,>1,>1,>1", options="header,autowidth"]
 |===
-|#|Description|SKU|Qty|Unit Price|Total
+^|#
+^|Description
+^|SKU
+^|Qty
+>|Unit Price
+>|Total
 
 {#order.items}
-|{index}
+^|{index}
 |{item.name}
 |{item.sku}
-|{item.quantity}
-|{item.unitPrice}
-|{item.total}
+^|{item.quantity}
+>|{item.unitPrice}
+>|*{item.total}*
 {#end}
 
 |===
 
-// ============================================================================
-// TOTALS SECTION
-// ============================================================================
-[cols="4,>1", frame="none", grid="none"]
+\n[.totals-section]
+[cols="4,>1", frame="none", grid="none", width="50%", align="right"]
 |===
-|Subtotal:|{order.subtotal}
-|Tax ({invoice.taxRate}%):|{order.tax}
-|Shipping:|{order.shipping}
-|*TOTAL DUE:*|*{order.total}*
+|Subtotal
+|{order.subtotal}
+
+|Tax ({invoice.taxRate}%)
+|{order.tax}
+
+|Shipping
+|{order.shipping}
+
+.2+h|**TOTAL DUE**
+.2+h|**{order.total}**
 |===
 
 '''

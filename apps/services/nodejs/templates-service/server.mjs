@@ -22,6 +22,60 @@ try {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load shared CSS styles for auto-injection
+const sharedStylesPath = path.join(__dirname, 'templates', 'shared-styles.css');
+let sharedStyles = '';
+try {
+  sharedStyles = fs.readFileSync(sharedStylesPath, 'utf8');
+  console.log('✓ Loaded shared styles for auto-injection');
+} catch (err) {
+  console.warn('⚠ Could not load shared-styles.css, templates will render without styling:', err.message);
+}
+
+// Helper: Detect theme class based on document type or template key
+function getThemeClass(documentType, templateKey) {
+  const themeMap = {
+    'invoice': 'theme-invoice',
+    'orderConfirmation': 'theme-order',
+    'shippingNotice': 'theme-shipping',
+    'deliveryNote': 'theme-delivery',
+    'packingSlip': 'theme-packing',
+    'cancellation': 'theme-cancellation',
+    'refund': 'theme-refund',
+  };
+  
+  // Try to match by documentType first, then fallback to templateKey
+  let theme = themeMap[documentType];
+  if (!theme && templateKey) {
+    const keyLower = templateKey.toLowerCase().replace(/-/g, '');
+    for (const [key, value] of Object.entries(themeMap)) {
+      if (keyLower.includes(key.toLowerCase().replace(/confirmation|notice|note|slip/g, ''))) {
+        theme = value;
+        break;
+      }
+    }
+  }
+  
+  return theme || 'theme-invoice'; // Default to invoice theme
+}
+
+// Helper: Inject CSS into HTML output
+function injectStylesIntoHtml(html, themeClass) {
+  if (!sharedStyles) return html;
+  
+  const styleTag = `<style>\n${sharedStyles}\n</style>`;
+  const bodyClassInjection = html.replace(/<body([^>]*)>/, `<body$1 class="${themeClass}">`);
+  
+  // Try to inject into <head>, or before </body>, or at the start
+  if (bodyClassInjection.includes('<head>')) {
+    return bodyClassInjection.replace('</head>', `${styleTag}\n</head>`);
+  } else if (bodyClassInjection.includes('</body>')) {
+    return bodyClassInjection.replace('</body>', `${styleTag}\n</body>`);
+  } else {
+    return styleTag + '\n' + bodyClassInjection;
+  }
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -834,18 +888,19 @@ app.post('/api/templates/:id/render', async (req, res) => {
       htmlOutput = Asciidoctor.convert(renderedAdoc, opts);
       // Clean up PDF-only placeholders for HTML preview
       htmlOutput = htmlOutput.replace(/\{page-number\}/g, '').replace(/\{page-count\}/g, '');
+      
+      // Auto-inject shared styles
+      const themeClass = getThemeClass(template.documentType, template.key);
+      htmlOutput = injectStylesIntoHtml(htmlOutput, themeClass);
     } catch (err) {
+      const themeClass = getThemeClass(template.documentType, template.key);
       htmlOutput = `
         <html>
           <head>
             <title>${template.name}</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 40px; }
-              h1 { color: #333; }
-              pre { background: #f4f4f4; padding: 10px; border-radius: 4px; }
-            </style>
+            <style>${sharedStyles}</style>
           </head>
-          <body>
+          <body class="${themeClass}">
             <h1>${template.name}</h1>
             <div>${renderedAdoc.replace(/</g, '&lt;').replace(/\{page-number\}/g, '').replace(/\{page-count\}/g, '')}</div>
           </body>
@@ -919,24 +974,25 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
 
       // Fallback to programmatic AsciiDoc -> HTML -> Puppeteer as before
       let html = '';
+      const themeClass = getThemeClass(template.documentType, template.key);
       try {
         const AsciidoctorModule = await import('@asciidoctor/core');
         const AsciidoctorFactory = AsciidoctorModule.default || AsciidoctorModule;
         const Asciidoctor = typeof AsciidoctorFactory === 'function' ? AsciidoctorFactory() : AsciidoctorFactory;
         const opts = { safe: 'safe', attributes: { showtitle: true } };
         html = Asciidoctor.convert(renderedAdoc, opts);
+        
+        // Auto-inject shared styles
+        html = injectStylesIntoHtml(html, themeClass);
       } catch (e) {
         console.warn('Asciidoctor conversion failed, falling back to simple HTML:', e?.message || e);
         html = `
           <html>
             <head>
               <title>${template.name}</title>
-              <style>
-                body { font-family: Arial, sans-serif; margin: 40px; }
-                h1 { color: #333; }
-              </style>
+              <style>${sharedStyles}</style>
             </head>
-            <body>
+            <body class="${themeClass}">
               <h1>${template.name}</h1>
               <div>${renderedAdoc.replace(/</g, '&lt;')}</div>
             </body>

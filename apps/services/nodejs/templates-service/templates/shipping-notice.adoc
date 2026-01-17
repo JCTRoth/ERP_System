@@ -6,45 +6,49 @@
 :pdf-page-size: A4
 :pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
 :nofooter:
+:sectnums!
+// Styles automatically injected from shared-styles.css
 
-// ============================================================================
-// HEADER - Company Information
-// ============================================================================
+[.header]
 [.text-right]
-*{company.name}* +
-{company.address} +
-{company.postalCode} {company.city} +
-{company.country} +
-📧 {company.email} +
-📞 {company.phone}
+**{company.name}** +
+_{company.address}_ +
+_{company.postalCode} {company.city}, {company.country}_ +
+[.small]#📧 {company.email} | 📞 {company.phone}#
 
-'''
-
-// ============================================================================
-// DOCUMENT TITLE AND DETAILS
-// ============================================================================
+[.highlight]
 [.text-center]
 == SHIPPING NOTICE
 
-[.text-center]
 Your order has been shipped!
 
+[.address-block]
 [cols="1,1", frame="none", grid="none"]
 |===
 a|
-*Delivery Address:* +
-{shipping.name} +
-{shipping.street} +
-{shipping.postalCode} {shipping.city} +
-{shipping.country} +
+[.section-title]#Delivery Address#
+
+{shipping.name}
+
+{shipping.street}
+
+{shipping.postalCode} {shipping.city}
+
+{shipping.country}
+
 📞 {customer.phone}
 
 a|
-*Shipment Details:* +
-Order No: *{order.number}* +
-Ship Date: {shipment.date} +
-Carrier: {shipment.carrier} +
-Tracking No: *{shipment.trackingNumber}* +
+[.section-title]#Shipment Details#
+
+Order #: {order.number}
+
+Ship Date: {shipment.date}
+
+Carrier: {shipment.carrier}
+
+Tracking #: **{shipment.trackingNumber}**
+
 Est. Delivery: {shipment.date}
 |===
 

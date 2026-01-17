@@ -588,6 +588,9 @@ export function buildTemplateContext(
         context.orderItems = cancellationItems;
         context.products = cancellationItems;
         context.productList = cancellationItems;
+        // Ensure order.items is populated (critical for templates using {#order.items})
+        if (!context.order) context.order = {} as any;
+        (context.order as any).items = cancellationItems;
       } else {
         console.log('DEBUG: No items found in order for cancellation:', o);
       }

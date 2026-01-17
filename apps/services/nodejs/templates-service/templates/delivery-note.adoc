@@ -3,6 +3,8 @@
 = DELIVERY NOTE
 :doctype: article
 :icons: font
+:sectnums!
+// Styles automatically injected from shared-styles.css
 :pdf-page-size: A4
 :pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
 :nofooter:
