@@ -93,6 +93,7 @@ public class PaymentRecordService : IPaymentRecordService
             PaymentMethod = Enum.Parse<PaymentMethod>(input.PaymentMethod),
             ReferenceNumber = input.ReferenceNumber,
             BankAccountId = input.BankAccountId,
+            AccountId = input.AccountId,
             Notes = input.Notes,
             Status = PaymentStatus.Pending,
             CreatedAt = DateTime.UtcNow

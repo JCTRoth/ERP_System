@@ -85,6 +85,10 @@ public class Mutation
         {
             payment.BankAccountId = input.BankAccountId;
         }
+        if (input.AccountId.HasValue)
+        {
+            payment.AccountId = input.AccountId;
+        }
         if (input.Method != null || input.PaymentMethod != null)
         {
             payment.Method = TryParsePaymentMethod(input.Method ?? input.PaymentMethod);

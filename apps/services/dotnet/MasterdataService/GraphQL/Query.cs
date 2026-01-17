@@ -244,6 +244,9 @@ public class Query
     }
 
     [GraphQLDescription("Get all payment terms")]
+    [UsePaging(IncludeTotalCount = true)]
+    [UseFiltering]
+    [UseSorting]
     public async Task<IEnumerable<PaymentTerm>> GetPaymentTerms(
         [Service] IReferenceDataService referenceDataService)
     {
@@ -251,6 +254,9 @@ public class Query
     }
 
     [GraphQLDescription("Get all units of measure")]
+    [UsePaging(IncludeTotalCount = true)]
+    [UseFiltering]
+    [UseSorting]
     public async Task<IEnumerable<UnitOfMeasure>> GetUnitsOfMeasure(
         [Service] IReferenceDataService referenceDataService)
     {

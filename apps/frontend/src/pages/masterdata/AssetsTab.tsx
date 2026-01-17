@@ -12,6 +12,9 @@ import {
 import { useI18n } from '../../providers/I18nProvider';
 import AssetModal, { type Asset as AssetModalAsset } from './AssetModal';
 
+// Helper function to convert PascalCase to camelCase
+const toCamelCase = (str: string) => str.charAt(0).toLowerCase() + str.slice(1);
+
 const GET_ASSETS = gql`
   query GetAssets($first: Int, $where: AssetFilterInput) {
     assets(first: $first, where: $where, order: { assetNumber: ASC }) {
@@ -263,7 +266,7 @@ export default function AssetsTab() {
                       <td className="whitespace-nowrap px-6 py-4">
                         <div>
                           <p className="text-sm">
-                            {t(`masterdata.assetType.${asset.type.toLowerCase()}`)}
+                            {t(`masterdata.assetType.${toCamelCase(asset.type)}`)}
                           </p>
                           {asset.category && (
                             <p className="text-sm text-gray-500">{asset.category.name}</p>

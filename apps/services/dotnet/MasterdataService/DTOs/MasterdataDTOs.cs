@@ -351,6 +351,7 @@ public record UpdateCurrencyInput(
     string? Name,
     string? Symbol,
     decimal? ExchangeRate,
+    bool? IsBaseCurrency,
     bool? IsActive
 );
 

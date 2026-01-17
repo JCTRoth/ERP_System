@@ -340,7 +340,7 @@
   "masterdata.employmentType.consultant": "Consultant",
   "masterdata.exchangeRate": "Exchange Rate",
   "masterdata.decimalPlaces": "Decimal Places",
-  "masterdata.isBaseCurrency": "Is Base Currency",
+  "masterdata.isDefault": "Is Default Currency",
   "masterdata.fullTime": "Full Time",
   "masterdata.hireDate": "Hire Date",
   "masterdata.intern": "Intern",

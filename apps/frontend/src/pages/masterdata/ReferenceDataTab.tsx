@@ -6,6 +6,9 @@ import CurrencyModal from './CurrencyModal';
 import PaymentTermModal from './PaymentTermModal';
 import UnitOfMeasureModal from './UnitOfMeasureModal';
 
+// Helper function to convert PascalCase to camelCase
+const toCamelCase = (str: string) => str.charAt(0).toLowerCase() + str.slice(1);
+
 const GET_CURRENCIES = gql`
   query GetCurrencies {
     currencies(order: { code: ASC }) {
@@ -16,7 +19,7 @@ const GET_CURRENCIES = gql`
         symbol
         decimalPlaces
         exchangeRate
-        isBaseCurrency
+        isDefault
         isActive
       }
     }
@@ -50,7 +53,7 @@ const GET_UNITS_OF_MEASURE = gql`
         name
         symbol
         type
-        baseUnit
+        baseUnitId
         conversionFactor
         isBaseUnit
         isActive
@@ -66,7 +69,7 @@ interface Currency {
   symbol: string | null;
   decimalPlaces: number;
   exchangeRate: number;
-  isBaseCurrency: boolean;
+  isDefault: boolean;
   isActive: boolean;
 }
 
@@ -88,7 +91,7 @@ interface UnitOfMeasure {
   name: string;
   symbol: string | null;
   type: string;
-  baseUnit: string | null;
+  baseUnitId: string | null;
   conversionFactor: number;
   isBaseUnit: boolean;
   isActive: boolean;
@@ -254,9 +257,9 @@ export default function ReferenceDataTab() {
                       <tr key={currency.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="whitespace-nowrap px-6 py-4">
                           <span className="font-mono font-medium">{currency.code}</span>
-                          {currency.isBaseCurrency && (
+                          {currency.isDefault && (
                             <span className="ml-2 rounded bg-primary-100 px-1.5 py-0.5 text-xs text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
-                              {t('masterdata.isBaseCurrency')}
+                              {t('masterdata.isDefault')}
                             </span>
                           )}
                         </td>
@@ -340,7 +343,7 @@ export default function ReferenceDataTab() {
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-6 py-4">
-                          {t(`masterdata.paymentTermType.${term.type.toLowerCase()}`)}
+                          {t(`masterdata.paymentTermType.${toCamelCase(term.type)}`)}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right">
                           {term.dueDays} {t('masterdata.days')}
@@ -419,10 +422,10 @@ export default function ReferenceDataTab() {
                         </td>
                         <td className="whitespace-nowrap px-6 py-4">{unit.name}</td>
                         <td className="whitespace-nowrap px-6 py-4">
-                          {t(`masterdata.uomType.${unit.type.toLowerCase()}`)}
+                          {t(`masterdata.uomType.${toCamelCase(unit.type)}`)}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4">
-                          {unit.baseUnit || '-'}
+                          {unit.baseUnitId || '-'}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right font-mono">
                           {unit.conversionFactor}

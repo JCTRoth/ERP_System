@@ -29,7 +29,7 @@ export interface UnitOfMeasureData {
   name: string;
   symbol: string | null;
   type: string;
-  baseUnit: string | null;
+  baseUnitId: string | null;
   conversionFactor: number;
   isBaseUnit: boolean;
   isActive: boolean;
@@ -50,7 +50,7 @@ export default function UnitOfMeasureModal({ unitOfMeasure, onClose, onSuccess }
     name: '',
     symbol: '',
     type: 'Unit',
-    baseUnit: '',
+    baseUnitId: '',
     conversionFactor: 1,
     isBaseUnit: false,
   });
@@ -92,7 +92,7 @@ export default function UnitOfMeasureModal({ unitOfMeasure, onClose, onSuccess }
         name: unitOfMeasure.name,
         symbol: unitOfMeasure.symbol || '',
         type: unitOfMeasure.type || 'Unit',
-        baseUnit: unitOfMeasure.baseUnit || '',
+        baseUnitId: unitOfMeasure.baseUnitId || '',
         conversionFactor: unitOfMeasure.conversionFactor,
         isBaseUnit: unitOfMeasure.isBaseUnit,
       });
@@ -228,8 +228,8 @@ export default function UnitOfMeasureModal({ unitOfMeasure, onClose, onSuccess }
                 {t('masterdata.baseUnit')}
               </label>
               <select
-                value={formData.baseUnit}
-                onChange={(e) => setFormData({ ...formData, baseUnit: e.target.value })}
+                value={formData.baseUnitId}
+                onChange={(e) => setFormData({ ...formData, baseUnitId: e.target.value })}
                 className="input mt-1 w-full"
                 disabled={formData.isBaseUnit}
               >

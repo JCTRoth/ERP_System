@@ -109,6 +109,19 @@ public class ReferenceDataService : IReferenceDataService
         if (input.IsActive.HasValue)
             currency.IsActive = input.IsActive.Value;
 
+        if (input.IsBaseCurrency.HasValue && input.IsBaseCurrency.Value != currency.IsBaseCurrency)
+        {
+            currency.IsBaseCurrency = input.IsBaseCurrency.Value;
+            
+            if (input.IsBaseCurrency.Value)
+            {
+                // Clear other base currencies
+                await _context.Currencies
+                    .Where(c => c.Id != id && c.IsBaseCurrency)
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.IsBaseCurrency, false));
+            }
+        }
+
         currency.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

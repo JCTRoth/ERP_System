@@ -30,7 +30,7 @@ export interface CurrencyData {
   symbol: string | null;
   decimalPlaces: number;
   exchangeRate: number;
-  isBaseCurrency: boolean;
+  isDefault: boolean;
   isActive: boolean;
 }
 
@@ -50,7 +50,7 @@ export default function CurrencyModal({ currency, onClose, onSuccess }: Currency
     symbol: '',
     decimalPlaces: 2,
     exchangeRate: 1,
-    isBaseCurrency: false,
+    isDefault: false,
   });
 
   const [createCurrency, { loading: createLoading }] = useMutation(CREATE_CURRENCY, {
@@ -77,7 +77,7 @@ export default function CurrencyModal({ currency, onClose, onSuccess }: Currency
         symbol: currency.symbol || '',
         decimalPlaces: currency.decimalPlaces,
         exchangeRate: currency.exchangeRate,
-        isBaseCurrency: currency.isBaseCurrency,
+        isDefault: currency.isDefault,
       });
     }
   }, [currency]);
@@ -94,6 +94,7 @@ export default function CurrencyModal({ currency, onClose, onSuccess }: Currency
               name: formData.name || undefined,
               symbol: formData.symbol || undefined,
               exchangeRate: formData.exchangeRate,
+              isDefault: formData.isDefault,
               isActive: true, // Assuming we keep it active for now
             },
           },
@@ -107,7 +108,7 @@ export default function CurrencyModal({ currency, onClose, onSuccess }: Currency
               symbol: formData.symbol || undefined,
               decimalPlaces: formData.decimalPlaces,
               exchangeRate: formData.exchangeRate,
-              isBaseCurrency: formData.isBaseCurrency,
+              isDefault: formData.isDefault,
             },
           },
         });
@@ -219,13 +220,13 @@ export default function CurrencyModal({ currency, onClose, onSuccess }: Currency
           <div className="flex items-center">
             <input
               type="checkbox"
-              id="isBaseCurrency"
-              checked={formData.isBaseCurrency}
-              onChange={(e) => setFormData({ ...formData, isBaseCurrency: e.target.checked })}
+              id="isDefault"
+              checked={formData.isDefault}
+              onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
               className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
-            <label htmlFor="isBaseCurrency" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-              {t('masterdata.isBaseCurrency') || 'Is Base Currency'}
+            <label htmlFor="isDefault" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              {t('masterdata.isDefault') || 'Is Default Currency'}
             </label>
           </div>
 

@@ -23,6 +23,7 @@ const GET_PAYMENT_RECORDS = gql`
         reference
         notes
         invoiceId
+        bankAccountId
         invoice {
           id
           invoiceNumber
@@ -115,6 +116,7 @@ interface PaymentRecord {
   reference: string;
   notes: string;
   invoiceId: string | null;
+  bankAccountId: string | null;
   invoice: { id: string; invoiceNumber: string } | null;
   createdAt: string;
 }
@@ -222,7 +224,7 @@ export default function PaymentsTab() {
       reference: payment.reference || "",
       notes: payment.notes || "",
       invoiceId: payment.invoiceId || "",
-      accountId: "", // TODO: Add accountId to PaymentRecord type and backend
+      accountId: (payment as any).accountId || (payment as any).bankAccountId || "",
     });
     setShowModal(true);
   };
@@ -285,6 +287,10 @@ export default function PaymentsTab() {
         input.InvoiceId = formState.invoiceId;
       }
 
+      if (formState.accountId) {
+        input.AccountId = formState.accountId;
+      }
+
       await updatePaymentRecord({ variables: { input } });
     } else {
       // Create new payment
@@ -300,6 +306,10 @@ export default function PaymentsTab() {
 
       if (formState.invoiceId) {
         input.invoiceId = formState.invoiceId;
+      }
+
+      if (formState.accountId) {
+        input.accountId = formState.accountId;
       }
 
       await createPaymentRecord({ variables: { input } });
