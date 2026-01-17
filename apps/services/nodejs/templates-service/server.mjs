@@ -163,12 +163,26 @@ async function loadTemplatesFromFiles() {
       'order-confirmation': 'orderConfirmation',
       'shipping-notice': 'shippingNotice',
       'delivery-note': 'deliveryNote',
-      'packing-slip-simple': 'packingSlip',
+      'packing-slip': 'packingSlip',
       cancellation: 'cancellation',
       refund: 'refund',
     };
 
+    // Map document type to sendEmail flag
+    // Cancellation: true, Delivery Note: false, Invoice: true, Order Confirmation: true
+    // Packing Slip: false, Refund: true, Shipping Notice: true
+    const sendEmailMap = {
+      invoice: true,
+      orderConfirmation: true,
+      shippingNotice: true,
+      deliveryNote: false,
+      packingSlip: false,
+      cancellation: true,
+      refund: true,
+    };
+
     const documentType = documentTypeMap[key] || 'invoice';
+    const sendEmail = sendEmailMap[documentType] ?? false;
     const name = key.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
     let assignedState = null;
@@ -189,9 +203,9 @@ async function loadTemplatesFromFiles() {
 
     try {
       await pool.query(
-        `INSERT INTO templates (id, company_id, key, name, content, language, document_type, assigned_state, is_active, metadata, created_at, updated_at, created_by, last_modified_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-         ON CONFLICT (key, company_id) DO UPDATE SET content = EXCLUDED.content, updated_at = EXCLUDED.updated_at`,
+        `INSERT INTO templates (id, company_id, key, name, content, language, document_type, assigned_state, is_active, send_email, metadata, created_at, updated_at, created_by, last_modified_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         ON CONFLICT (key, company_id) DO UPDATE SET content = EXCLUDED.content, send_email = EXCLUDED.send_email, updated_at = EXCLUDED.updated_at`,
         [
           id,
           '1',
@@ -202,6 +216,7 @@ async function loadTemplatesFromFiles() {
           documentType,
           assignedState,
           true,
+          sendEmail,
           JSON.stringify({ version: 1 }),
           now,
           now,
@@ -209,7 +224,7 @@ async function loadTemplatesFromFiles() {
           'system',
         ]
       );
-      console.log(`✓ Seeded template: ${name}`);
+      console.log(`✓ Seeded template: ${name} (sendEmail: ${sendEmail})`);
     } catch (err) {
       console.error(`Error seeding template ${name}:`, err);
     }
@@ -435,10 +450,28 @@ function renderWithoutMustache(src, ctx, errorsList) {
         let p = path;
         const prefix = name + '.';
         if (p.startsWith(prefix)) p = p.slice(prefix.length);
-        if (p.startsWith('item.')) p = p.slice(5);
-
+        
+        // Handle {index} - return 1-based index
         if (p === 'index') return String(idx + 1);
+        
+        // Handle {item.property} - look up property in current item
+        if (p.startsWith('item.')) {
+          const itemPath = p.slice(5); // Remove 'item.' prefix
+          const itemValue = itemPath.split('.').reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : undefined), item);
+          console.log('DEBUG: Loop item property resolution - itemPath:', itemPath, 'itemValue:', itemValue);
+          if (itemValue !== undefined) return String(itemValue);
+          errorsList.push(`Missing variable: ${match}`);
+          return match;
+        }
+        
+        // Handle direct property names from the item (e.g., {name}, {quantity})
+        const directItemValue = item[p];
+        if (directItemValue !== undefined) {
+          console.log('DEBUG: Loop direct item property - p:', p, 'value:', directItemValue);
+          return String(directItemValue);
+        }
 
+        // Fall back to resolving from the full context
         const resolved = resolveValue({ ...ctx, item, invoice: ctx.invoice }, p);
         console.log('DEBUG: Loop variable resolution - path:', p, 'resolved:', resolved);
         if (resolved === undefined) {

@@ -1,107 +1,106 @@
-// Refund Notice Template
-// Professional format for customer refund notifications
-= Refund Notice {refund.number}
-:doctype: book
+// Refund Notice Template - DIN A4 Format
+// Variables: order.*, customer.*, company.*, refund.*, order.items[]
+= REFUND NOTICE
+:doctype: article
 :icons: font
-:author: {company.name}
-:revnumber: {refund.number}
-:revdate: {refund.date}
-:revremark: REFUNDED
+:pdf-page-size: A4
+:pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
+:nofooter:
 
-// Company Header
-[.text-center]
-== {company.name}
-
-[.text-center]
-{company.address} + 
-{company.city}, {company.postalCode} + 
-{company.country}
-
-[.text-center]
-📧 {company.email} | 📞 {company.phone || ''}
+// ============================================================================
+// HEADER - Company Information
+// ============================================================================
+[.text-right]
+*{company.name}* +
+{company.address} +
+{company.postalCode} {company.city} +
+{company.country} +
+📧 {company.email} +
+📞 {company.phone}
 
 '''
 
-// Refund Information
-[cols="2,2", frame="none", grid="none"]
-.Refund Details
+// ============================================================================
+// DOCUMENT TITLE AND DETAILS
+// ============================================================================
+[.text-center]
+== REFUND NOTICE #{refund.number}
+
+[.text-center]
+Your refund has been processed.
+
+[cols="1,1", frame="none", grid="none"]
 |===
-| *Refund Number:*
-| {refund.number}
+a|
+*Customer:* +
+{customer.name} +
+{customer.billing.street} +
+{customer.billing.postalCode} {customer.billing.city} +
+{customer.billing.country} +
+{customer.email}
 
-| *Refund Date:*
-| {refund.date}
-
-| *Order Number:*
-| {order.number}
-
-| *Customer:*
-| {customer.name}
-
-| *Customer Email:*
-| {customer.email}
+a|
+*Refund Details:* +
+Refund No: *{refund.number}* +
+Order No: {order.number} +
+Refund Date: {refund.date} +
+Reason: {refund.reason} +
+Method: {refund.method}
 |===
 
-// Refunded Items
-== Refunded Items
+'''
 
-[cols="1,3,1,1", options="header"]
+// ============================================================================
+// MAIN CONTENT - Refunded Items
+// ============================================================================
+[cols="1,4,1,>1,>1", options="header"]
 |===
-| # | Description | Qty | Refund Amount
+|#|Description|SKU|Qty|Refund Amount
 
 {#order.items}
-| {index}
-| {item.name || item.description || 'Product/Service'}
-| {item.quantity}
-| {item.total}
+|{index}
+|{item.name}
+|{item.sku}
+|{item.quantity}
+|{item.total}
 {#end}
 
-| *Total Items:*
-| {order.items.length || 0}
 |===
 
-// Refund Summary
-[cols="2,1", frame="none", grid="none"]
-.Refund Summary
+// ============================================================================
+// REFUND SUMMARY
+// ============================================================================
+[cols="4,>1", frame="none", grid="none"]
 |===
-| *Refund Total:*
-| {refund.amount}
-
-| *Refund Reason:*
-| {refund.reason}
-
-| *Refund Method:*
-| {refund.method}
-
-| *Processing Time:*
-| 3-5 business days
-
-| *Refund Date:*
-| {refund.date}
+|*Total Refund:*|*{refund.amount}*
+|Refund Method:|{refund.method}
+|Status:|Processed
 |===
 
-// Additional Notes
+'''
+
 {#refund.notes}
-== Additional Notes
-
+*Additional Notes:* +
 {refund.notes}
-
 {#end}
 
-// Footer
-[.text-center]
-{company.name} | Refund Notice | Page {page-number} of {page-count}
+// ============================================================================
+// IMPORTANT INFORMATION
+// ============================================================================
+*Refund Information:* +
+• Your refund has been processed and submitted +
+• Please allow 3-5 business days for the refund to appear +
+• The refund will be credited to your original payment method +
+• Keep this notice for your records
 
-// Terms and Conditions
-<<<
+*Questions?* Contact our customer service: +
+📧 {company.email} | 📞 {company.phone}
 
-== Terms and Conditions
+// ============================================================================
+// FOOTER - Company Information and Page Number
+// ============================================================================
+'''
 
-* Refunds are processed within 3-5 business days
-* Original payment method will be credited
-* Non-refundable items are not eligible
-* Shipping costs are non-refundable unless specified
-
-// End of Document
-[.text-right]
-{company.name} © {refund.date}
+[.text-center.small]
+{company.name} | {company.address}, {company.postalCode} {company.city} | {company.email} | {company.phone} +
+Page {page-number} of {page-count}

@@ -1,6 +1,6 @@
-// Delivery Note Template - DIN A4 Format
+// Packing Slip Template - DIN A4 Format
 // Variables: order.*, customer.*, company.*, shipment.*, shipping.*, order.items[]
-= DELIVERY NOTE
+= PACKING SLIP
 :doctype: article
 :icons: font
 :pdf-page-size: A4
@@ -24,42 +24,42 @@
 // DOCUMENT TITLE AND DETAILS
 // ============================================================================
 [.text-center]
-== DELIVERY NOTE #{order.number}
+== PACKING SLIP
+
+[.text-center]
+Order #{order.number}
 
 [cols="1,1", frame="none", grid="none"]
 |===
 a|
-*Delivered To:* +
+*Ship To:* +
 {shipping.name} +
 {shipping.street} +
 {shipping.postalCode} {shipping.city} +
-{shipping.country} +
-📞 {customer.phone}
+{shipping.country}
 
 a|
-*Delivery Details:* +
+*Order Info:* +
 Order No: *{order.number}* +
-Delivery Date: {order.date} +
+Date: {order.date} +
 Carrier: {shipment.carrier} +
-Tracking No: {shipment.trackingNumber} +
-Status: {order.status}
+Tracking: {shipment.trackingNumber}
 |===
 
 '''
 
 // ============================================================================
-// MAIN CONTENT - Delivered Items
+// MAIN CONTENT - Items Packed
 // ============================================================================
-[cols="1,4,1,>1,2", options="header"]
+[cols="1,4,1,>1", options="header"]
 |===
-|#|Description|SKU|Qty|Notes
+|#|Description|SKU|Qty
 
 {#order.items}
 |{index}
 |{item.name}
 |{item.sku}
 |{item.quantity}
-|{item.notes}
 {#end}
 
 |===
@@ -67,17 +67,27 @@ Status: {order.status}
 '''
 
 // ============================================================================
-// DELIVERY CONFIRMATION
+// PACKING CHECKLIST
 // ============================================================================
-*Delivery Confirmation:*
+*Packing Checklist:*
 
-☐ All items received in good condition +
-☐ Package intact, no visible damage +
-☐ Quantity verified as listed above
+☐ Items verified and counted +
+☐ Items packed securely +
+☐ Shipping label attached +
+☐ Packing slip included
 
-*Received by:* _________________________ +
-*Date:* _________________________ +
-*Signature:* _________________________
+*Packed by:* _________________________ +
+*Date:* _________________________
+
+'''
+
+// ============================================================================
+// RETURN INFORMATION
+// ============================================================================
+*Returns:* +
+To return items, please contact: {company.email} +
+Include this packing slip with any returns +
+Returns accepted within 30 days of delivery
 
 // ============================================================================
 // FOOTER - Company Information and Page Number

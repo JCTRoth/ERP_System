@@ -1,128 +1,97 @@
-// Standard Invoice Template
-// Uses core template variables with proper formatting
-// Variables: {order.*}, {customer.*}, {company.*}, {invoice.*}, {#order.items}
-= Invoice {order.number}
-:doctype: book
+// Invoice Template - DIN A4 Format
+// Variables: order.*, customer.*, company.*, invoice.*, order.items[]
+= INVOICE
+:doctype: article
 :icons: font
-:toc: macro
-:author: {company.name}
-:revnumber: {order.number}
-:revdate: {order.date}
-:revremark: {order.status}
+:pdf-page-size: A4
+:pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
+:nofooter:
 
-// Company Header
-[.text-center]
-== {company.name}
-
-[.text-center]
-{company.address} + 
-{company.city}, {company.postalCode} + 
-{company.country}
-
-[.text-center]
-📧 {company.email} | 📞 {company.phone || ''}
+// ============================================================================
+// HEADER - Company Information
+// ============================================================================
+[.text-right]
+*{company.name}* +
+{company.address} +
+{company.postalCode} {company.city} +
+{company.country} +
+📧 {company.email} +
+📞 {company.phone} +
+Tax ID: {company.taxId}
 
 '''
 
-// Invoice Info Section
-[cols="2,2", frame="none", grid="none"]
+// ============================================================================
+// DOCUMENT TITLE AND DETAILS
+// ============================================================================
+[.text-center]
+== INVOICE #{order.number}
+
+[cols="1,1", frame="none", grid="none"]
 |===
-| *Invoice To:*
-| *Invoice Details:*
+a|
+*Bill To:* +
+{customer.name} +
+{customer.billing.street} +
+{customer.billing.postalCode} {customer.billing.city} +
+{customer.billing.country} +
+{customer.email}
 
-| {customer.name}
-| *Number:* {order.number}
-
-| {customer.billing.street || customer.address.street || ''}
-| *Date:* {order.date}
-
-| {customer.billing.city || customer.address.city || ''}, {customer.billing.postalCode || customer.address.postalCode || ''}
-| *Status:* {order.status}
-
-| {customer.billing.country || customer.address.country || ''}
-| *Due Date:* {order.dueDate}
-
-| 📧 {customer.email}
-| *Payment Terms:* Net 30 Days
-
-| 📞 {customer.phone}
-| *Tax ID:* {company.taxId || 'N/A'}
-|===
-
-// Items Table
-[cols="1,3,1,1,1,1,1,1", options="header"]
-.Items
-|===
-| # | Description | SKU | Quantity | Unit Price | Discount | Tax | Total
-
-{#items}
-| {index}
-| {description}
-| {sku}
-| {quantity}
-| ${unitPrice}
-| ${discount}
-| ${tax}
-| ${total}
-{/items}
-
+a|
+*Invoice Details:* +
+Invoice No: *{order.number}* +
+Date: {order.date} +
+Due Date: {order.dueDate} +
+Status: {order.status} +
+Payment Terms: Net 30 Days
 |===
 
-// Summary Section
-[cols="3,1", frame="none", grid="none"]
+'''
+
+// ============================================================================
+// MAIN CONTENT - Items Table
+// ============================================================================
+[cols="1,4,1,>1,>1,>1", options="header"]
 |===
-| *Subtotal:*
-| {order.subtotal}
+|#|Description|SKU|Qty|Unit Price|Total
 
-| *Tax ({invoice.taxRate}%):*
-| {order.tax}
-
-| *Shipping:*
-| {order.shipping}
-
-| *Discount:*
-| -{order.discount}
-
-| **TOTAL DUE:**
-| **{order.total}**
-|===
-
-// Shipping Information
-== Shipping Information
-
-*Tracking Number:* {shipment.trackingNumber || order.trackingNumber || 'N/A'} + 
-*Carrier:* {shipment.carrier || 'Standard Shipping'} + 
-*Estimated Delivery:* {shipment.date || order.shippedAt || order.date}
-
-*Shipping Address:*
-
-{shipping.name || customer.name} + 
-{shipping.street || customer.billing.street || customer.address.street || ''} + 
-{shipping.city || customer.billing.city || customer.address.city || ''}, {shipping.postalCode || customer.billing.postalCode || customer.address.postalCode || ''} + 
-{shipping.country || customer.billing.country || customer.address.country || ''}
-
-// Notes Section (conditional)
-{#order.notes}
-== Additional Notes
-
-{order.notes}
-
+{#order.items}
+|{index}
+|{item.name}
+|{item.sku}
+|{item.quantity}
+|{item.unitPrice}
+|{item.total}
 {#end}
 
-// Footer
-[.text-center]
-{company.name} | {company.email} | {company.phone}
+|===
 
-// Page Break for Terms
-<<<
+// ============================================================================
+// TOTALS SECTION
+// ============================================================================
+[cols="4,>1", frame="none", grid="none"]
+|===
+|Subtotal:|{order.subtotal}
+|Tax ({invoice.taxRate}%):|{order.tax}
+|Shipping:|{order.shipping}
+|*TOTAL DUE:*|*{order.total}*
+|===
 
-== Terms and Conditions
+'''
 
-* Payment is due within 30 days of invoice date
-* Late payments are subject to a 1.5% monthly finance charge
-* All amounts are in {order.currency}
-* Disputes must be reported within 7 days of invoice date
+// ============================================================================
+// PAYMENT INFORMATION
+// ============================================================================
+*Payment Information:* +
+Bank: {company.bankName} +
+IBAN: {company.bankIban} +
+BIC/SWIFT: {company.bankSwift}
 
-// End of Document
-[.text-right]
+// ============================================================================
+// FOOTER - Company Information and Page Number
+// ============================================================================
+'''
+
+[.text-center.small]
+{company.name} | {company.address}, {company.postalCode} {company.city} | {company.email} | {company.phone} +
 Page {page-number} of {page-count}
