@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import ProductModal from './ProductModal';
-import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
+import { getShopApolloClient } from '../../lib/apollo';
 
 const GET_PRODUCTS = gql`
   query GetProducts($first: Int, $after: String) {
@@ -49,28 +49,8 @@ const DELETE_PRODUCT = gql`
   }
 `;
 
-// Temporary direct client to bypass Vite proxy issues
-const directShopClient = new ApolloClient({
-  link: createHttpLink({
-    uri: 'http://localhost:5003/graphql',
-  }),
-  cache: new InMemoryCache({
-    typePolicies: {
-      Query: {
-        fields: {
-          products: {
-            merge: false,
-          },
-        },
-      },
-    },
-  }),
-  defaultOptions: {
-    watchQuery: {
-      fetchPolicy: 'cache-and-network',
-    },
-  },
-});
+// Use the shared shop client which points to the gateway proxied `/shop/graphql`
+const shopClient = getShopApolloClient();
 
 interface Product {
   id: string;
@@ -99,7 +79,7 @@ export default function ProductsPage() {
       first: 20,
     },
     errorPolicy: 'all',
-    client: directShopClient,
+    client: shopClient,
   } as any);
 
   useEffect(() => {
@@ -126,7 +106,7 @@ export default function ProductsPage() {
       console.error('Delete product error:', error);
       alert(t('products.deleteError'));
     },
-    client: directShopClient,
+    client: shopClient,
   } as any));
 
   const handleEdit = (product: Product) => {
