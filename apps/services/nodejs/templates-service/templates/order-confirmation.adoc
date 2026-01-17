@@ -15,9 +15,9 @@
 {company.address} +
 {company.postalCode} {company.city} +
 {company.country} +
-📧 {company.email} +
-📞 {company.phone} +
-🌐 {company.website}
+Email: {company.email} +
+Phone: {company.phone} +
+Website: {company.website}
 
 '''
 
@@ -45,7 +45,7 @@ a|
 Order No: *{order.number}* +
 Date: {order.date} +
 Status: {order.status} +
-Payment Method: {order.paymentMethod} +
+Payment Method: {order.paymentMethod||paymentMethod} +
 Shipping: {shipment.carrier}
 |===
 
@@ -60,7 +60,7 @@ Shipping: {shipment.carrier}
 
 {#order.items}
 |{index}
-|{item.name}
+|{item.description}
 |{item.sku}
 |{item.quantity}
 |{item.unitPrice}
@@ -88,7 +88,7 @@ Shipping: {shipment.carrier}
 *Estimated Delivery:* {shipment.date}
 
 *Questions?* Contact our customer service: +
-📧 {company.email} | 📞 {company.phone}
+Email: {company.email} | Phone: {company.phone}
 
 // ============================================================================
 // FOOTER - Company Information and Page Number

@@ -10,13 +10,13 @@
 // ============================================================================
 // HEADER - Company Information
 // ============================================================================
-[.text-right]
+[.text-left]
 *{company.name}* +
 {company.address} +
 {company.postalCode} {company.city} +
 {company.country} +
-📧 {company.email} +
-📞 {company.phone}
+Email: {company.email} +
+Phone: {company.phone}
 
 '''
 
@@ -43,9 +43,9 @@ a|
 *Refund Details:* +
 Refund No: *{refund.number}* +
 Order No: {order.number} +
-Refund Date: {refund.date} +
-Reason: {refund.reason} +
-Method: {refund.method}
+Refund Date: {refund.date||order.refundDate||order.date||""} +
+Reason: {refund.reason||order.refundReason||""} +
+Method: {order.paymentMethod||paymentMethod||refund.method||""}
 |===
 
 '''
@@ -55,13 +55,14 @@ Method: {refund.method}
 // ============================================================================
 [cols="1,4,1,>1,>1", options="header"]
 |===
-|#|Description|SKU|Qty|Refund Amount
+|#|Description|SKU|Qty|Unit Price|Refund Amount
 
 {#order.items}
 |{index}
-|{item.name}
+|{item.description}
 |{item.sku}
 |{item.quantity}
+|{item.unitPrice}
 |{item.total}
 {#end}
 

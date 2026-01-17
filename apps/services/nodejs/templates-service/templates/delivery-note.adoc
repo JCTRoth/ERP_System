@@ -30,19 +30,19 @@
 |===
 a|
 *Delivered To:* +
-{shipping.name} +
-{shipping.street} +
-{shipping.postalCode} {shipping.city} +
-{shipping.country} +
-📞 {customer.phone}
+{shipping.name||order.shippingAddress.name||customer.name} +
+{shipping.street||order.shippingAddress.street||customer.billing.street} +
+{shipping.postalCode||order.shippingAddress.postalCode||customer.billing.postalCode} {shipping.city||order.shippingAddress.city||customer.billing.city} +
+{shipping.country||order.shippingAddress.country||customer.billing.country} +
+📞 {shipping.phone||customer.phone}
 
 a|
 *Delivery Details:* +
 Order No: *{order.number}* +
-Delivery Date: {order.date} +
-Carrier: {shipment.carrier} +
-Tracking No: {shipment.trackingNumber} +
-Status: {order.status}
+Delivery Date: {shipment.date||order.date} +
+Carrier: {shipment.carrier||order.shipper||""} +
+Tracking No: {shipment.trackingNumber||order.trackingNumber||""} +
+Status: {order.status||shipment.status||""}
 |===
 
 '''

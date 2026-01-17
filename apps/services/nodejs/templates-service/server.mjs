@@ -324,6 +324,24 @@ function resolveValue(ctx, path) {
     if (c !== undefined) return c;
   }
 
+  // company.* -> check settings.contact for legacy storage
+  if (segments[0] === 'company') {
+    // check company.settings.contact
+    const rest = segments.slice(1);
+    const companyObj = Array.isArray(ctx.companies) && ctx.companies.length > 0 ? ctx.companies[0] : ctx.company;
+    if (companyObj) {
+      const settingsContact = companyObj.settings?.contact || companyObj.settings_json?.contact || (companyObj.settingsJson && companyObj.settingsJson.contact);
+      if (settingsContact) {
+        let c = settingsContact;
+        for (const seg of rest) {
+          if (c == null || typeof c !== 'object' || !(seg in c)) { c = undefined; break; }
+          c = c[seg];
+        }
+        if (c !== undefined) return c;
+      }
+    }
+  }
+
   // customer.address.* -> customer.billing.* or customer.shippingAddr.*
   if (segments.length >= 3 && segments[1] === 'address' && segments[0] === 'customer') {
     const rest = segments.slice(2);
@@ -428,6 +446,20 @@ function resolveValue(ctx, path) {
   return undefined;
 }
 
+// Resolve a path with fallbacks separated by '||' (e.g. 'shipment.date||order.date')
+function resolveWithFallback(ctx, path) {
+  if (typeof path !== 'string') return undefined;
+  const parts = path.split('||').map((p) => p.trim());
+  for (const p of parts) {
+    const v = resolveValue(ctx, p);
+    if (v !== undefined) return v;
+    // Also support direct lookup for top-level keys (like 'shipping.name')
+    const direct = p.split('.').reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : undefined), ctx);
+    if (direct !== undefined) return direct;
+  }
+  return undefined;
+}
+
 // Fallback renderer when Mustache is not available: expand loops and variables
 function renderWithoutMustache(src, ctx, errorsList) {
   let out = src;
@@ -471,8 +503,8 @@ function renderWithoutMustache(src, ctx, errorsList) {
           return String(directItemValue);
         }
 
-        // Fall back to resolving from the full context
-        const resolved = resolveValue({ ...ctx, item, invoice: ctx.invoice }, p);
+        // Fall back to resolving from the full context and support fallback expressions
+        const resolved = resolveWithFallback({ ...ctx, item, invoice: ctx.invoice }, p);
         console.log('DEBUG: Loop variable resolution - path:', p, 'resolved:', resolved);
         if (resolved === undefined) {
           errorsList.push(`Missing variable: ${match}`);
@@ -486,8 +518,8 @@ function renderWithoutMustache(src, ctx, errorsList) {
   });
 
   // Replace remaining variables {a.b} or {{a.b}}
-  out = out.replace(/\{{1,2}\s*([a-zA-Z_][a-zA-Z0-9_\.\-]*)\s*\}{1,2}/g, (match, path) => {
-    const resolved = resolveValue(ctx, path);
+  out = out.replace(/\{{1,2}\s*([^\}]+)\s*\}{1,2}/g, (match, path) => {
+    const resolved = resolveWithFallback(ctx, path);
     if (resolved === undefined) {
       errorsList.push(`Missing variable: ${match}`);
       return match;
@@ -800,6 +832,8 @@ app.post('/api/templates/:id/render', async (req, res) => {
       );
       const opts = { safe: 'safe', attributes: { showtitle: true } };
       htmlOutput = Asciidoctor.convert(renderedAdoc, opts);
+      // Clean up PDF-only placeholders for HTML preview
+      htmlOutput = htmlOutput.replace(/\{page-number\}/g, '').replace(/\{page-count\}/g, '');
     } catch (err) {
       htmlOutput = `
         <html>
@@ -813,7 +847,7 @@ app.post('/api/templates/:id/render', async (req, res) => {
           </head>
           <body>
             <h1>${template.name}</h1>
-            <div>${renderedAdoc.replace(/</g, '&lt;')}</div>
+            <div>${renderedAdoc.replace(/</g, '&lt;').replace(/\{page-number\}/g, '').replace(/\{page-count\}/g, '')}</div>
           </body>
         </html>
       `;

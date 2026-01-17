@@ -175,6 +175,7 @@ public class OrderJobProcessor : IOrderJobProcessor
         var order = await _context.Orders
             .Include(o => o.Items)
             .Include(o => o.Documents)
+            .Include(o => o.Payments)
             .FirstOrDefaultAsync(o => o.Id == job.OrderId);
 
         if (order == null)
@@ -188,6 +189,12 @@ public class OrderJobProcessor : IOrderJobProcessor
         try
         {
             var customer = await _context.Customers.FindAsync(order.CustomerId);
+
+            // Determine primary payment method (if any) for template display
+            var primaryPayment = order.Payments
+                .OrderBy(p => p.CreatedAt)
+                .FirstOrDefault();
+            var paymentMethod = primaryPayment?.Method.ToString();
             
             var templates = await _templatesClient.GetTemplatesByStateAsync(state, "1");
             
@@ -243,6 +250,7 @@ public class OrderJobProcessor : IOrderJobProcessor
                             total = order.Total,
                             currency = order.Currency,
                             notes = order.Notes,
+                            paymentMethod,
                             items = itemsList
                         },
 
@@ -259,11 +267,13 @@ public class OrderJobProcessor : IOrderJobProcessor
                             total = order.Total,
                             currency = order.Currency,
                             notes = order.Notes,
+                            paymentMethod,
                             items = itemsList
                         },
 
                         // Top-level aliases many templates look for
                         items = itemsList,
+                        paymentMethod,
                         shipping = shippingAlias,
 
                         company = new

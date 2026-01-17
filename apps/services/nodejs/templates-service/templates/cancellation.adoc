@@ -42,10 +42,10 @@ a|
 a|
 *Cancellation Details:* +
 Order No: *{order.number}* +
-Cancellation Date: {cancellation.date} +
-Reason: {cancellation.reason} +
-Refund Status: Processed +
-Refund Method: {cancellation.method}
+Cancellation Date: {cancellation.date||order.cancellationDate||""} +
+Reason: {cancellation.reason||order.cancellationReason||""} +
+Refund Status: {cancellation.status||"Processed"} +
+Refund Method: {cancellation.method||order.refundMethod||""}
 |===
 
 '''
