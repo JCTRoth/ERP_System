@@ -26,6 +26,7 @@
 #   --image-version TAG  Image version to deploy (default: latest)
 #   --email EMAIL        Email for Let's Encrypt notifications
 #   --db-password PASS   PostgreSQL password
+#   --grafana-admin-password PASS  Grafana admin password (default: admin)
 #   --dry-run            Show deployment plan without executing
 #   --help               Show this help message
 #
@@ -35,6 +36,7 @@
 #   DEPLOY_USERNAME      SSH username
 #   DEPLOY_SSH_KEY       Path to SSH key
 #   DEPLOY_DB_PASSWORD   PostgreSQL password
+#   GRAFANA_ADMIN_PASSWORD  Grafana admin password
 #
 # Examples:
 #   ./scripts/deployment/deploy-to-server.sh --server prod.example.com --domain erp.example.com
@@ -72,6 +74,7 @@ SUDO_PASSWORD="${SUDO_PASSWORD:-}"
 IMAGE_VERSION="${IMAGE_VERSION:-latest}"
 LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
 DB_PASSWORD="${DB_PASSWORD:-}"
+GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-}"
 DRY_RUN=false
 CONFIG_FILE=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -163,6 +166,7 @@ load_config() {
     IMAGE_VERSION=$(jq -r '.image_version // empty' "$config_file" || echo "latest")
     LETSENCRYPT_EMAIL=$(jq -r '.letsencrypt_email // empty' "$config_file" || echo "")
     DB_PASSWORD=$(jq -r '.db_password // empty' "$config_file" || echo "")
+    GRAFANA_ADMIN_PASSWORD=$(jq -r '.grafana_admin_password // empty' "$config_file" || echo "")
     SUDO_PASSWORD=$(jq -r '.sudo_password // empty' "$config_file" || echo "")
     
     # Expand tilde in SSH key path
@@ -194,6 +198,12 @@ prompt_for_config() {
     if [ -z "$DB_PASSWORD" ]; then
         read -sp "PostgreSQL password: " DB_PASSWORD
         echo ""
+    fi
+    
+    if [ -z "$GRAFANA_ADMIN_PASSWORD" ]; then
+        read -sp "Grafana admin password (leave empty for default 'admin'): " GRAFANA_ADMIN_PASSWORD
+        echo ""
+        [ -z "$GRAFANA_ADMIN_PASSWORD" ] && GRAFANA_ADMIN_PASSWORD="admin"
     fi
     
     if [ -z "$SUDO_PASSWORD" ]; then
@@ -926,6 +936,10 @@ main() {
                 DB_PASSWORD="$2"
                 shift 2
                 ;;
+            --grafana-admin-password)
+                GRAFANA_ADMIN_PASSWORD="$2"
+                shift 2
+                ;;
             --sudo-password)
                 SUDO_PASSWORD="$2"
                 shift 2
@@ -946,8 +960,12 @@ main() {
         esac
     done
     
-    # Load config file if provided
+    # Load config file if provided or if config.json exists
     if [ -n "$CONFIG_FILE" ]; then
+        load_config "$CONFIG_FILE"
+    elif [ -f "$SCRIPT_DIR/config.json" ]; then
+        print_info "Found config.json, loading configuration..."
+        CONFIG_FILE="$SCRIPT_DIR/config.json"
         load_config "$CONFIG_FILE"
     fi
     

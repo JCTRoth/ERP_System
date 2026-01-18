@@ -324,7 +324,7 @@ services:
     ports:
       - "3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
     volumes:
       - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
       - grafana-data:/var/lib/grafana

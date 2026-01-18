@@ -17,7 +17,8 @@
     "registry_token": "ghp_your_personal_access_token_here",
     "image_version": "1.0.0",
     "letsencrypt_email": "admin@example.com",
-    "db_password": "secure_postgres_password_here"
+    "db_password": "secure_postgres_password_here",
+    "grafana_admin_password": "secure_grafana_password_here"
   },
   "ci_cd": {
     "github_actions_enabled": true,
