@@ -77,8 +77,8 @@ DB_PASSWORD="${DB_PASSWORD:-}"
 GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-}"
 DRY_RUN=false
 CONFIG_FILE=""
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+YES=false
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEMP_DIR="/tmp/erp-deploy-$$"
 
 # Helper functions
@@ -355,8 +355,6 @@ create_production_compose() {
     mkdir -p "$TEMP_DIR"
     
     cat > "$compose_file" << 'EOF'
-version: '3.9'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -548,13 +546,14 @@ services:
       TRANSLATION_SERVICE_URL: http://translation-service:8081/graphql
       NOTIFICATION_SERVICE_URL: http://notification-service:8082/graphql
       SHOP_SERVICE_URL: http://shop-service:5003/graphql/
-      ORDERS_SERVICE_URL: http://orders-service:5004/graphql/
+      ORDERS_SERVICE_URL: ""
     depends_on:
       - user-service
       - accounting-service
       - masterdata-service
       - company-service
       - translation-service
+      - shop-service
     ports:
       - "4000:4000"
     healthcheck:
@@ -587,6 +586,8 @@ services:
       - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot:ro
+      - /opt/erp-system/certs:/opt/erp-system/certs:ro
+      - /dev/null:/docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
     depends_on:
       - frontend
       - gateway
@@ -626,7 +627,7 @@ server {
 
 # HTTPS configuration
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
     server_name $domain www.$domain;
     
     # SSL certificates (self-signed for development, or Let's Encrypt in production)
@@ -711,11 +712,22 @@ setup_letsencrypt() {
     
     # Try to get Let's Encrypt certificate via certbot
     local install_cmd="command -v certbot >/dev/null 2>&1 || (apt-get update && apt-get install -y certbot)"
-    ssh_exec "$install_cmd"
-    
-    # Request certificate (this may fail if DNS isn't configured - that's ok)
-    local cert_cmd="test -d /etc/letsencrypt/live/$domain || certbot certonly --webroot -w /var/www/certbot -d $domain -d www.$domain --email $email --agree-tos --non-interactive 2>&1 || true"
-    ssh_exec "$cert_cmd"
+    if ! ssh_exec "$install_cmd"; then
+      print_warning "Could not install certbot dependencies. Continuing without certbot."
+    fi
+
+    # Request certificate (this may fail if DNS isn't configured)
+    local cert_cmd="test -d /etc/letsencrypt/live/$domain || certbot certonly --webroot -w /var/www/certbot -d $domain -d www.$domain --email $email --agree-tos --non-interactive 2>&1"
+    if ! ssh_exec "$cert_cmd"; then
+      print_warning "Certbot could not obtain a certificate for $domain; a self-signed certificate will be used instead."
+    fi
+}
+
+ensure_ssl_certificates() {
+    local domain=$1
+    print_step "Ensuring SSL certificates are available"
+    local ensure_cmd="mkdir -p /opt/erp-system/certs && if [ -f /etc/letsencrypt/live/$domain/fullchain.pem ] && [ -f /etc/letsencrypt/live/$domain/privkey.pem ]; then cp /etc/letsencrypt/live/$domain/fullchain.pem /opt/erp-system/certs/fullchain.pem && cp /etc/letsencrypt/live/$domain/privkey.pem /opt/erp-system/certs/privkey.pem; else openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /opt/erp-system/certs/privkey.pem -out /opt/erp-system/certs/fullchain.pem -subj "/CN=$domain"; fi"
+    ssh_exec "$ensure_cmd"
 }
 
 # Deploy application
@@ -727,13 +739,17 @@ deploy_application() {
     # Create directories with proper ownership for containeruser
     local setup_cmd="mkdir -p /opt/erp-system /opt/erp-system/nginx/conf.d /var/www/certbot && chown -R $DEPLOY_USERNAME:$DEPLOY_USERNAME /opt/erp-system && chmod -R 755 /opt/erp-system"
     ssh_exec "$setup_cmd"
+
+    setup_letsencrypt "$DEPLOY_DOMAIN" "$LETSENCRYPT_EMAIL"
+    ensure_ssl_certificates "$DEPLOY_DOMAIN"
     
     # Create .env file on remote server with all required variables
     print_step "Creating environment configuration..."
     local env_file="$TEMP_DIR/.env.production"
     mkdir -p "$TEMP_DIR"
+    local escaped_db_password="${DB_PASSWORD//\$/\$\$}"
     cat > "$env_file" << EOF
-DB_PASSWORD=$DB_PASSWORD
+DB_PASSWORD=$escaped_db_password
 REGISTRY_URL=$REGISTRY_URL
 REGISTRY_USERNAME=$REGISTRY_USERNAME
 IMAGE_VERSION=$IMAGE_VERSION
@@ -746,8 +762,17 @@ EOF
     # Copy compose file
     local compose_file
     compose_file=$(create_production_compose)
+    
+    # Pre-process compose file to substitute registry variables before uploading
+    # This allows us to use COMPOSE_INTERPOLATION=off to avoid DB_PASSWORD issues
+    local processed_compose="$TEMP_DIR/docker-compose.processed.yml"
+    sed -e "s|\${REGISTRY_URL}|$REGISTRY_URL|g" \
+        -e "s|\${REGISTRY_USERNAME}|$REGISTRY_USERNAME|g" \
+        -e "s|\${IMAGE_VERSION}|$IMAGE_VERSION|g" \
+        "$compose_file" > "$processed_compose"
+    
     print_info "Uploading docker-compose.yml..."
-    scp_to_server "$compose_file" "/opt/erp-system/docker-compose.yml"
+    scp_to_server "$processed_compose" "/opt/erp-system/docker-compose.yml"
     
     # Copy database permission grant script
     print_info "Uploading database permission grant script..."
@@ -801,27 +826,29 @@ EOF
     local login_cmd="cd /opt/erp-system && echo '$REGISTRY_TOKEN' | docker login $REGISTRY_URL -u $REGISTRY_USERNAME --password-stdin"
     ssh_exec "$login_cmd"
     
+    local compose_cmd_prefix="cd /opt/erp-system && COMPOSE_INTERPOLATION=off docker compose --env-file .env"
+
     # Pull images
     print_step "Pulling container images..."
-    local pull_cmd="cd /opt/erp-system && docker compose --env-file .env pull"
+    local pull_cmd="$compose_cmd_prefix pull"
     ssh_exec "$pull_cmd"
     
     # Start all services
     print_step "Starting all services..."
-    local start_cmd="cd /opt/erp-system && docker compose --env-file .env up -d"
+    local start_cmd="$compose_cmd_prefix up -d"
     ssh_exec "$start_cmd"
     sleep 10
     
     # Flush DNS cache to refresh service IPs (critical for gateway and nginx)
     # This prevents "No route to host" or "Connection refused" errors from stale DNS caches
     print_step "Flushing DNS caches to refresh service IPs..."
-    local dns_flush_cmd="cd /opt/erp-system && docker compose --env-file .env restart gateway nginx"
+    local dns_flush_cmd="$compose_cmd_prefix restart gateway nginx"
     ssh_exec "$dns_flush_cmd"
     sleep 5
     
     # Grant database permissions
     print_step "Granting database permissions..."
-    local grant_cmd="cd /opt/erp-system && docker compose --env-file .env exec -T postgres bash /opt/erp-system/postgres-init/grant-permissions.sh"
+    local grant_cmd="$compose_cmd_prefix exec -T postgres bash /opt/erp-system/postgres-init/grant-permissions.sh"
     ssh_exec "$grant_cmd"
 }
 
@@ -948,6 +975,10 @@ main() {
                 DRY_RUN=true
                 shift
                 ;;
+            --yes)
+                YES=true
+                shift
+                ;;
             --help)
                 show_help
                 exit 0
@@ -977,7 +1008,7 @@ main() {
     
     # Confirm deployment
     echo ""
-    if [ "$DRY_RUN" = false ]; then
+    if [ "$DRY_RUN" = false ] && [ "$YES" = false ]; then
         read -p "Proceed with deployment to $DEPLOY_SERVER? (yes/no): " confirm
         if [ "$confirm" != "yes" ]; then
             print_info "Deployment cancelled"

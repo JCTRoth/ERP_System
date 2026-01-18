@@ -4,11 +4,14 @@ set -e
 # Script to grant permissions to all ERP users on their respective databases
 # This ensures that even if tables were created by different users, permissions are correct
 
+# Default to the postgres superuser when POSTGRES_USER is not provided
+POSTGRES_SUPERUSER="${POSTGRES_USER:-postgres}"
+
 # Function to grant permissions in a specific database
 grant_permissions() {
     local db=$1
     local user=$2
-    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db" <<EOSQL
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_SUPERUSER" --dbname "$db" <<EOSQL
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO $user;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO $user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $user;
