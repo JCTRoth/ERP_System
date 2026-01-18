@@ -193,12 +193,17 @@ public class AccountingDbContext : DbContext
             entity.Property(e => e.Status).HasColumnName("status");
             entity.Property(e => e.InvoiceId).HasColumnName("invoice_id");
             entity.Property(e => e.BankAccountId).HasColumnName("bank_account_id");
+            entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.Method).HasColumnName("method");
             entity.Property(e => e.Amount).HasColumnName("amount");
+            entity.Property(e => e.RefundedAmount).HasColumnName("refunded_amount");
+            entity.Property(e => e.IsRefund).HasColumnName("is_refund");
+            entity.Property(e => e.OriginalPaymentId).HasColumnName("original_payment_id");
             entity.Property(e => e.Currency).HasColumnName("currency");
             entity.Property(e => e.PaymentDate).HasColumnName("payment_date");
             entity.Property(e => e.ClearedDate).HasColumnName("cleared_date");
             entity.Property(e => e.Reference).HasColumnName("reference");
+            entity.Property(e => e.ReferenceNumber).HasColumnName("reference_number");
             entity.Property(e => e.TransactionId).HasColumnName("transaction_id");
             entity.Property(e => e.Notes).HasColumnName("notes");
             entity.Property(e => e.PayerName).HasColumnName("payer_name");
@@ -212,6 +217,11 @@ public class AccountingDbContext : DbContext
             entity.HasOne(e => e.Invoice)
                   .WithMany(i => i.Payments)
                   .HasForeignKey(e => e.InvoiceId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Account)
+                  .WithMany()
+                  .HasForeignKey(e => e.AccountId)
                   .OnDelete(DeleteBehavior.SetNull);
         });
 

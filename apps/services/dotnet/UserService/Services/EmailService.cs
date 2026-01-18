@@ -28,7 +28,7 @@ public class EmailService : IEmailService
         try
         {
             var notificationServiceUrl = _configuration["NotificationService:Url"] ?? "http://notification-service:8082";
-            var websiteUrl = _configuration["Website:Url"] ?? "http://localhost:5173";
+            var websiteUrl = _configuration["Website:Url"] ?? "https://shopping-now.net";
             var resetUrl = $"{websiteUrl}/reset-password?token={resetToken}";
 
             var graphQLRequest = new
@@ -87,7 +87,7 @@ public class EmailService : IEmailService
         try
         {
             var notificationServiceUrl = _configuration["NotificationService:Url"] ?? "http://notification-service:8082";
-            var websiteUrl = _configuration["Website:Url"] ?? "http://localhost:5173";
+            var websiteUrl = _configuration["Website:Url"] ?? "https://shopping-now.net";
             var verificationUrl = $"{websiteUrl}/verify-email?token={verificationToken}";
 
             var graphQLRequest = new
@@ -145,7 +145,7 @@ public class EmailService : IEmailService
         try
         {
             var notificationServiceUrl = _configuration["NotificationService:Url"] ?? "http://notification-service:8082";
-            var websiteUrl = _configuration["Website:Url"] ?? "http://localhost:5173";
+            var websiteUrl = _configuration["Website:Url"] ?? "https://shopping-now.net";
 
             var graphQLRequest = new
             {

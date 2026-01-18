@@ -1,4 +1,5 @@
-const API_BASE = 'http://localhost:8087/api';
+// Use relative URL to work with nginx proxy
+const API_BASE = '/api';
 
 export interface Template {
   id: string;

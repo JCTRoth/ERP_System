@@ -353,6 +353,7 @@ services:
     container_name: erp_system-postgres
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      DB_PASSWORD: ${DB_PASSWORD}
       POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=pg_stat_statements"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -374,7 +375,7 @@ services:
     container_name: erp_system-user-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=user_db;User Id=postgres;Password=${DB_PASSWORD};"
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=userdb;User Id=erp_user;Password=${DB_PASSWORD};"
     depends_on:
       postgres:
         condition: service_healthy
@@ -389,7 +390,7 @@ services:
     container_name: erp_system-accounting-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=accounting_db;User Id=postgres;Password=${DB_PASSWORD};"
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=accountingdb;User Id=erp_accounting;Password=${DB_PASSWORD};"
     depends_on:
       postgres:
         condition: service_healthy
@@ -405,7 +406,7 @@ services:
     container_name: erp_system-masterdata-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=masterdata_db;User Id=postgres;Password=${DB_PASSWORD};"
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=masterdatadb;User Id=erp_masterdata;Password=${DB_PASSWORD};"
     depends_on:
       postgres:
         condition: service_healthy
@@ -427,7 +428,7 @@ services:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-company-service:${IMAGE_VERSION}
     container_name: erp_system-company-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/company_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/companydb
       SPRING_DATASOURCE_USERNAME: erp_company
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: prod
@@ -467,6 +468,8 @@ services:
       SPRING_DATASOURCE_USERNAME: erp_notification
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: prod
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ""
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
     depends_on:
       postgres:
         condition: service_healthy
@@ -482,7 +485,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 8087
-      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@postgres:5432/templatesdb
+      DATABASE_URL: postgresql://erp_templates:${DB_PASSWORD}@postgres:5432/templatesdb
     depends_on:
       postgres:
         condition: service_healthy
@@ -497,7 +500,7 @@ services:
     container_name: erp_system-shop-service
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=shop_db;User Id=postgres;Password=${DB_PASSWORD};"
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=shopdb;User Id=erp_shop;Password=${DB_PASSWORD};"
     depends_on:
       postgres:
         condition: service_healthy
@@ -533,8 +536,9 @@ services:
       MASTERDATA_SERVICE_URL: http://masterdata-service:5002/graphql/
       COMPANY_SERVICE_URL: http://company-service:8080/graphql
       TRANSLATION_SERVICE_URL: http://translation-service:8081/graphql
+      NOTIFICATION_SERVICE_URL: http://notification-service:8082/graphql
       SHOP_SERVICE_URL: http://shop-service:5003/graphql/
-      # ORDERS_SERVICE_URL: http://orders-service:5004/graphql/
+      ORDERS_SERVICE_URL: http://orders-service:5004/graphql/
     depends_on:
       - user-service
       - accounting-service
@@ -797,6 +801,13 @@ EOF
     local start_cmd="cd /opt/erp-system && docker compose --env-file .env up -d"
     ssh_exec "$start_cmd"
     sleep 10
+    
+    # Flush DNS cache to refresh service IPs (critical for gateway and nginx)
+    # This prevents "No route to host" or "Connection refused" errors from stale DNS caches
+    print_step "Flushing DNS caches to refresh service IPs..."
+    local dns_flush_cmd="cd /opt/erp-system && docker compose --env-file .env restart gateway nginx"
+    ssh_exec "$dns_flush_cmd"
+    sleep 5
     
     # Grant database permissions
     print_step "Granting database permissions..."

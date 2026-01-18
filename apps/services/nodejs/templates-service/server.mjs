@@ -913,9 +913,14 @@ app.post('/api/templates/:id/render', async (req, res) => {
       console.log(`[Template ${template.id}] Missing variables/collections:`, errors);
     }
 
+    // Use the request host for PDF URL to work in all environments
+    const protocol = req.protocol;
+    const host = req.get('host') || process.env.PUBLIC_URL || 'localhost:8087';
+    const pdfUrl = `${protocol}://${host}/api/templates/${template.id}/pdf`;
+    
     res.json({
       html: htmlOutput,
-      pdfUrl: `http://localhost:8087/api/templates/${template.id}/pdf`,
+      pdfUrl,
       errors: [], // Don't expose errors in response
     });
   } catch (err) {

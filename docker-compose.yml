@@ -98,11 +98,11 @@ services:
         condition: on-failure
 
   accounting-service:
-    image: ghcr.io/jctroth/erp-accounting-service:latest
+    image: ghcr.io/jctroth/erp-accounting-service:${IMAGE_VERSION:-1.4}
     container_name: erp-accounting-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=accountingdb;Username=erp_accounting;Password=postgres
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=accountingdb;Username=erp_accounting;Password=${DB_PASSWORD:-postgres}
       Database__EnableSeeding: "true"
     depends_on:
       postgres:

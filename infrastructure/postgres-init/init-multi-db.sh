@@ -1,44 +1,47 @@
 #!/usr/bin/env bash
 set -e
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'EOSQL'
+# Use DB_PASSWORD environment variable, default to 'postgres' for backward compatibility
+DB_PASS="${DB_PASSWORD:-postgres}"
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<EOSQL
 -- Create all users first with CREATEDB privilege for EnsureCreated()
-DO $$
+DO \$\$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_user') THEN
-        CREATE USER erp_user WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_user WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_company') THEN
-        CREATE USER erp_company WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_company WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_translation') THEN
-        CREATE USER erp_translation WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_translation WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_shop') THEN
-        CREATE USER erp_shop WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_shop WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_orders') THEN
-        CREATE USER erp_orders WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_orders WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_accounting') THEN
-        CREATE USER erp_accounting WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_accounting WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_masterdata') THEN
-        CREATE USER erp_masterdata WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_masterdata WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_notification') THEN
-        CREATE USER erp_notification WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_notification WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_scripting') THEN
-        CREATE USER erp_scripting WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_scripting WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_edifact') THEN
-        CREATE USER erp_edifact WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_edifact WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_templates') THEN
-        CREATE USER erp_templates WITH ENCRYPTED PASSWORD 'postgres' CREATEDB;
+        CREATE USER erp_templates WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
-END $$;
+END \$\$;
 EOSQL
 
 # Create databases - must be outside of DO blocks

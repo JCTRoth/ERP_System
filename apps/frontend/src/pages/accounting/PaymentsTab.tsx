@@ -678,8 +678,9 @@ export default function PaymentsTab() {
                   deleteConfirm.currency,
                 ),
                 date: formatDate(deleteConfirm.paymentDate),
-              }) ||
-                `Are you sure you want to delete this payment record of ${formatCurrency(deleteConfirm.amount, deleteConfirm.currency)} from ${formatDate(deleteConfirm.paymentDate)}? This action cannot be undone.`}
+              }) || (
+                `Are you sure you want to delete this payment record of ${formatCurrency(deleteConfirm.amount, deleteConfirm.currency)} from ${formatDate(deleteConfirm.paymentDate)}? This action cannot be undone.`
+              )}
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
