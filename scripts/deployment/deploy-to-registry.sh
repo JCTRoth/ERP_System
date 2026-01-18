@@ -192,7 +192,7 @@ build_and_push_service() {
     fi
     
     # Build image
-    if docker build -t "$full_image_name" "$PROJECT_ROOT/$service_path"; then
+    if docker build --no-cache -t "$full_image_name" "$PROJECT_ROOT/$service_path"; then
         print_status "Built: $service_name"
         
         # Push image
