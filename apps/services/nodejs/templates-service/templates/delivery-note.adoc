@@ -1,13 +1,16 @@
 // Delivery Note Template - DIN A4 Format
 // Variables: order.*, customer.*, company.*, shipment.*, shipping.*, order.items[]
-= DELIVERY NOTE
+= Delivery Note
 :doctype: article
-:icons: font
 :sectnums!
 // Styles automatically injected from shared-styles.css
 :pdf-page-size: A4
-:pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
+:pdf-page-margin: [12mm, 20mm, 25mm, 20mm]
 :nofooter:
+// Font configuration for PDF generation
+:pdf-fontsdir: {docdir}
+:pdf-theme: default
+:pdf-style: shared-styles.css
 
 // ============================================================================
 // HEADER - Company Information
@@ -17,17 +20,14 @@
 {company.address} +
 {company.postalCode} {company.city} +
 {company.country} +
-📧 {company.email} +
-📞 {company.phone}
+{company.email} +
+{company.phone}
 
 '''
 
 // ============================================================================
 // DOCUMENT TITLE AND DETAILS
 // ============================================================================
-[.text-center]
-== DELIVERY NOTE #{order.number}
-
 [cols="1,1", frame="none", grid="none"]
 |===
 a|
@@ -36,7 +36,7 @@ a|
 {shipping.street||order.shippingAddress.street||customer.billing.street} +
 {shipping.postalCode||order.shippingAddress.postalCode||customer.billing.postalCode} {shipping.city||order.shippingAddress.city||customer.billing.city} +
 {shipping.country||order.shippingAddress.country||customer.billing.country} +
-📞 {shipping.phone||customer.phone}
+{shipping.phone||customer.phone}
 
 a|
 *Delivery Details:* +
@@ -52,7 +52,7 @@ Status: {order.status||shipment.status||""}
 // ============================================================================
 // MAIN CONTENT - Delivered Items
 // ============================================================================
-[cols="1,4,1,>1,2", options="header"]
+[cols="1,4,1,>1,2", options="header", width="100%"]
 |===
 |#|Description|SKU|Qty|Notes
 
@@ -88,4 +88,3 @@ Status: {order.status||shipment.status||""}
 
 [.text-center.small]
 {company.name} | {company.address}, {company.postalCode} {company.city} | {company.email} | {company.phone} +
-Page {page-number} of {page-count}

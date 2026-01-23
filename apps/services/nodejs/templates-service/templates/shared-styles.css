@@ -1,7 +1,7 @@
 /* Professional Document Styling - Auto-injected into all templates */
 
 body { 
-    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; 
+    font-family: 'Karla', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; 
     line-height: 1.6; 
     color: #333; 
     max-width: 800px;
@@ -23,7 +23,7 @@ body {
 
 .section-title { 
     font-weight: bold; 
-    font-size: 12pt; 
+    font-size: 10pt; 
     color: var(--theme-color, #0066cc); 
     text-transform: uppercase; 
     letter-spacing: 0.5pt; 
@@ -99,18 +99,19 @@ table tr:nth-child(even) {
 
 h1, h2 { 
     color: var(--theme-color, #0066cc); 
-    margin-top: 20px; 
-    margin-bottom: 15px; 
+    margin-top: 10px; 
+    margin-bottom: 8px; 
+    font-family: 'Karla', sans-serif;
 }
 
 h1 {
-    font-size: 24pt;
+    font-size: 12pt;
     border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 10px;
+    padding-bottom: 0px;
 }
 
 h2 {
-    font-size: 16pt;
+    font-size: 12pt;
 }
 
 /* Document type specific color themes */

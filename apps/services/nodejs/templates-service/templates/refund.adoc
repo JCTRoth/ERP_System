@@ -1,13 +1,16 @@
 // Refund Notice Template - DIN A4 Format
 // Variables: order.*, customer.*, company.*, refund.*, order.items[]
-= REFUND NOTICE
+= Refund Notice
 :doctype: article
-:icons: font
 :sectnums!
 // Styles automatically injected from shared-styles.css
 :pdf-page-size: A4
-:pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
+:pdf-page-margin: [12mm, 20mm, 25mm, 20mm]
 :nofooter:
+// Font configuration for PDF generation
+:pdf-fontsdir: {docdir}
+:pdf-theme: default
+:pdf-style: shared-styles.css
 
 // ============================================================================
 // HEADER - Company Information
@@ -25,9 +28,6 @@ Phone: {company.phone}
 // ============================================================================
 // DOCUMENT TITLE AND DETAILS
 // ============================================================================
-[.text-center]
-== REFUND NOTICE #{refund.number}
-
 [.text-center]
 Your refund has been processed.
 
@@ -55,7 +55,7 @@ Method: {order.paymentMethod||paymentMethod||refund.method||""}
 // ============================================================================
 // MAIN CONTENT - Refunded Items
 // ============================================================================
-[cols="1,4,1,>1,>1", options="header"]
+[cols="1,4,1,>1,>1", options="header", width="100%"]
 |===
 |#|Description|SKU|Qty|Unit Price|Refund Amount
 
@@ -64,8 +64,8 @@ Method: {order.paymentMethod||paymentMethod||refund.method||""}
 |{item.description}
 |{item.sku}
 |{item.quantity}
-|{item.unitPrice}
-|{item.total}
+|{item.unitPrice} €
+|{item.total} €
 {#end}
 
 |===
@@ -73,9 +73,9 @@ Method: {order.paymentMethod||paymentMethod||refund.method||""}
 // ============================================================================
 // REFUND SUMMARY
 // ============================================================================
-[cols="4,>1", frame="none", grid="none"]
+[cols="4,>1", frame="none", grid="none", width="100%"]
 |===
-|*Total Refund:*|*{refund.amount}*
+|*Total Refund:*|*{refund.amount} €*
 |Refund Method:|{refund.method}
 |Status:|Processed
 |===
@@ -95,7 +95,7 @@ Method: {order.paymentMethod||paymentMethod||refund.method||""}
 • Keep this notice for your records
 
 *Questions?* Contact our customer service: +
-📧 {company.email} | 📞 {company.phone}
+{company.email} | {company.phone}
 
 // ============================================================================
 // FOOTER - Company Information and Page Number
@@ -103,5 +103,4 @@ Method: {order.paymentMethod||paymentMethod||refund.method||""}
 '''
 
 [.text-center.small]
-{company.name} | {company.address}, {company.postalCode} {company.city} | {company.email} | {company.phone} +
-Page {page-number} of {page-count}
+{company.name} | {company.address}, {company.postalCode} {company.city} | {company.email} | {company.phone}

@@ -472,13 +472,13 @@ public class AccountingDbContext : DbContext
                 Status = InvoiceStatus.Sent,
                 CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
                 SupplierId = null,
-                OrderId = Guid.Parse("50000000-0000-0000-0000-000000000001"),
-                OrderNumber = "ORD-1001",
+                OrderId = null,  // Will be linked via API when orders are available
+                OrderNumber = null,
                 CustomerName = "Jonas Roth",
                 SupplierName = null,
-                BillingAddress = "123 Demo Street",
-                BillingCity = "Demo City",
-                BillingPostalCode = "12345",
+                BillingAddress = "Hauptstrasse 12",
+                BillingCity = "Hamburg",
+                BillingPostalCode = "20354",
                 BillingCountry = "DE",
                 VatNumber = "DE999999999",
                 IssueDate = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
@@ -492,7 +492,7 @@ public class AccountingDbContext : DbContext
                 AmountPaid = 100.00m,
                 Currency = "EUR",
                 Notes = "Thank you for your purchase.",
-                InternalNotes = "Seeded test invoice",
+                InternalNotes = "Seeded test invoice - linked to Jonas Roth",
                 PaymentTerms = "Net 30",
                 JournalEntryId = null,
                 CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc)
@@ -563,6 +563,163 @@ public class AccountingDbContext : DbContext
                 PayeeIban = "DE75512108001245126199",
                 JournalEntryId = null,
                 CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // Additional invoices for seeded customers
+            new PaymentRecord
+            {
+                Id = Guid.Parse("c0000000-0000-0000-0000-000000000022"),
+                PaymentNumber = "PAY-2026-0002",
+                Type = PaymentRecordType.CustomerPayment,
+                Status = PaymentRecordStatus.Completed,
+                InvoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000002"),
+                BankAccountId = null,
+                Method = PaymentMethod.CreditCard,
+                Amount = 150.00m,
+                Currency = "EUR",
+                PaymentDate = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc),
+                ClearedDate = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc),
+                Reference = "CC-2026-001",
+                TransactionId = "TX789012",
+                Notes = "Credit card payment",
+                PayerName = "Sarah Mitchell",
+                PayeeName = "ACME Corp",
+                JournalEntryId = null,
+                CreatedAt = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new PaymentRecord
+            {
+                Id = Guid.Parse("c0000000-0000-0000-0000-000000000023"),
+                PaymentNumber = "PAY-2026-0003",
+                Type = PaymentRecordType.CustomerPayment,
+                Status = PaymentRecordStatus.Completed,
+                InvoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000003"),
+                BankAccountId = null,
+                Method = PaymentMethod.BankTransfer,
+                Amount = 200.00m,
+                Currency = "EUR",
+                PaymentDate = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc),
+                ClearedDate = new DateTime(2026, 1, 14, 0, 0, 0, DateTimeKind.Utc),
+                Reference = "PAYREF456",
+                TransactionId = "TX345678",
+                Notes = "Full payment",
+                PayerName = "Robert Johnson",
+                PayeeName = "ACME Corp",
+                JournalEntryId = null,
+                CreatedAt = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
+        // Seed additional invoices for different customers
+        modelBuilder.Entity<Invoice>().HasData(
+            new Invoice
+            {
+                Id = Guid.Parse("c0000000-0000-0000-0000-000000000002"),
+                InvoiceNumber = "INV-2026-0002",
+                Type = InvoiceType.SalesInvoice,
+                Status = InvoiceStatus.Sent,
+                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48c"), // Sarah Mitchell
+                SupplierId = null,
+                OrderId = null,
+                OrderNumber = null,
+                CustomerName = "Sarah Mitchell",
+                SupplierName = null,
+                BillingAddress = "123 Health Plaza",
+                BillingCity = "Boston",
+                BillingPostalCode = "02101",
+                BillingCountry = "USA",
+                VatNumber = null,
+                IssueDate = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc),
+                DueDate = new DateTime(2026, 2, 5, 0, 0, 0, DateTimeKind.Utc),
+                PaidDate = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc),
+                Subtotal = 150.00m,
+                TaxAmount = 28.50m,
+                TaxRate = 0.19m,
+                DiscountAmount = 0.00m,
+                Total = 178.50m,
+                AmountPaid = 150.00m,
+                Currency = "EUR",
+                Notes = "Invoice for pharmaceutical supplies.",
+                InternalNotes = "Seeded invoice for Sarah Mitchell - MediVita",
+                PaymentTerms = "Net 30",
+                JournalEntryId = null,
+                CreatedAt = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new Invoice
+            {
+                Id = Guid.Parse("c0000000-0000-0000-0000-000000000003"),
+                InvoiceNumber = "INV-2026-0003",
+                Type = InvoiceType.SalesInvoice,
+                Status = InvoiceStatus.Sent,
+                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48b"), // Robert Johnson
+                SupplierId = null,
+                OrderId = null,
+                OrderNumber = null,
+                CustomerName = "Robert Johnson",
+                SupplierName = null,
+                BillingAddress = "456 Medical Center Dr",
+                BillingCity = "Chicago",
+                BillingPostalCode = "60601",
+                BillingCountry = "USA",
+                VatNumber = null,
+                IssueDate = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc),
+                DueDate = new DateTime(2026, 2, 6, 0, 0, 0, DateTimeKind.Utc),
+                PaidDate = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc),
+                Subtotal = 200.00m,
+                TaxAmount = 38.00m,
+                TaxRate = 0.19m,
+                DiscountAmount = 0.00m,
+                Total = 238.00m,
+                AmountPaid = 200.00m,
+                Currency = "EUR",
+                Notes = "Wellness pharmacy supplies.",
+                InternalNotes = "Seeded invoice for Robert Johnson - WellnessRx",
+                PaymentTerms = "Net 30",
+                JournalEntryId = null,
+                CreatedAt = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
+        // Seed invoice line items for additional invoices
+        modelBuilder.Entity<InvoiceLineItem>().HasData(
+            // INV-2026-0002 line items
+            new InvoiceLineItem
+            {
+                Id = Guid.Parse("c0000000-0000-0000-0000-000000000024"),
+                InvoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000002"),
+                LineNumber = 1,
+                Description = "Cardio Supplement Package",
+                Sku = "CARD-PKG-001",
+                ProductId = Guid.Parse("40000000-0000-0000-0000-000000000001"),
+                AccountId = Guid.Parse("a0000000-0000-0000-0000-000000000005"), // revenue
+                Quantity = 3,
+                Unit = "box",
+                UnitPrice = 50.00m,
+                DiscountAmount = 0.00m,
+                DiscountPercent = 0.00m,
+                TaxRate = 0.19m,
+                TaxAmount = 28.50m,
+                Total = 178.50m,
+                CreatedAt = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // INV-2026-0003 line items
+            new InvoiceLineItem
+            {
+                Id = Guid.Parse("c0000000-0000-0000-0000-000000000025"),
+                InvoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000003"),
+                LineNumber = 1,
+                Description = "Wellness Supplies - Monthly Pack",
+                Sku = "WELL-PACK-001",
+                ProductId = Guid.Parse("40000000-0000-0000-0000-000000000002"),
+                AccountId = Guid.Parse("a0000000-0000-0000-0000-000000000005"), // revenue
+                Quantity = 4,
+                Unit = "pack",
+                UnitPrice = 50.00m,
+                DiscountAmount = 0.00m,
+                DiscountPercent = 0.00m,
+                TaxRate = 0.19m,
+                TaxAmount = 38.00m,
+                Total = 238.00m,
+                CreatedAt = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc)
             }
         );
     }

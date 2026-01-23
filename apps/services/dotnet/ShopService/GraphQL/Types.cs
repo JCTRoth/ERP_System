@@ -223,7 +223,7 @@ public class OrderType : ObjectType<Order>
         
         descriptor.Field("itemCount")
             .Type<NonNullType<IntType>>()
-            .Resolve(context => context.Parent<Order>().Items.Count);
+            .ResolveWith<OrderResolvers>(r => r.GetItemCountAsync(default!, default!));
         
         descriptor.Field(o => o.CreatedAt).Type<NonNullType<DateTimeType>>();
         descriptor.Field(o => o.UpdatedAt).Type<DateTimeType>();
@@ -279,6 +279,27 @@ public class OrderResolvers
     public IQueryable<OrderItem> GetItems([Parent] Order order, [Service] ShopDbContext context)
     {
         return context.OrderItems.Where(i => i.OrderId == order.Id);
+    }
+
+    public async Task<int> GetItemCountAsync([Parent] Order order, [Service] ShopDbContext context)
+    {
+        var orderId = order.Id;
+
+        if (orderId == Guid.Empty && !string.IsNullOrEmpty(order.OrderNumber))
+        {
+            orderId = await context.Orders
+                .AsNoTracking()
+                .Where(o => o.OrderNumber == order.OrderNumber)
+                .Select(o => o.Id)
+                .FirstOrDefaultAsync();
+        }
+
+        if (orderId == Guid.Empty)
+        {
+            return 0;
+        }
+
+        return await context.OrderItems.CountAsync(i => i.OrderId == orderId);
     }
 
     public IQueryable<Payment> GetPayments([Parent] Order order, [Service] ShopDbContext context)

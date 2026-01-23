@@ -1,11 +1,14 @@
 // Invoice Template - DIN A4 Format
 // Variables: order.*, customer.*, company.*, invoice.*, order.items[]
-= INVOICE
+= Invoice
 :doctype: article
-:icons: font
 :pdf-page-size: A4
-:pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
+:pdf-page-margin: [12mm, 20mm, 25mm, 20mm]
 :nofooter:
+// Font configuration for PDF generation
+:pdf-fontsdir: {docdir}
+:pdf-theme: default
+:pdf-style: shared-styles.css
 :toc: macro
 :sectnums!:
 :sectlinks:
@@ -21,13 +24,11 @@
 **{company.name}** +
 _{company.address}_ +
 _{company.postalCode} {company.city}, {company.country}_ +
-[.small]#📧 {company.email} | 📞 {company.phone} | Tax ID: {company.taxId}#
+{company.email} | {company.phone} | Tax ID: {company.taxId}
 
 '''
 
-\n[.invoice-header]
-[.text-center]
-== INVOICE #{order.number}
+[.invoice-header]
 [.text-center.small]
 _{order.date}_
 
@@ -39,35 +40,28 @@ a|
 
 {customer.name}
 
-{customer.address.street||customer.billing.street||customer.shipping.street||""}
-
-{customer.address.postalCode||customer.billing.postalCode||customer.shipping.postalCode||""} {customer.address.city||customer.billing.city||customer.shipping.city||""}
-
-{customer.address.country||customer.billing.country||customer.shipping.country||""}
-
-{customer.email}
+{customer.address.street||customer.billing.street||customer.shipping.street||""} +
+{customer.address.postalCode||customer.billing.postalCode||customer.shipping.postalCode||""} +
+{customer.address.city||customer.billing.city||customer.shipping.city||""} +
+{customer.address.country||customer.billing.country||customer.shipping.country||""} +
+{customer.email} +
 
 a|
 [.section-title]#Invoice Details#
-
 [.details-grid]
-Invoice #: {order.number}
-
-Issue Date: {order.date}
-
-Due Date: {order.dueDate||"Upon Receipt"}
-
-Status: {order.status}
-
+Invoice: {order.number} +
+Issue Date: {order.date} +
+Due Date: {order.dueDate||"Upon Receipt"} +
+Status: {order.status} +
 Payment Terms: Net 30 Days
 |===
 
 '''
 
-\n[.items-section]
+[.items-section]
 [.section-title]#Line Items#
 
-[cols="1,4,1,>1,>1,>1", options="header,autowidth"]
+[cols="1,4,1,>1,>1,>1", options="header", width="100%"]
 |===
 ^|#
 ^|Description
@@ -81,26 +75,26 @@ Payment Terms: Net 30 Days
 |{item.name}
 |{item.sku}
 ^|{item.quantity}
->|{item.unitPrice}
->|*{item.total}*
+>|{item.unitPrice} €
+>|*{item.total} €*
 {#end}
 
 |===
 
-\n[.totals-section]
-[cols="4,>1", frame="none", grid="none", width="50%", align="right"]
+[.totals-section]
+[cols="4,>1", frame="none", grid="none", width="100%", align="right"]
 |===
 |Subtotal
-|{order.subtotal}
+|{order.subtotal} €
 
 |Tax ({invoice.taxRate}%)
-|{order.tax}
+|{order.tax} €
 
 |Shipping
-|{order.shipping}
+|{order.shipping} €
 
 .2+h|**TOTAL DUE**
-.2+h|**{order.total}**
+.2+h|**{order.total} €**
 |===
 
 '''
@@ -120,4 +114,3 @@ BIC/SWIFT: {company.bankSwift}
 
 [.text-center.small]
 {company.name} | {company.address}, {company.postalCode} {company.city} | {company.email} | {company.phone} +
-Page {page-number} of {page-count}

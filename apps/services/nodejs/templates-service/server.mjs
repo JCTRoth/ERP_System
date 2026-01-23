@@ -502,16 +502,16 @@ function resolveValue(ctx, path) {
 
 // Resolve a path with fallbacks separated by '||' (e.g. 'shipment.date||order.date')
 function resolveWithFallback(ctx, path) {
-  if (typeof path !== 'string') return undefined;
+  if (typeof path !== 'string') return ' ';
   const parts = path.split('||').map((p) => p.trim());
   for (const p of parts) {
     const v = resolveValue(ctx, p);
-    if (v !== undefined) return v;
+    if (v !== undefined && v !== null) return v;
     // Also support direct lookup for top-level keys (like 'shipping.name')
     const direct = p.split('.').reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : undefined), ctx);
-    if (direct !== undefined) return direct;
+    if (direct !== undefined && direct !== null) return direct;
   }
-  return undefined;
+  return ' '; // Return ' ' instead of undefined for null values
 }
 
 // Fallback renderer when Mustache is not available: expand loops and variables
@@ -537,6 +537,12 @@ function renderWithoutMustache(src, ctx, errorsList) {
         const prefix = name + '.';
         if (p.startsWith(prefix)) p = p.slice(prefix.length);
         
+        // Skip AsciiDoc built-in attributes that should be handled by AsciiDoc itself
+        const asciidocBuiltins = ['page-number', 'page-count', 'doctitle', 'docname', 'docdate', 'localdate', 'localtime', 'docdatetime'];
+        if (asciidocBuiltins.includes(p.trim())) {
+          return match; // Leave AsciiDoc built-ins as-is
+        }
+        
         // Handle {index} - return 1-based index
         if (p === 'index') return String(idx + 1);
         
@@ -552,7 +558,7 @@ function renderWithoutMustache(src, ctx, errorsList) {
         
         // Handle direct property names from the item (e.g., {name}, {quantity})
         const directItemValue = item[p];
-        if (directItemValue !== undefined) {
+        if (directItemValue !== undefined && directItemValue !== null) {
           console.log('DEBUG: Loop direct item property - p:', p, 'value:', directItemValue);
           return String(directItemValue);
         }
@@ -573,6 +579,12 @@ function renderWithoutMustache(src, ctx, errorsList) {
 
   // Replace remaining variables {a.b} or {{a.b}}
   out = out.replace(/\{{1,2}\s*([^\}]+)\s*\}{1,2}/g, (match, path) => {
+    // Skip AsciiDoc built-in attributes that should be handled by AsciiDoc itself
+    const asciidocBuiltins = ['page-number', 'page-count', 'doctitle', 'docname', 'docdate', 'localdate', 'localtime', 'docdatetime'];
+    if (asciidocBuiltins.includes(path.trim())) {
+      return match; // Leave AsciiDoc built-ins as-is
+    }
+
     const resolved = resolveWithFallback(ctx, path);
     if (resolved === undefined) {
       errorsList.push(`Missing variable: ${match}`);
@@ -587,7 +599,12 @@ function renderWithoutMustache(src, ctx, errorsList) {
 // Helper to run asciidoctor-pdf CLI
 function runAsciidoctorPdf(adocPath, pdfPath) {
   try {
-    const res = spawnSync('asciidoctor-pdf', ['-o', pdfPath, adocPath], { encoding: 'utf8' });
+    const fontsDir = path.dirname(adocPath); // Directory containing the .adoc file and fonts
+    const res = spawnSync('asciidoctor-pdf', [
+      '-o', pdfPath,
+      '-a', `pdf-fontsdir=${fontsDir}`,
+      adocPath
+    ], { encoding: 'utf8' });
     if (res.status === 0) {
       return { ok: true, stdout: res.stdout || '' };
     }
@@ -886,8 +903,10 @@ app.post('/api/templates/:id/render', async (req, res) => {
       );
       const opts = { safe: 'safe', attributes: { showtitle: true } };
       htmlOutput = Asciidoctor.convert(renderedAdoc, opts);
-      // Clean up PDF-only placeholders for HTML preview
-      htmlOutput = htmlOutput.replace(/\{page-number\}/g, '').replace(/\{page-count\}/g, '');
+      // Clean up PDF-only placeholders for HTML preview - replace page numbers with generic text
+      htmlOutput = htmlOutput.replace(/Page \{page-number\} of \{page-count\}/g, 'Page 1 of 1');
+      htmlOutput = htmlOutput.replace(/\{page-number\}/g, '1');
+      htmlOutput = htmlOutput.replace(/\{page-count\}/g, '1');
       
       // Auto-inject shared styles
       const themeClass = getThemeClass(template.documentType, template.key);
@@ -902,7 +921,7 @@ app.post('/api/templates/:id/render', async (req, res) => {
           </head>
           <body class="${themeClass}">
             <h1>${template.name}</h1>
-            <div>${renderedAdoc.replace(/</g, '&lt;').replace(/\{page-number\}/g, '').replace(/\{page-count\}/g, '')}</div>
+            <div>${renderedAdoc.replace(/</g, '&lt;').replace(/Page \{page-number\} of \{page-count\}/g, 'Page 1 of 1').replace(/\{page-number\}/g, '1').replace(/\{page-count\}/g, '1')}</div>
           </body>
         </html>
       `;
@@ -980,6 +999,10 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
         const Asciidoctor = typeof AsciidoctorFactory === 'function' ? AsciidoctorFactory() : AsciidoctorFactory;
         const opts = { safe: 'safe', attributes: { showtitle: true } };
         html = Asciidoctor.convert(renderedAdoc, opts);
+        // Normalize page-number/page-count placeholders for HTML-based PDF fallback
+        html = html.replace(/Page \{page-number\} of \{page-count\}/g, 'Page 1 of 1');
+        html = html.replace(/\{page-number\}/g, '1');
+        html = html.replace(/\{page-count\}/g, '1');
         
         // Auto-inject shared styles
         html = injectStylesIntoHtml(html, themeClass);
@@ -993,7 +1016,12 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
             </head>
             <body class="${themeClass}">
               <h1>${template.name}</h1>
-              <div>${renderedAdoc.replace(/</g, '&lt;')}</div>
+              <div>${renderedAdoc
+                .replace(/</g, '&lt;')
+                .replace(/Page \{page-number\} of \{page-count\}/g, 'Page 1 of 1')
+                .replace(/\{page-number\}/g, '1')
+                .replace(/\{page-count\}/g, '1')}
+              </div>
             </body>
           </html>
         `;

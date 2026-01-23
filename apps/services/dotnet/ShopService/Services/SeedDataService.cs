@@ -13,6 +13,13 @@ public class SeedDataService : ISeedDataService
 {
     private readonly ShopDbContext _context;
     private readonly ILogger<SeedDataService> _logger;
+    private static readonly Guid ReferenceOrderId = Guid.Parse("50000000-0000-0000-0000-000000000001");
+    private static readonly Guid ReferenceCustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f");
+    private static readonly Guid[] ReferenceOrderItemIds =
+    {
+        Guid.Parse("50000000-0000-0000-0000-000000000011"),
+        Guid.Parse("50000000-0000-0000-0000-000000000012")
+    };
 
     public SeedDataService(ShopDbContext context, ILogger<SeedDataService> logger)
     {
@@ -437,7 +444,7 @@ public class SeedDataService : ISeedDataService
         {
             new Customer 
             { 
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48c"), // Sarah Mitchell
                 Email = "dr.sarah.mitchell@medivita.com",
                 FirstName = "Sarah",
                 LastName = "Mitchell",
@@ -450,7 +457,7 @@ public class SeedDataService : ISeedDataService
             },
             new Customer 
             { 
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48b"), // Robert Johnson
                 Email = "pharmacy.chain@wellnessrx.com",
                 FirstName = "Robert",
                 LastName = "Johnson",
@@ -463,7 +470,7 @@ public class SeedDataService : ISeedDataService
             },
             new Customer 
             { 
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48a"), // Dr. Michael Chen
                 Email = "clinic.director@heartcare.org",
                 FirstName = "Dr. Michael",
                 LastName = "Chen",
@@ -476,7 +483,7 @@ public class SeedDataService : ISeedDataService
             },
             new Customer 
             { 
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb489"), // Emma Schmidt
                 Email = "procurement@vitacorp.eu",
                 FirstName = "Emma",
                 LastName = "Schmidt",
@@ -489,7 +496,7 @@ public class SeedDataService : ISeedDataService
             },
             new Customer 
             { 
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb488"), // David Williams
                 Email = "health.retail@naturalwell.com",
                 FirstName = "David",
                 LastName = "Williams",
@@ -502,7 +509,7 @@ public class SeedDataService : ISeedDataService
             },
             new Customer 
             { 
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb487"), // Dr. Lisa Garcia
                 Email = "research@university.edu",
                 FirstName = "Dr. Lisa",
                 LastName = "Garcia",
@@ -514,10 +521,10 @@ public class SeedDataService : ISeedDataService
                 CreatedAt = DateTime.UtcNow.AddMonths(-1)
             }
             ,
-            // Additional seeded customers
+            // Additional seeded customers with fixed IDs for accounting integration
             new Customer
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), // Fixed ID for accounting integration
                 Email = "jonas.roth@mailbase.info",
                 FirstName = "Jonas",
                 LastName = "Roth",
@@ -530,7 +537,7 @@ public class SeedDataService : ISeedDataService
             },
             new Customer
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48e"), // Lisa Bauer
                 Email = "lisa.bauer@medsupplies.de",
                 FirstName = "Lisa",
                 LastName = "Bauer",
@@ -543,7 +550,7 @@ public class SeedDataService : ISeedDataService
             },
             new Customer
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48d"), // Thomas Keller
                 Email = "thomas.keller@clinicplus.org",
                 FirstName = "Thomas",
                 LastName = "Keller",
@@ -618,6 +625,13 @@ public class SeedDataService : ISeedDataService
 
         var orders = new List<Order>();
         var random = new Random();
+
+        // Ensure the canonical demo order (ORD-1001) always exists for template tests
+        var referenceOrder = CreateReferenceOrder(customers, products, shippingMethods);
+        if (referenceOrder != null)
+        {
+            orders.Add(referenceOrder);
+        }
 
         // Create 12 orders - some with payments
         for (int i = 0; i < 12; i++)
@@ -758,9 +772,97 @@ public class SeedDataService : ISeedDataService
             });
         }
 
+
+        // Ensure the canonical demo order always has a completed payment for stable previews
+        var referenceOrderId = ReferenceOrderId;
+        if (orders.Any(o => o.Id == referenceOrderId) && !payments.Any(p => p.OrderId == referenceOrderId))
+        {
+            var order = orders.First(o => o.Id == referenceOrderId);
+            payments.Add(new Payment
+            {
+                Id = Guid.Parse("50000000-0000-0000-0000-000000000021"),
+                OrderId = referenceOrderId,
+                Amount = order.Total,
+                Currency = order.Currency,
+                Method = PaymentMethod.CreditCard,
+                Status = PaymentTransactionStatus.Completed,
+                TransactionId = "TXN-REF-ORD-1001",
+                ProcessedAt = DateTime.UtcNow.AddDays(-1),
+                CreatedAt = DateTime.UtcNow.AddDays(-1)
+            });
+        }
         await _context.Payments.AddRangeAsync(payments);
         await _context.SaveChangesAsync();
 
         _logger.LogInformation($"Seeded {orders.Count} orders and {payments.Count} payments");
+    }
+
+    private Order? CreateReferenceOrder(List<Customer> customers, List<Product> products, List<ShippingMethod> shippingMethods)
+    {
+        if (customers.Count == 0 || products.Count == 0 || shippingMethods.Count == 0)
+        {
+            _logger.LogWarning("Skipping reference order seeding due to missing dependencies");
+            return null;
+        }
+
+        var referenceCustomer = customers.FirstOrDefault(c => c.Id == ReferenceCustomerId) ?? customers.First();
+        var shippingMethod = shippingMethods.First();
+        var demoProducts = products.Take(ReferenceOrderItemIds.Length).ToList();
+        if (demoProducts.Count == 0)
+        {
+            _logger.LogWarning("Not enough products available to build reference order");
+            return null;
+        }
+
+        var order = new Order
+        {
+            Id = ReferenceOrderId,
+            OrderNumber = "ORD-1001",
+            CustomerId = referenceCustomer.Id,
+            Status = OrderStatus.Confirmed,
+            PaymentStatus = PaymentStatus.Paid,
+            Currency = "EUR",
+            ShippingMethodId = shippingMethod.Id,
+            ShippingName = $"{referenceCustomer.FirstName} {referenceCustomer.LastName}",
+            ShippingAddress = referenceCustomer.DefaultShippingAddress ?? "Hauptstrasse 12",
+            ShippingCity = referenceCustomer.DefaultShippingCity ?? "Hamburg",
+            ShippingPostalCode = referenceCustomer.DefaultShippingPostalCode ?? "20354",
+            ShippingCountry = referenceCustomer.DefaultShippingCountry ?? "Germany",
+            DiscountAmount = 0,
+            Notes = "Reference order for PDF/template previews",
+            CreatedAt = DateTime.UtcNow.AddDays(-7),
+            UpdatedAt = DateTime.UtcNow.AddDays(-6)
+        };
+
+        decimal subtotal = 0;
+        for (var i = 0; i < demoProducts.Count; i++)
+        {
+            var product = demoProducts[i];
+            var quantity = i + 1;
+            var lineSubtotal = product.Price * quantity;
+            var lineTax = Math.Round(lineSubtotal * 0.19m, 2);
+            subtotal += lineSubtotal;
+
+            order.Items.Add(new OrderItem
+            {
+                Id = ReferenceOrderItemIds.Length > i ? ReferenceOrderItemIds[i] : Guid.NewGuid(),
+                OrderId = order.Id,
+                ProductId = product.Id,
+                ProductName = product.Name,
+                Sku = product.Sku,
+                Quantity = quantity,
+                UnitPrice = product.Price,
+                TaxAmount = lineTax,
+                Total = lineSubtotal + lineTax,
+                CreatedAt = order.CreatedAt
+            });
+        }
+
+        order.Subtotal = subtotal;
+        order.TaxAmount = Math.Round(subtotal * 0.19m, 2);
+        order.ShippingAmount = shippingMethod.Price;
+        order.Total = order.Subtotal + order.TaxAmount + order.ShippingAmount - order.DiscountAmount;
+
+        return order;
     }
 }

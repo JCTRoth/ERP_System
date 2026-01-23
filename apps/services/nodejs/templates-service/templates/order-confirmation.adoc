@@ -1,11 +1,14 @@
 // Order Confirmation Template - DIN A4 Format
 // Variables: order.*, customer.*, company.*, shipment.*, shipping.*, order.items[]
-= ORDER CONFIRMATION
+= Order Confirmation
 :doctype: article
-:icons: font
 :pdf-page-size: A4
-:pdf-page-margin: [20mm, 20mm, 25mm, 20mm]
+:pdf-page-margin: [12mm, 20mm, 25mm, 20mm]
 :nofooter:
+// Font configuration for PDF generation
+:pdf-fontsdir: {docdir}
+:pdf-theme: default
+:pdf-style: shared-styles.css
 :sectnums!
 // Styles automatically injected from shared-styles.css
 
@@ -14,11 +17,9 @@
 **{company.name}** +
 _{company.address}_ +
 _{company.postalCode} {company.city}, {company.country}_ +
-[.small]#📧 {company.email} | 📞 {company.phone} | {company.website}#
+{company.email} |  {company.phone} | {company.website}#
 
 [.order-header]
-[.text-center]
-== ORDER CONFIRMATION #{order.number}
 [.text-center.small]
 _{order.date}_
 
@@ -31,27 +32,19 @@ Thank you for your order! We are pleased to confirm receipt of your order and wi
 [cols="1,1", frame="none", grid="none"]
 |===
 a|
-[.section-title]#Shipping Address#
 
-{shipping.name}
-
-{shipping.street}
-
-{shipping.postalCode} {shipping.city}
-
-{shipping.country}
-
+{shipping.name} +
+{shipping.street} +
+{shipping.postalCode} {shipping.city} +
+{shipping.country} +
+📞 {customer.phone}
 a|
 [.section-title]#Order Details#
 
-Order #: {order.number}
-
-Order Date: {order.date}
-
-Status: {order.status}
-
-Payment Method: {order.paymentMethod||paymentMethod}
-
+Order #: {order.number} +
+Order Date: {order.date} +
+Status: {order.status} +
+Payment Method: {order.paymentMethod||paymentMethod} +
 Shipping: {shipment.carrier}
 |===
 
@@ -74,8 +67,8 @@ Shipping: {shipment.carrier}
 |{item.description}
 |{item.sku}
 ^|{item.quantity}
->|{item.unitPrice}
->|*{item.total}*
+>|{item.unitPrice} €
+>|*{item.total} €*
 {#end}
 
 |===
@@ -85,10 +78,10 @@ Shipping: {shipment.carrier}
 // ============================================================================
 [cols="4,>1", frame="none", grid="none"]
 |===
-|Subtotal:|{order.subtotal}
-|Tax:|{order.tax}
-|Shipping:|{order.shipping}
-|*ORDER TOTAL:*|*{order.total}*
+|Subtotal:|{order.subtotal} €
+|Tax:|{order.tax} €
+|Shipping:|{order.shipping} €
+|*ORDER TOTAL:*|*{order.total} €*
 |===
 
 '''
@@ -102,7 +95,7 @@ Shipping: {shipment.carrier}
 
 **Questions?** Contact our customer service:
 
-📧 {company.email} | 📞 {company.phone}
+{company.email} |  {company.phone}
 
 // ============================================================================
 // FOOTER - Company Information and Page Number
@@ -111,5 +104,4 @@ Shipping: {shipment.carrier}
 
 [.footer]
 [.text-center.small]
-{company.name} | {company.address}, {company.postalCode} {company.city} | {company.email} | {company.phone} +
-Page {page-number} of {page-count}
+{company.name} | {company.address}, {company.postalCode} {company.city} | {company.email} | {company.phone}
