@@ -238,9 +238,12 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
   });
   const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS);
   const { data: productsData } = useQuery(GET_PRODUCTS);
+  // For read-only mode: if viewing an invoice with an orderId, fetch order details
+  // Otherwise use formData.orderId for normal editing
+  const orderIdToFetch = formData.orderId || (isReadOnly && invoice?.orderId ? invoice.orderId : '');
   const { data: orderDetailsData, loading: orderDetailsLoading, error: orderDetailsError } = useQuery(GET_ORDER_DETAILS, {
-    variables: { id: formData.orderId ? formatUUID(formData.orderId) : '' },
-    skip: !formData.orderId,
+    variables: { id: orderIdToFetch ? formatUUID(orderIdToFetch) : '' },
+    skip: !orderIdToFetch,
   });
 
   const { data: invoiceData, loading: invoiceLoading } = useQuery(GET_INVOICE, {
@@ -403,7 +406,7 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
         );
       }
     }
-  }, [invoiceData, isEditing, defaultAccountId]);
+  }, [invoiceData, isEditing, defaultAccountId, productsData]);
 
   const addLineItem = () => {
     setLineItems([
@@ -611,7 +614,7 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
           )}
 
           {/* Selected Order Summary */}
-          {formData.orderId && (
+          {(formData.orderId || (isReadOnly && invoice?.orderId)) && (
             <div className="rounded border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
               <h3 className="text-sm font-semibold mb-2 dark:text-gray-200">{t('accounting.selectedOrder') || 'Selected Order'}</h3>
               {orderDetailsData?.shopOrder ? (
@@ -625,7 +628,7 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-gray-500 dark:text-gray-400">Loading order details...</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{orderDetailsLoading ? 'Loading order details...' : 'No order details available'}</div>
               )}
             </div>
           )}
@@ -878,29 +881,41 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
                   className="grid grid-cols-12 gap-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
                 >
                   <div className="col-span-3">
-                    <select
-                      value={item.productId || ''}
-                      onChange={(e) => {
-                        const selectedId = e.target.value;
-                        const selectedProduct = productsData?.products?.nodes?.find(
-                          (p: any) => p.id === selectedId
-                        );
-                        updateLineItem(index, {
-                          productId: selectedId,
-                          description: selectedProduct?.name || item.description,
-                          unitPrice: selectedProduct?.price || item.unitPrice,
-                        });
-                      }}
-                      className="input w-full"
-                      disabled={isFormDisabled}
-                    >
-                      <option value="">{t('accounting.selectProduct') || 'Select Product'}</option>
-                      {productsData?.products?.nodes?.map((product: any) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} ({product.sku})
-                        </option>
-                      ))}
-                    </select>
+                    {isFormDisabled ? (
+                      // Read-only mode: display product info as text
+                      <div className="flex h-10 items-center rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                        {item.productId ? (
+                          productsData?.products?.nodes?.find((p: any) => p.id === item.productId)?.name || item.sku || 'Product'
+                        ) : (
+                          <span className="text-gray-500">No product</span>
+                        )}
+                      </div>
+                    ) : (
+                      // Edit mode: display dropdown
+                      <select
+                        value={item.productId || ''}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          const selectedProduct = productsData?.products?.nodes?.find(
+                            (p: any) => p.id === selectedId
+                          );
+                          updateLineItem(index, {
+                            productId: selectedId,
+                            description: selectedProduct?.name || item.description,
+                            unitPrice: selectedProduct?.price || item.unitPrice,
+                          });
+                        }}
+                        className="input w-full"
+                        disabled={isFormDisabled}
+                      >
+                        <option value="">{t('accounting.selectProduct') || 'Select Product'}</option>
+                        {productsData?.products?.nodes?.map((product: any) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name} ({product.sku})
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                   <div className="col-span-2">
                     <input
