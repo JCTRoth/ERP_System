@@ -21,13 +21,13 @@ EOSQL
 
 # Grant permissions for each database
 # Note: Database names must match what is defined in docker-compose.yml (some use underscores, some don't)
-# grant_permissions user_db erp_user  <-- Role erp_user does not exist on server, and User Service uses postgres user
-grant_permissions company_db erp_company
+# grant_permissions userdb erp_user  <-- Role erp_user does not exist on server, and User Service uses postgres user
+grant_permissions companydb erp_company
 grant_permissions translationdb erp_translation
 grant_permissions shopdb erp_shop
 grant_permissions ordersdb erp_orders
-grant_permissions accounting_db erp_accounting
-grant_permissions masterdata_db erp_masterdata
+grant_permissions accountingdb erp_accounting
+grant_permissions masterdatadb erp_masterdata
 grant_permissions notificationdb erp_notification
 grant_permissions scriptingdb erp_scripting
 grant_permissions edifactdb erp_edifact

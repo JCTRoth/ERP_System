@@ -31,6 +31,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Templates service API
+      "/api/templates": {
+        target: "http://templates-service:8087",
+        changeOrigin: true,
+        secure: false,
+      },
       // Route shop-specific requests directly to the Shop service in dev
       "/shop/graphql": {
         target: shopUrl,

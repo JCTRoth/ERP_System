@@ -212,6 +212,7 @@ start_services() {
         "masterdata-service"
         "accounting-service"
         "orders-service"
+        "notification-service"
         "templates-service"
         "minio"
     )
@@ -277,6 +278,7 @@ verify_services() {
         "AccountingService:5001"
         "MasterdataService:5002"
         "OrdersService:5004"
+        "NotificationService:8082"
         "MinIO:9001"
     )
 

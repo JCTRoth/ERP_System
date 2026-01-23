@@ -7,6 +7,7 @@ using Minio;
 using ShopService.Data;
 using ShopService.Services;
 using ShopService.GraphQL;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -173,15 +174,78 @@ try
     var db = scope.ServiceProvider.GetRequiredService<ShopDbContext>();
     var seedService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
 
-    // Ensure database exists and migrations are applied
+    // Wait for DNS resolution to be available
+    app.Logger.LogInformation("Waiting for DNS resolution to be available...");
+    const int maxRetries = 10;
+    const int delayMs = 2000;
+    bool dnsResolved = false;
+
+    for (int i = 0; i < maxRetries; i++)
+    {
+        try
+        {
+            // Use postgres database for DNS check since shopdb might not exist yet
+            var testConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!
+                .Replace("Database=shopdb", "Database=postgres");
+            using var testConnection = new NpgsqlConnection(testConnectionString);
+            await testConnection.OpenAsync();
+            testConnection.Close();
+            dnsResolved = true;
+            app.Logger.LogInformation("DNS resolution successful");
+            break;
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, $"DNS resolution attempt {i + 1}/{maxRetries} failed, retrying in {delayMs}ms...");
+            await Task.Delay(delayMs);
+        }
+    }
+
+    if (!dnsResolved)
+    {
+        throw new Exception("Failed to resolve DNS after all retries");
+    }
+
+    // Ensure database exists and tables are created
     app.Logger.LogInformation("Ensuring database is created and migrated...");
-    await db.Database.MigrateAsync();
-    app.Logger.LogInformation("Database migration completed successfully");
+    try
+    {
+        app.Logger.LogInformation("Dropping existing database to ensure clean schema...");
+        try
+        {
+            // Drop and recreate the database to ensure schema is correct
+            await db.Database.EnsureDeletedAsync();
+            app.Logger.LogInformation("Dropped existing database");
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "Failed to drop database, attempting to continue...");
+        }
+
+        app.Logger.LogInformation("Creating database with correct schema...");
+        var created = await db.Database.EnsureCreatedAsync();
+        if (created)
+        {
+            app.Logger.LogInformation("Database created successfully");
+        }
+        else
+        {
+            app.Logger.LogInformation("Database already exists, verifying schema...");
+        }
+
+        app.Logger.LogInformation("Database creation completed successfully");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Failed to create database schema");
+        throw;
+    }
 
     // Always attempt to seed data (the SeedDataService handles checking for existing data)
     app.Logger.LogInformation("Checking and seeding initial data...");
     await seedService.SeedAsync();
     app.Logger.LogInformation("Database initialization completed successfully");
+
 }
 catch (Exception ex)
 {

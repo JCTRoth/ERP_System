@@ -77,7 +77,7 @@ services:
     command: dotnet run --urls http://0.0.0.0:5000
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=erp_user;Username=erp_user;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=userdb;Username=erp_user;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
@@ -94,7 +94,7 @@ services:
     command: dotnet run --urls http://0.0.0.0:5003
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=erp_shop;Username=erp_shop;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=shopdb;Username=erp_shop;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
@@ -109,7 +109,7 @@ services:
       - "5001:5001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=erp_accounting;Username=erp_accounting;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=accountingdb;Username=erp_accounting;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
@@ -126,7 +126,7 @@ services:
     command: dotnet run --urls http://0.0.0.0:5002
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=erp_masterdata;Username=erp_masterdata;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=masterdatadb;Username=erp_masterdata;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
@@ -143,7 +143,7 @@ services:
     command: dotnet run --urls http://0.0.0.0:5004
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=erp_orders;Username=erp_orders;Password=postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=ordersdb;Username=erp_orders;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System

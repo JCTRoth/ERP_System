@@ -7,6 +7,7 @@ export interface UIPage {
   name: string;
   slug: string;
   description?: string;
+  isActive?: boolean;
   components: UIComponent[]; // Legacy flat list (for backward compatibility)
   rows?: UIRow[]; // New row-based structure
   scripts?: Record<string, string>; // Component ID -> script mapping
@@ -17,6 +18,7 @@ export interface UIPage {
 interface UIBuilderState {
   pages: UIPage[];
   currentPageId: string | null;
+  setPages: (pages: UIPage[]) => void;
   addPage: (page: Omit<UIPage, 'id' | 'createdAt' | 'updatedAt'>) => UIPage;
   updatePage: (id: string, updates: Partial<UIPage>) => void;
   deletePage: (id: string) => void;
@@ -25,6 +27,7 @@ interface UIBuilderState {
   getCurrentPage: () => UIPage | null;
   exportPage: (id: string) => string;
   importPage: (json: string) => UIPage | null;
+  markDirty: (id: string, dirty: boolean) => void;
 }
 
 export const useUIBuilderStore = create<UIBuilderState>()(
@@ -88,6 +91,14 @@ export const useUIBuilderStore = create<UIBuilderState>()(
           currentPageId: newId,
         }));
         return newPage;
+      },
+
+      setPages: (pages) => {
+        set({ pages });
+      },
+
+      markDirty: (_id, _dirty) => {
+        // noop: persistence/dirty tracking happens elsewhere in the UI builder
       },
 
       setCurrentPage: (id) => {
