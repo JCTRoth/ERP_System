@@ -24,8 +24,8 @@ RUN set -- build/libs/*.jar; \
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /app/build/libs/*.jar app.jar
+COPY --from=build /app/build/libs/*.jar ./
 EXPOSE 8084
 
 # Run the JAR directly (production mode)
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java -jar edifact-service-*.jar"]

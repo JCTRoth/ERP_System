@@ -63,6 +63,7 @@ declare -a SERVICES=(
     "translation-service:apps/services/java/translation-service"
     "notification-service:apps/services/java/notification-service"
     "scripting-service:apps/services/java/scripting-service"
+    "edifact-service:apps/services/java/edifact-service"
     "templates-service:apps/services/nodejs/templates-service"
 )
 
@@ -103,9 +104,16 @@ load_config() {
     fi
     
     print_info "Loading configuration from: $config_file"
-    
-    GITHUB_USERNAME=$(jq -r '.github_username // empty' "$config_file" || echo "")
-    GITHUB_TOKEN=$(jq -r '.github_token // empty' "$config_file" || echo "")
+
+    # Support both legacy keys (github_*) and newer registry_* keys
+    # so this script works with the shared deployment config.json
+    local cfg_username cfg_token
+
+    cfg_username=$(jq -r '.github_username // .registry_username // empty' "$config_file" || echo "")
+    cfg_token=$(jq -r '.github_token // .registry_token // empty' "$config_file" || echo "")
+
+    GITHUB_USERNAME="$cfg_username"
+    GITHUB_TOKEN="$cfg_token"
     REGISTRY_URL=$(jq -r '.registry_url // empty' "$config_file" || echo "ghcr.io")
     IMAGE_VERSION=$(jq -r '.image_version // empty' "$config_file" || echo "latest")
     PARALLEL_BUILDS=$(jq -r '.parallel_builds // empty' "$config_file" || echo "2")

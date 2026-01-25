@@ -366,7 +366,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres-init/init-multi-db.sh:/docker-entrypoint-initdb.d/init-multi-db.sh
-      - ./postgres-init/grant-permissions.sh:/opt/erp-system/postgres-init/grant-permissions.sh
+      - ./postgres-init/z-grant-permissions.sh:/opt/erp-system/postgres-init/grant-permissions.sh
     ports:
       - "5432:5432"
     healthcheck:
@@ -544,8 +544,8 @@ services:
       MASTERDATA_SERVICE_URL: http://masterdata-service:5002/graphql/
       COMPANY_SERVICE_URL: http://company-service:8080/graphql
       TRANSLATION_SERVICE_URL: http://translation-service:8081/graphql
-      NOTIFICATION_SERVICE_URL: http://notification-service:8082/graphql
-      SHOP_SERVICE_URL: http://shop-service:5003/graphql/
+      NOTIFICATION_SERVICE_URL: ""
+      SHOP_SERVICE_URL: ""  # Disabled in production until shop DB is stable
       ORDERS_SERVICE_URL: ""
     depends_on:
       - user-service
@@ -553,7 +553,6 @@ services:
       - masterdata-service
       - company-service
       - translation-service
-      - shop-service
     ports:
       - "4000:4000"
     healthcheck:
@@ -730,6 +729,100 @@ ensure_ssl_certificates() {
     ssh_exec "$ensure_cmd"
 }
 
+# Wait for databases to be created by postgres init scripts
+wait_for_databases() {
+    local max_attempts=30
+    local attempt=1
+    local databases=("userdb" "companydb" "translationdb" "shopdb" "ordersdb" "accountingdb" "masterdatadb" "notificationdb" "scriptingdb" "edifactdb" "templatesdb")
+    
+    print_info "Waiting for all databases to be created..."
+    
+    while [ $attempt -le $max_attempts ]; do
+        local all_exist=true
+        
+        for db in "${databases[@]}"; do
+            # Check if database exists
+            local check_cmd="$compose_cmd_prefix exec -T postgres psql -U postgres -d postgres -tAc \"SELECT 1 FROM pg_database WHERE datname='$db';\""
+            local result
+            result=$(ssh_exec "$check_cmd" 2>/dev/null || echo "")
+            
+            if [ "$result" != "1" ]; then
+                all_exist=false
+                break
+            fi
+        done
+        
+        if [ "$all_exist" = true ]; then
+            print_status "All databases created successfully"
+            return 0
+        fi
+        
+        print_info "Waiting for databases... (attempt $attempt/$max_attempts)"
+        sleep 5
+        ((attempt++))
+    done
+    
+    print_warning "Timeout waiting for databases to be created"
+    print_info "This may happen if postgres has existing data. The init scripts only run on first container creation."
+    print_info "If this persists, the deployment may need manual intervention to reset postgres data."
+    return 1
+}
+
+# Handle postgres data volume reset if databases don't exist
+handle_postgres_data_reset() {
+    print_warning "Database creation timed out - postgres may have existing data preventing init scripts from running"
+    
+    # Check if --yes flag was used
+    if [ "$DRY_RUN" = true ] || [ "$YES" = true ]; then
+        print_info "Auto-yes mode: Automatically resetting postgres data volume"
+        REPLY="y"
+    else
+        # Ask user if they want to reset postgres data
+        echo ""
+        echo "This usually happens when postgres has existing data from a previous deployment."
+        echo "The database initialization scripts only run when the postgres container is created for the first time."
+        echo ""
+        read -p "Do you want to reset the postgres data volume to recreate all databases? (y/N): " -n 1 -r
+        echo ""
+    fi
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_step "Resetting postgres data volume..."
+        
+        # Stop services
+        local stop_cmd="$compose_cmd_prefix down"
+        ssh_exec "$stop_cmd"
+        
+        # Remove postgres volume
+        local volume_cmd="docker volume rm erp_system_postgres-data"
+        ssh_exec "$volume_cmd"
+        
+        # Restart services
+        local start_cmd="$compose_cmd_prefix up -d"
+        ssh_exec "$start_cmd"
+        
+        print_status "Postgres data volume reset and services restarted"
+        print_info "Waiting 30 seconds for postgres to initialize..."
+        sleep 30
+        
+        # Try waiting for databases again
+        if wait_for_databases; then
+            return 0
+        else
+            print_error "Database creation still failed after volume reset"
+            return 1
+        fi
+    else
+        print_warning "Skipping postgres data reset"
+        print_info "You will need to manually reset the postgres data volume:"
+        print_info "1. ssh containeruser@$DEPLOY_SERVER"
+        print_info "2. cd /opt/erp-system && docker compose down"
+        print_info "3. docker volume rm erp_system_postgres-data"
+        print_info "4. docker compose up -d"
+        return 1
+    fi
+}
+
 # Deploy application
 deploy_application() {
     print_header "Deploying Application"
@@ -776,7 +869,11 @@ EOF
     
     # Copy database permission grant script
     print_info "Uploading database permission grant script..."
-    scp_to_server "$PROJECT_ROOT/infrastructure/postgres-init/grant-permissions.sh" "/opt/erp-system/postgres-init/grant-permissions.sh"
+    scp_to_server "$PROJECT_ROOT/infrastructure/postgres-init/z-grant-permissions.sh" "/opt/erp-system/postgres-init/grant-permissions.sh"
+    
+    # Copy database initialization script
+    print_info "Uploading database initialization script..."
+    scp_to_server "$PROJECT_ROOT/infrastructure/postgres-init/init-multi-db.sh" "/opt/erp-system/postgres-init/init-multi-db.sh"
     
     # Create nginx.conf file (required before docker compose tries to mount it)
     print_step "Creating nginx configuration files..."
@@ -846,9 +943,32 @@ EOF
     ssh_exec "$dns_flush_cmd"
     sleep 5
     
+    # Wait for databases to be created by init scripts
+    print_step "Waiting for databases to be created..."
+    if ! wait_for_databases; then
+        # If databases don't exist, run the init script manually
+        print_info "Databases not found - running initialization script manually..."
+        # Copy the init script into the postgres container
+        local copy_cmd="$compose_cmd_prefix cp /opt/erp-system/postgres-init/init-multi-db.sh postgres:/tmp/init-multi-db.sh"
+        ssh_exec "$copy_cmd"
+        # Make it executable and run it as postgres user
+        local init_cmd="$compose_cmd_prefix exec -T --user postgres postgres bash /tmp/init-multi-db.sh"
+        ssh_exec "$init_cmd"
+        
+        # Wait again for databases to be created
+        if ! wait_for_databases; then
+            # If still failing, try the automatic reset
+            handle_postgres_data_reset
+        fi
+    fi
+    
     # Grant database permissions
     print_step "Granting database permissions..."
-    local grant_cmd="$compose_cmd_prefix exec -T postgres bash /opt/erp-system/postgres-init/grant-permissions.sh"
+    # Copy the grant script into the postgres container
+    local copy_grant_cmd="$compose_cmd_prefix cp /opt/erp-system/postgres-init/grant-permissions.sh postgres:/tmp/grant-permissions.sh"
+    ssh_exec "$copy_grant_cmd"
+    # Make it executable and run it as postgres user
+    local grant_cmd="$compose_cmd_prefix exec -T --user postgres postgres bash /tmp/grant-permissions.sh"
     ssh_exec "$grant_cmd"
 }
 

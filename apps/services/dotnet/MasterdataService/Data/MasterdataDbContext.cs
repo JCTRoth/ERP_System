@@ -369,10 +369,10 @@ public class MasterdataDbContext : DbContext
 
         // MediVita Business Locations
         modelBuilder.Entity<BusinessLocation>().HasData(
-            new BusinessLocation { Id = Guid.Parse("e1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-HQ", Name = "MediVita Headquarters", Type = BusinessLocationType.Headquarters, AddressLine1 = "123 Healthcare Boulevard", City = "New York", PostalCode = "10001", Country = "USA", Phone = "+1-555-123-4567", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow },
-            new BusinessLocation { Id = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-MFG", Name = "MediVita Manufacturing Facility", Type = BusinessLocationType.Factory, AddressLine1 = "456 Production Drive", City = "Raleigh", PostalCode = "27601", Country = "USA", Phone = "+1-919-555-0123", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow },
-            new BusinessLocation { Id = Guid.Parse("e3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-DC", Name = "MediVita Distribution Center", Type = BusinessLocationType.Warehouse, AddressLine1 = "789 Logistics Parkway", City = "Atlanta", PostalCode = "30301", Country = "USA", Phone = "+1-404-555-0456", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow },
-            new BusinessLocation { Id = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-RD", Name = "MediVita Research Labs", Type = BusinessLocationType.Office, AddressLine1 = "321 Innovation Way", City = "Boston", PostalCode = "02101", Country = "USA", Phone = "+1-617-555-0789", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow }
+            new BusinessLocation { Id = Guid.Parse("e1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-HQ", Name = "MediVita Headquarters", Type = LocationType.Headquarters, AddressLine1 = "123 Healthcare Boulevard", City = "New York", PostalCode = "10001", Country = "USA", Phone = "+1-555-123-4567", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow },
+            new BusinessLocation { Id = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-MFG", Name = "MediVita Manufacturing Facility", Type = LocationType.Factory, AddressLine1 = "456 Production Drive", City = "Raleigh", PostalCode = "27601", Country = "USA", Phone = "+1-919-555-0123", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow },
+            new BusinessLocation { Id = Guid.Parse("e3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-DC", Name = "MediVita Distribution Center", Type = LocationType.Warehouse, AddressLine1 = "789 Logistics Parkway", City = "Atlanta", PostalCode = "30301", Country = "USA", Phone = "+1-404-555-0456", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow },
+            new BusinessLocation { Id = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-RD", Name = "MediVita Research Labs", Type = LocationType.Office, AddressLine1 = "321 Innovation Way", City = "Boston", PostalCode = "02101", Country = "USA", Phone = "+1-617-555-0789", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow }
         );
 
         // MediVita Employees
@@ -399,7 +399,7 @@ public class MasterdataDbContext : DbContext
                 Salary = 350000m,
                 SalaryType = SalaryType.Annual,
                 DepartmentId = Guid.Parse("c6c2f2e9-8548-431f-9f03-9186942bb48f"), // FIN
-                BusinessLocationId = Guid.Parse("e1c2f2e9-8548-431f-9f03-9186942bb48f"), // HQ
+                LocationId = Guid.Parse("e1c2f2e9-8548-431f-9f03-9186942bb48f"), // HQ
                 CreatedAt = DateTime.UtcNow
             },
             new Employee
@@ -424,7 +424,7 @@ public class MasterdataDbContext : DbContext
                 Salary = 280000m,
                 SalaryType = SalaryType.Annual,
                 DepartmentId = Guid.Parse("c2c2f2e9-8548-431f-9f03-9186942bb48f"), // RD
-                BusinessLocationId = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), // RD Labs
+                LocationId = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), // RD Labs
                 CreatedAt = DateTime.UtcNow
             },
             new Employee
@@ -449,7 +449,7 @@ public class MasterdataDbContext : DbContext
                 Salary = 180000m,
                 SalaryType = SalaryType.Annual,
                 DepartmentId = Guid.Parse("c1c2f2e9-8548-431f-9f03-9186942bb48f"), // SALES
-                BusinessLocationId = Guid.Parse("e1c2f2e9-8548-431f-9f03-9186942bb48f"), // HQ
+                LocationId = Guid.Parse("e1c2f2e9-8548-431f-9f03-9186942bb48f"), // HQ
                 CreatedAt = DateTime.UtcNow
             },
             new Employee
@@ -474,7 +474,7 @@ public class MasterdataDbContext : DbContext
                 Salary = 220000m,
                 SalaryType = SalaryType.Annual,
                 DepartmentId = Guid.Parse("c3c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG
-                BusinessLocationId = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG
+                LocationId = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG
                 CreatedAt = DateTime.UtcNow
             },
             new Employee
@@ -499,58 +499,58 @@ public class MasterdataDbContext : DbContext
                 Salary = 140000m,
                 SalaryType = SalaryType.Annual,
                 DepartmentId = Guid.Parse("c4c2f2e9-8548-431f-9f03-9186942bb48f"), // QC
-                BusinessLocationId = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG
+                LocationId = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG
                 CreatedAt = DateTime.UtcNow
             }
         );
 
         // MediVita Customer Addresses and Contacts
         modelBuilder.Entity<Address>().HasData(
-            new Address { Id = Guid.Parse("g1c2f2e9-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"), AddressLine1 = "123 Healthcare Boulevard", City = "New York", PostalCode = "10001", Country = "USA", IsDefault = true, CreatedAt = DateTime.UtcNow },
-            new Address { Id = Guid.Parse("g2c2f2e9-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"), Type = AddressType.Shipping, AddressLine1 = "456 Production Drive", City = "Raleigh", PostalCode = "27601", Country = "USA", IsDefault = false, CreatedAt = DateTime.UtcNow }
+            new Address { Id = Guid.Parse("f1c2f2e9-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"), AddressLine1 = "123 Healthcare Boulevard", City = "New York", PostalCode = "10001", Country = "USA", IsDefault = true, CreatedAt = DateTime.UtcNow },
+            new Address { Id = Guid.Parse("f2c2f2e9-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"), Type = AddressType.Shipping, AddressLine1 = "456 Production Drive", City = "Raleigh", PostalCode = "27601", Country = "USA", IsDefault = false, CreatedAt = DateTime.UtcNow }
         );
 
         modelBuilder.Entity<Contact>().HasData(
-            new Contact { Id = Guid.Parse("g3c2f2e9-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"), FirstName = "Dr. Sarah", LastName = "Johnson", Email = "procurement@medivita.com", Phone = "+1-555-123-4567", CreatedAt = DateTime.UtcNow }
+            new Contact { Id = Guid.Parse("f3c2f2e9-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"), FirstName = "Dr. Sarah", LastName = "Johnson", Email = "procurement@medivita.com", Phone = "+1-555-123-4567", CreatedAt = DateTime.UtcNow }
         );
 
         modelBuilder.Entity<BankDetail>().HasData(
-            new BankDetail { Id = Guid.Parse("g4c2f2e9-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"), BankName = "First National Bank", Iban = "US98765432123456789", SwiftCode = "FNBAUS33", CreatedAt = DateTime.UtcNow }
+            new BankDetail { Id = Guid.Parse("f4c2f2e9-8548-431f-9f03-9186942bb48f"), CustomerId = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"), BankName = "First National Bank", Iban = "US98765432123456789", SwiftCode = "FNBAUS33", CreatedAt = DateTime.UtcNow }
         );
 
         // MediVita Supplier Addresses and Contacts
         modelBuilder.Entity<Address>().HasData(
-            new Address { Id = Guid.Parse("h1c2f2e9-8548-431f-9f03-9186942bb48f"), SupplierId = Guid.Parse("b1c2f2e9-8548-431f-9f03-9186942bb48f"), AddressLine1 = "123 Healthcare Boulevard", City = "New York", PostalCode = "10001", Country = "USA", IsDefault = true, CreatedAt = DateTime.UtcNow },
-            new Address { Id = Guid.Parse("h2c2f2e9-8548-431f-9f03-9186942bb48f"), SupplierId = Guid.Parse("b1c2f2e9-8548-431f-9f03-9186942bb48f"), Type = AddressType.Shipping, AddressLine1 = "789 Logistics Parkway", City = "Atlanta", PostalCode = "30301", Country = "USA", IsDefault = false, CreatedAt = DateTime.UtcNow }
+            new Address { Id = Guid.Parse("e1c2f2e9-8548-431f-9f03-9186942bb48f"), SupplierId = Guid.Parse("b1c2f2e9-8548-431f-9f03-9186942bb48f"), AddressLine1 = "123 Healthcare Boulevard", City = "New York", PostalCode = "10001", Country = "USA", IsDefault = true, CreatedAt = DateTime.UtcNow },
+            new Address { Id = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), SupplierId = Guid.Parse("b1c2f2e9-8548-431f-9f03-9186942bb48f"), Type = AddressType.Shipping, AddressLine1 = "789 Logistics Parkway", City = "Atlanta", PostalCode = "30301", Country = "USA", IsDefault = false, CreatedAt = DateTime.UtcNow }
         );
 
         modelBuilder.Entity<Contact>().HasData(
-            new Contact { Id = Guid.Parse("h3c2f2e9-8548-431f-9f03-9186942bb48f"), SupplierId = Guid.Parse("b1c2f2e9-8548-431f-9f03-9186942bb48f"), FirstName = "Dr. Michael", LastName = "Chen", Email = "sales@medivita.com", Phone = "+1-555-987-6543", CreatedAt = DateTime.UtcNow }
+            new Contact { Id = Guid.Parse("e3c2f2e9-8548-431f-9f03-9186942bb48f"), SupplierId = Guid.Parse("b1c2f2e9-8548-431f-9f03-9186942bb48f"), FirstName = "Dr. Michael", LastName = "Chen", Email = "sales@medivita.com", Phone = "+1-555-987-6543", CreatedAt = DateTime.UtcNow }
         );
 
         modelBuilder.Entity<BankDetail>().HasData(
-            new BankDetail { Id = Guid.Parse("h4c2f2e9-8548-431f-9f03-9186942bb48f"), SupplierId = Guid.Parse("b1c2f2e9-8548-431f-9f03-9186942bb48f"), BankName = "MediVita Corporate Bank", Iban = "US12345678901234567", SwiftCode = "MEDVUS33", CreatedAt = DateTime.UtcNow }
+            new BankDetail { Id = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), SupplierId = Guid.Parse("b1c2f2e9-8548-431f-9f03-9186942bb48f"), BankName = "MediVita Corporate Bank", Iban = "US12345678901234567", SwiftCode = "MEDVUS33", CreatedAt = DateTime.UtcNow }
         );
 
         // MediVita Asset Categories
         modelBuilder.Entity<AssetCategory>().HasData(
-            new AssetCategory { Id = Guid.Parse("i1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "LAB-EQUIP", Name = "Laboratory Equipment", CreatedAt = DateTime.UtcNow },
-            new AssetCategory { Id = Guid.Parse("i2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MFG-EQUIP", Name = "Manufacturing Equipment", CreatedAt = DateTime.UtcNow },
-            new AssetCategory { Id = Guid.Parse("i3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "VEHICLES", Name = "Company Vehicles", CreatedAt = DateTime.UtcNow },
-            new AssetCategory { Id = Guid.Parse("i4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "IT-EQUIP", Name = "IT Equipment", CreatedAt = DateTime.UtcNow }
+            new AssetCategory { Id = Guid.Parse("91c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "LAB-EQUIP", Name = "Laboratory Equipment", CreatedAt = DateTime.UtcNow },
+            new AssetCategory { Id = Guid.Parse("92c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MFG-EQUIP", Name = "Manufacturing Equipment", CreatedAt = DateTime.UtcNow },
+            new AssetCategory { Id = Guid.Parse("93c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "VEHICLES", Name = "Company Vehicles", CreatedAt = DateTime.UtcNow },
+            new AssetCategory { Id = Guid.Parse("94c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "IT-EQUIP", Name = "IT Equipment", CreatedAt = DateTime.UtcNow }
         );
 
         // MediVita Assets
         modelBuilder.Entity<Asset>().HasData(
             new Asset
             {
-                Id = Guid.Parse("j1c2f2e9-8548-431f-9f03-9186942bb48f"),
+                Id = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"),
                 AssetNumber = "MV-LAB-001",
                 Name = "High-Performance Liquid Chromatograph (HPLC)",
                 Description = "Advanced analytical instrument for pharmaceutical testing",
                 Type = AssetType.Equipment,
                 Status = AssetStatus.Active,
-                CategoryId = Guid.Parse("i1c2f2e9-8548-431f-9f03-9186942bb48f"), // LAB-EQUIP
+                CategoryId = Guid.Parse("91c2f2e9-8548-431f-9f03-9186942bb48f"), // LAB-EQUIP
                 PurchasePrice = 150000m,
                 PurchaseDate = new DateTime(2022, 1, 15),
                 CurrentValue = 120000m,
@@ -562,7 +562,7 @@ public class MasterdataDbContext : DbContext
                 Manufacturer = "Agilent Technologies",
                 Model = "1260 Infinity II",
                 DepartmentId = Guid.Parse("c4c2f2e9-8548-431f-9f03-9186942bb48f"), // QC
-                BusinessLocationId = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), // RD Labs
+                LocationId = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), // RD Labs
                 CostCenterId = Guid.Parse("d2c2f2e9-8548-431f-9f03-9186942bb48f"), // CC-RD
                 WarrantyExpiry = new DateTime(2027, 1, 15),
                 LastMaintenanceDate = new DateTime(2024, 6, 1),
@@ -571,13 +571,13 @@ public class MasterdataDbContext : DbContext
             },
             new Asset
             {
-                Id = Guid.Parse("j2c2f2e9-8548-431f-9f03-9186942bb48f"),
+                Id = Guid.Parse("a2c2f2e9-8548-431f-9f03-9186942bb48f"),
                 AssetNumber = "MV-MFG-001",
                 Name = "Tablet Press Machine",
                 Description = "Automated tablet compression machine for pharmaceutical manufacturing",
                 Type = AssetType.Equipment,
                 Status = AssetStatus.Active,
-                CategoryId = Guid.Parse("i2c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG-EQUIP
+                CategoryId = Guid.Parse("92c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG-EQUIP
                 PurchasePrice = 250000m,
                 PurchaseDate = new DateTime(2021, 6, 1),
                 CurrentValue = 175000m,
@@ -589,7 +589,7 @@ public class MasterdataDbContext : DbContext
                 Manufacturer = "Fette Compacting",
                 Model = "2090",
                 DepartmentId = Guid.Parse("c3c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG
-                BusinessLocationId = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG
+                LocationId = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), // MFG
                 CostCenterId = Guid.Parse("d1c2f2e9-8548-431f-9f03-9186942bb48f"), // CC-PHARMA
                 WarrantyExpiry = new DateTime(2026, 6, 1),
                 LastMaintenanceDate = new DateTime(2024, 3, 15),
@@ -598,13 +598,13 @@ public class MasterdataDbContext : DbContext
             },
             new Asset
             {
-                Id = Guid.Parse("j3c2f2e9-8548-431f-9f03-9186942bb48f"),
+                Id = Guid.Parse("a3c2f2e9-8548-431f-9f03-9186942bb48f"),
                 AssetNumber = "MV-VEH-001",
                 Name = "Delivery Van - Ford Transit",
                 Description = "Company vehicle for pharmaceutical product delivery",
                 Type = AssetType.Vehicle,
                 Status = AssetStatus.Active,
-                CategoryId = Guid.Parse("i3c2f2e9-8548-431f-9f03-9186942bb48f"), // VEHICLES
+                CategoryId = Guid.Parse("93c2f2e9-8548-431f-9f03-9186942bb48f"), // VEHICLES
                 PurchasePrice = 45000m,
                 PurchaseDate = new DateTime(2023, 3, 1),
                 CurrentValue = 38000m,
@@ -616,7 +616,7 @@ public class MasterdataDbContext : DbContext
                 Manufacturer = "Ford",
                 Model = "Transit Connect",
                 DepartmentId = Guid.Parse("c1c2f2e9-8548-431f-9f03-9186942bb48f"), // SALES
-                BusinessLocationId = Guid.Parse("e3c2f2e9-8548-431f-9f03-9186942bb48f"), // DC
+                LocationId = Guid.Parse("e3c2f2e9-8548-431f-9f03-9186942bb48f"), // DC
                 CostCenterId = Guid.Parse("d4c2f2e9-8548-431f-9f03-9186942bb48f"), // CC-DIST
                 WarrantyExpiry = new DateTime(2026, 3, 1),
                 LastMaintenanceDate = new DateTime(2024, 9, 1),
@@ -625,13 +625,13 @@ public class MasterdataDbContext : DbContext
             },
             new Asset
             {
-                Id = Guid.Parse("j4c2f2e9-8548-431f-9f03-9186942bb48f"),
+                Id = Guid.Parse("a4c2f2e9-8548-431f-9f03-9186942bb48f"),
                 AssetNumber = "MV-IT-001",
                 Name = "Research Server - Dell PowerEdge",
                 Description = "High-performance server for pharmaceutical research computing",
                 Type = AssetType.Equipment,
                 Status = AssetStatus.Active,
-                CategoryId = Guid.Parse("i4c2f2e9-8548-431f-9f03-9186942bb48f"), // IT-EQUIP
+                CategoryId = Guid.Parse("94c2f2e9-8548-431f-9f03-9186942bb48f"), // IT-EQUIP
                 PurchasePrice = 12000m,
                 PurchaseDate = new DateTime(2023, 8, 15),
                 CurrentValue = 9600m,
@@ -643,7 +643,7 @@ public class MasterdataDbContext : DbContext
                 Manufacturer = "Dell",
                 Model = "PowerEdge R750",
                 DepartmentId = Guid.Parse("c2c2f2e9-8548-431f-9f03-9186942bb48f"), // RD
-                BusinessLocationId = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), // RD Labs
+                LocationId = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), // RD Labs
                 CostCenterId = Guid.Parse("d2c2f2e9-8548-431f-9f03-9186942bb48f"), // CC-RD
                 WarrantyExpiry = new DateTime(2026, 8, 15),
                 LastMaintenanceDate = new DateTime(2024, 8, 15),

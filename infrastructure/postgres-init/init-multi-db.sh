@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# Use DB_PASSWORD environment variable, default to 'postgres' for backward compatibility
-DB_PASS="${DB_PASSWORD:-postgres}"
+# Use DB_PASSWORD environment variable, default to deployment password for backward compatibility
+DB_PASS="${DB_PASSWORD:-Ra\$hWee5Pei1e\$}"
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<EOSQL
 -- Create all users first with CREATEDB privilege for EnsureCreated()

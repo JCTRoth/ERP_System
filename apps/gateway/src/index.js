@@ -11,6 +11,8 @@ import { collectDefaultMetrics, Registry, Counter, Histogram } from 'prom-client
 console.log('===== GATEWAY STARTING =====');
 console.log('SHOP_SERVICE_URL:', process.env.SHOP_SERVICE_URL);
 console.log('ORDERS_SERVICE_URL:', process.env.ORDERS_SERVICE_URL);
+console.log('MASTERDATA_SERVICE_URL:', process.env.MASTERDATA_SERVICE_URL);
+console.log('COMPANY_SERVICE_URL:', process.env.COMPANY_SERVICE_URL);
 
 // Enable debug logging
 process.env.DEBUG = 'apollo:gateway';
@@ -57,15 +59,17 @@ class AuthenticatedDataSource extends RemoteGraphQLDataSource {
 
 // Define subgraph services
 const allSubgraphs = [
-  { name: 'user-service', url: process.env.USER_SERVICE_URL !== undefined ? process.env.USER_SERVICE_URL : 'http://user-service:5000/graphql' },
-  { name: 'company-service', url: process.env.COMPANY_SERVICE_URL !== undefined ? process.env.COMPANY_SERVICE_URL : 'http://company-service:8080/graphql' },
-  { name: 'masterdata-service', url: process.env.MASTERDATA_SERVICE_URL !== undefined ? process.env.MASTERDATA_SERVICE_URL : 'http://masterdata-service:5002/graphql' },
-  { name: 'accounting-service', url: process.env.ACCOUNTING_SERVICE_URL !== undefined ? process.env.ACCOUNTING_SERVICE_URL : 'http://accounting-service:5001/graphql' },
-  { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL !== undefined ? process.env.TRANSLATION_SERVICE_URL : 'http://translation-service:8081/graphql' },
-  { name: 'notification-service', url: process.env.NOTIFICATION_SERVICE_URL !== undefined ? process.env.NOTIFICATION_SERVICE_URL : 'http://notification-service:8082/graphql' },
-  { name: 'shop-service', url: process.env.SHOP_SERVICE_URL !== undefined ? process.env.SHOP_SERVICE_URL : 'http://shop-service:5003/graphql' },
-  { name: 'orders-service', url: process.env.ORDERS_SERVICE_URL !== undefined ? process.env.ORDERS_SERVICE_URL : 'http://orders-service:5004/graphql' },
-];
+  process.env.USER_SERVICE_URL && { name: 'user-service', url: process.env.USER_SERVICE_URL },
+  process.env.COMPANY_SERVICE_URL && { name: 'company-service', url: process.env.COMPANY_SERVICE_URL },
+  process.env.MASTERDATA_SERVICE_URL && { name: 'masterdata-service', url: process.env.MASTERDATA_SERVICE_URL },
+  process.env.ACCOUNTING_SERVICE_URL && { name: 'accounting-service', url: process.env.ACCOUNTING_SERVICE_URL },
+  process.env.TRANSLATION_SERVICE_URL && { name: 'translation-service', url: process.env.TRANSLATION_SERVICE_URL },
+  process.env.NOTIFICATION_SERVICE_URL && { name: 'notification-service', url: process.env.NOTIFICATION_SERVICE_URL },
+  process.env.SHOP_SERVICE_URL && { name: 'shop-service', url: process.env.SHOP_SERVICE_URL },
+  process.env.ORDERS_SERVICE_URL && { name: 'orders-service', url: process.env.ORDERS_SERVICE_URL },
+].filter(Boolean);
+
+console.log('All subgraphs before filtering:', allSubgraphs);
 
 console.log('All subgraphs before filtering:', JSON.stringify(allSubgraphs, null, 2));
 
@@ -196,7 +200,7 @@ async function startServer() {
   // Add startup delay to allow services to initialize
   console.log('Waiting for services to initialize before starting Apollo Server...');
     // Wait for each subgraph URL to be reachable before attempting composition
-    async function waitForService(url, timeoutMs = 120000, intervalMs = 2000) {
+    async function waitForService(url, timeoutMs = 10000, intervalMs = 2000) {
       const start = Date.now();
       // derive base URL (scheme + host[:port])
       try {
@@ -230,7 +234,7 @@ async function startServer() {
 
     for (const sg of subgraphs) {
       console.log(`Probing subgraph ${sg.name} at ${sg.url}`);
-      const ok = await waitForService(sg.url, 120000, 2000);
+      const ok = await waitForService(sg.url);
       if (!ok) {
         console.warn(`Subgraph ${sg.name} did not become available within timeout (${sg.url}). Gateway will still attempt composition but may retry.`);
       } else {
