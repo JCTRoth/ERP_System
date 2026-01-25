@@ -286,8 +286,11 @@ configure_firewall() {
     # 5003: Shop Service
     # 8080: Company Service
     # 8081: Translation Service
+    # 9000: Portainer (HTTP)
+    # 9443: Portainer (HTTPS)
+    # 9090: Prometheus
     
-    local ports="3001 5002 5003 8080 8081 80 443"
+    local ports="3001 5002 5003 8080 8081 9000 9443 9090 80 443"
     
     for port in $ports; do
         print_info "Opening port $port/tcp..."
@@ -594,8 +597,63 @@ services:
     networks:
       - erp-network
 
+  # Monitoring Services
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: erp_system-portainer
+    ports:
+      - "9443:9443"
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+      - /etc/letsencrypt/live/${DEPLOY_DOMAIN}:/certs:ro
+    command: --sslcert /certs/fullchain.pem --sslkey /certs/privkey.pem
+    restart: always
+    networks:
+      - erp-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: erp_system-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infrastructure/prometheus/web-config.yml:/etc/prometheus/web-config.yml
+      - prometheus_data:/prometheus
+      - /etc/letsencrypt/live/${DEPLOY_DOMAIN}:/etc/prometheus/certs:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.config.file=/etc/prometheus/web-config.yml'
+    restart: always
+    networks:
+      - erp-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: erp_system-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=erp-user
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_SERVER_PROTOCOL=https
+      - GF_SERVER_CERT_FILE=/etc/grafana/certs/fullchain.pem
+      - GF_SERVER_KEY_FILE=/etc/grafana/certs/privkey.pem
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - /etc/letsencrypt/live/${DEPLOY_DOMAIN}:/etc/grafana/certs:ro
+    restart: always
+    networks:
+      - erp-network
+
 volumes:
   postgres_data:
+  portainer_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   erp-network:
@@ -830,7 +888,7 @@ deploy_application() {
     # Create temporary directory on remote server with environment file
     print_step "Preparing remote server directories..."
     # Create directories with proper ownership for containeruser
-    local setup_cmd="mkdir -p /opt/erp-system /opt/erp-system/nginx/conf.d /var/www/certbot && chown -R $DEPLOY_USERNAME:$DEPLOY_USERNAME /opt/erp-system && chmod -R 755 /opt/erp-system"
+    local setup_cmd="mkdir -p /opt/erp-system /opt/erp-system/nginx/conf.d /opt/erp-system/infrastructure/prometheus /opt/erp-system/infrastructure/grafana /var/www/certbot && chown -R $DEPLOY_USERNAME:$DEPLOY_USERNAME /opt/erp-system && chmod -R 755 /opt/erp-system"
     ssh_exec "$setup_cmd"
 
     setup_letsencrypt "$DEPLOY_DOMAIN" "$LETSENCRYPT_EMAIL"
@@ -847,6 +905,7 @@ REGISTRY_URL=$REGISTRY_URL
 REGISTRY_USERNAME=$REGISTRY_USERNAME
 IMAGE_VERSION=$IMAGE_VERSION
 DEPLOY_DOMAIN=$DEPLOY_DOMAIN
+GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
 EOF
     
     # Copy .env file to remote server
@@ -875,6 +934,24 @@ EOF
     print_info "Uploading database initialization script..."
     scp_to_server "$PROJECT_ROOT/infrastructure/postgres-init/init-multi-db.sh" "/opt/erp-system/postgres-init/init-multi-db.sh"
     
+    # Copy infrastructure configurations (Prometheus, Grafana)
+    print_info "Uploading monitoring configurations..."
+    scp_to_server "$PROJECT_ROOT/infrastructure/prometheus/prometheus.yml" "/opt/erp-system/infrastructure/prometheus/prometheus.yml"
+    scp_to_server "$PROJECT_ROOT/infrastructure/prometheus/web-config.yml" "/opt/erp-system/infrastructure/prometheus/web-config.yml"
+    
+    # We need to copy the directory for Grafana provisioning
+    # scp -r is not available via our scp_to_server helper effectively for dirs with permissions,
+    # so we'll use tar via ssh or individual files. Since structure is simple:
+    # infra/grafana/provisioning/datasources/datasource.yml
+    # infra/grafana/provisioning/dashboards/dashboard.yml
+    ssh_exec "mkdir -p /opt/erp-system/infrastructure/grafana/provisioning/datasources /opt/erp-system/infrastructure/grafana/provisioning/dashboards"
+    
+    # Find all files in provisioning and copy them
+    if [ -d "$PROJECT_ROOT/infrastructure/grafana/provisioning" ]; then
+        # Copy entire directory using tar over ssh for simplicity
+        tar -C "$PROJECT_ROOT/infrastructure/grafana" -czf - provisioning | ssh_exec "tar -xzf - -C /opt/erp-system/infrastructure/grafana"
+    fi
+
     # Create nginx.conf file (required before docker compose tries to mount it)
     print_step "Creating nginx configuration files..."
     local nginx_main_conf="$TEMP_DIR/nginx.conf"

@@ -496,6 +496,29 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Portainer */}
+              <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-medium">Portainer</h3>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                      Container management and monitoring.
+                    </p>
+                    <p className="mt-2 font-mono text-xs text-gray-500">{baseUrl}:9443</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={`${baseUrl}:9443`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary flex items-center gap-2"
+                    >
+                      {t('common.open')}
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

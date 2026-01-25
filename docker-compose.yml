@@ -316,12 +316,15 @@ services:
   # Node.js Services
   # ==========================================================================
   templates-service:
+    build: ./apps/services/nodejs/templates-service
     image: ghcr.io/jctroth/erp-templates-service:latest
     container_name: erp-templates-service
+    ports:
+      - "8087:8087"
     environment:
       NODE_ENV: production
-      PORT: 3001
-      DATABASE_URL: postgresql://erp_templates:postgres@postgres:5432/erp_templates
+      PORT: 8087
+      DATABASE_URL: postgresql://erp_templates:${DB_PASSWORD:-Ra$hWee5Pei1e$}@postgres:5432/templatesdb
     depends_on:
       postgres:
         condition: service_healthy
@@ -433,6 +436,54 @@ services:
   #       condition: on-failure
 
   # ==========================================================================
+  # Monitoring Services
+  # ==========================================================================
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: erp-portainer
+    ports:
+      - "9443:9443"
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+      - /etc/letsencrypt/live/${DEPLOY_DOMAIN:-shopping-now.net}:/certs:ro
+    command: --sslcert /certs/fullchain.pem --sslkey /certs/privkey.pem
+    restart: always
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: erp-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infrastructure/prometheus/web-config.yml:/etc/prometheus/web-config.yml
+      - prometheus-data:/prometheus
+      - /etc/letsencrypt/live/${DEPLOY_DOMAIN:-shopping-now.net}:/etc/prometheus/certs:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.config.file=/etc/prometheus/web-config.yml'
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: erp-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=erp-user
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SERVER_PROTOCOL=https
+      - GF_SERVER_CERT_FILE=/etc/grafana/certs/fullchain.pem
+      - GF_SERVER_KEY_FILE=/etc/grafana/certs/privkey.pem
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - /etc/letsencrypt/live/${DEPLOY_DOMAIN:-shopping-now.net}:/etc/grafana/certs:ro
+    restart: always
+
+  # ==========================================================================
   # Infrastructure
   # ==========================================================================
   minio:
@@ -457,6 +508,9 @@ services:
 volumes:
   postgres-data:
   minio-data:
+  prometheus-data:
+  grafana-data:
+  portainer_data:
 
 networks:
   erp-network:
