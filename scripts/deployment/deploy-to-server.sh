@@ -518,20 +518,20 @@ services:
     networks:
       - erp-network
 
-  # orders-service:
-  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
-  #   container_name: erp_system-orders-service
-  #   environment:
-  #     ASPNETCORE_ENVIRONMENT: Development
-  #     ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=orders_db;User Id=postgres;Password=${DB_PASSWORD};"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   ports:
-  #     - "5004:5004"
-  #   restart: unless-stopped
-  #   networks:
-  #     - erp-network
+  orders-service:
+    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
+    container_name: erp_system-orders-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=ordersdb;User Id=erp_orders;Password=${DB_PASSWORD};"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5004:5004"
+    restart: unless-stopped
+    networks:
+      - erp-network
 
   gateway:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-gateway:${IMAGE_VERSION}
@@ -544,9 +544,9 @@ services:
       MASTERDATA_SERVICE_URL: http://masterdata-service:5002/graphql/
       COMPANY_SERVICE_URL: http://company-service:8080/graphql
       TRANSLATION_SERVICE_URL: http://translation-service:8081/graphql
-      NOTIFICATION_SERVICE_URL: ""
-      SHOP_SERVICE_URL: ""  # Disabled in production until shop DB is stable
-      ORDERS_SERVICE_URL: ""
+      NOTIFICATION_SERVICE_URL: http://notification-service:8082/graphql
+      SHOP_SERVICE_URL: http://shop-service:5003/graphql/
+      ORDERS_SERVICE_URL: http://orders-service:5004/graphql/
     depends_on:
       - user-service
       - accounting-service
@@ -629,9 +629,9 @@ server {
     listen 443 ssl;
     server_name $domain www.$domain;
     
-    # SSL certificates (self-signed for development, or Let's Encrypt in production)
-    ssl_certificate /opt/erp-system/certs/fullchain.pem;
-    ssl_certificate_key /opt/erp-system/certs/privkey.pem;
+    # SSL certificates (Let's Encrypt path mapping)
+    ssl_certificate /etc/letsencrypt/live/$domain/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$domain/privkey.pem;
     
     # SSL configuration
     ssl_protocols TLSv1.2 TLSv1.3;
