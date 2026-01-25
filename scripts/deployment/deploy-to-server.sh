@@ -28,6 +28,7 @@
 #   --db-password PASS   PostgreSQL password
 #   --grafana-admin-password PASS  Grafana admin password (default: admin)
 #   --dry-run            Show deployment plan without executing
+#   --diagnose           Run diagnostic checks on deployed services
 #   --help               Show this help message
 #
 # Environment Variables:
@@ -78,6 +79,7 @@ GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-}"
 DRY_RUN=false
 CONFIG_FILE=""
 YES=false
+DIAGNOSE=false
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEMP_DIR="/tmp/erp-deploy-$$"
 
@@ -1102,6 +1104,65 @@ display_post_deployment_info() {
     echo ""
 }
 
+# Run diagnostic checks on deployed services
+diagnose_services() {
+    print_header "Diagnosing ERP System Services"
+    
+    print_step "Checking if templates-service is running..."
+    if ssh_exec "docker ps | grep -q templates"; then
+        print_status "✓ Templates service is running"
+    else
+        print_error "✗ Templates service is not running"
+        return 1
+    fi
+    
+    print_step "Checking templates service health..."
+    local health_result
+    health_result=$(ssh_exec "curl -s http://localhost:8087/actuator/health" 2>/dev/null || echo "failed")
+    if [[ "$health_result" == *"UP"* ]]; then
+        print_status "✓ Templates service health check passed"
+    else
+        print_error "✗ Templates service health check failed: $health_result"
+    fi
+    
+    print_step "Checking if asciidoctor-pdf is installed in templates container..."
+    if ssh_exec "docker exec erp_system-templates-service which asciidoctor-pdf >/dev/null 2>&1"; then
+        print_status "✓ asciidoctor-pdf is installed"
+    else
+        print_error "✗ asciidoctor-pdf is not installed in templates container"
+    fi
+    
+    print_step "Checking available templates..."
+    local templates_result
+    templates_result=$(ssh_exec "curl -s http://localhost:8087/api/templates" 2>/dev/null || echo "failed")
+    if [[ "$templates_result" != "failed" ]] && [[ "$templates_result" != "" ]]; then
+        local template_count
+        template_count=$(echo "$templates_result" | jq '. | length' 2>/dev/null || echo "0")
+        print_status "✓ Found $template_count templates in database"
+        if [[ "$template_count" -gt 0 ]]; then
+            local first_template
+            first_template=$(echo "$templates_result" | jq '.[0].id' 2>/dev/null | tr -d '"')
+            print_info "First template ID: $first_template"
+            
+            print_step "Testing PDF generation..."
+            local pdf_test
+            pdf_test=$(ssh_exec "curl -X POST http://localhost:8087/api/templates/$first_template/pdf -H 'Content-Type: application/json' -d '{\"order\":{\"number\":\"DIAG-TEST\"}}' --output /tmp/diag-test.pdf 2>/dev/null && ls -la /tmp/diag-test.pdf 2>/dev/null | grep -v 'No such file'" || echo "failed")
+            if [[ "$pdf_test" != "failed" ]] && [[ "$pdf_test" != "" ]]; then
+                print_status "✓ PDF generation successful"
+            else
+                print_error "✗ PDF generation failed"
+            fi
+        fi
+    else
+        print_error "✗ Could not retrieve templates: $templates_result"
+    fi
+    
+    print_step "Checking container logs (last 20 lines)..."
+    ssh_exec "docker logs erp_system-templates-service --tail 20" || print_warning "Could not retrieve logs"
+    
+    print_info "Diagnosis complete. Check the output above for any issues."
+}
+
 # Cleanup temporary files
 cleanup() {
     rm -rf "$TEMP_DIR"
@@ -1176,6 +1237,10 @@ main() {
                 YES=true
                 shift
                 ;;
+            --diagnose)
+                DIAGNOSE=true
+                shift
+                ;;
             --help)
                 show_help
                 exit 0
@@ -1195,6 +1260,19 @@ main() {
         print_info "Found config.json, loading configuration..."
         CONFIG_FILE="$SCRIPT_DIR/config.json"
         load_config "$CONFIG_FILE"
+    fi
+    
+    # If diagnose mode, run diagnostics and exit
+    if [ "$DIAGNOSE" = true ]; then
+        # Prompt for missing configuration
+        prompt_for_config || exit 1
+        
+        # Validate SSH
+        validate_ssh || exit 1
+        
+        # Run diagnostics
+        diagnose_services
+        exit $?
     fi
     
     # Prompt for missing configuration

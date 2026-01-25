@@ -253,6 +253,34 @@ build_all_services() {
     fi
 }
 
+# Clean up Docker build cache and unused images
+cleanup_docker() {
+    print_header "Cleaning Up Docker Storage"
+    
+    if [ "$DRY_RUN" = true ]; then
+        print_warning "DRY RUN: Would clean up Docker build cache and unused images"
+        return 0
+    fi
+    
+    print_info "Removing build cache and unused images..."
+    
+    # Prune build cache
+    if docker builder prune -f >/dev/null 2>&1; then
+        print_status "Build cache pruned"
+    else
+        print_warning "Failed to prune build cache"
+    fi
+    
+    # Prune unused images (dangling and unreferenced)
+    if docker image prune -f >/dev/null 2>&1; then
+        print_status "Unused images pruned"
+    else
+        print_warning "Failed to prune unused images"
+    fi
+    
+    print_status "Docker cleanup completed"
+}
+
 # Display configuration summary
 display_summary() {
     print_header "Build Configuration Summary"
@@ -333,6 +361,9 @@ main() {
     
     # Build and push all services
     build_all_services
+    
+    # Clean up Docker storage after successful build
+    cleanup_docker
 }
 
 # Run main function
