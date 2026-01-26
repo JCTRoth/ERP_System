@@ -11,7 +11,7 @@
     <meta name="description" content="ERP System — Modern enterprise suite for orders, inventory, accounting and templates. Fast, extensible, and ready for demos and production." />
     <meta name="keywords" content="ERP,Enterprise Resource Planning,orders,accounting,inventory,templates,admin,dashboard" />
     <meta name="author" content="ERP System Team" />
-    <link rel="canonical" href="http://localhost:5173/" />
+    <link rel="canonical" href="" id="canonical-link" />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#0f172a" />
 
@@ -20,7 +20,7 @@
     <meta property="og:title" content="ERP System" />
     <meta property="og:description" content="ERP System — Modern enterprise suite for orders, inventory, accounting and document templates." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="http://localhost:5173/" />
+    <meta property="og:url" content="" id="og-url" />
     <meta property="og:image" content="/social-preview.png" />
 
     <!-- Twitter Card -->
@@ -44,6 +44,12 @@
           }
         } catch (e) { /* no-op */ }
       })();
+    </script>
+    <script>
+      // Set dynamic URLs based on current location
+      const baseUrl = window.location.origin;
+      document.getElementById('canonical-link').href = baseUrl;
+      document.getElementById('og-url').content = baseUrl;
     </script>
   </head>
   <body class="antialiased">

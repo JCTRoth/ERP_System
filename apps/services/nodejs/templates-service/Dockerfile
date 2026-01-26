@@ -2,8 +2,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install asciidoctor-pdf via Ruby gems (simplified)
-RUN apk add --no-cache ruby ruby-dev build-base && \
+# Install asciidoctor-pdf via Ruby gems with required system dependencies
+RUN apk add --no-cache ruby ruby-dev build-base fontconfig freetype harfbuzz cairo pango gdk-pixbuf librsvg ttf-dejavu ttf-liberation && \
     gem install --no-document asciidoctor-pdf
 
 # Create non-root user

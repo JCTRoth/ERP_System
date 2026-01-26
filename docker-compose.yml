@@ -46,7 +46,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://*:5000
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=userdb;Username=erp_user;Password=Ra$hWee5Pei1e$
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=userdb;Username=erp_user;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       JWT__Secret: your-jwt-secret-key-here-make-it-long-and-secure
       JWT__Issuer: erp-system
       JWT__Audience: erp-clients
@@ -74,12 +74,13 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://*:5003
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=shopdb;Username=erp_shop;Password=Ra$hWee5Pei1e$
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=shopdb;Username=erp_shop;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_USE_SSL: "false"
+      MINIO_PUBLIC_URL: https://shopping-now.net/minio
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,7 +103,7 @@ services:
     container_name: erp-accounting-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=accountingdb;Username=erp_accounting;Password=Ra$hWee5Pei1e$
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=accountingdb;Username=erp_accounting;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
     depends_on:
       postgres:
@@ -126,7 +127,7 @@ services:
     container_name: erp-masterdata-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=masterdatadb;Username=erp_masterdata;Password=Ra$hWee5Pei1e$
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=masterdatadb;Username=erp_masterdata;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
     depends_on:
       postgres:
@@ -151,7 +152,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://*:5004
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=ordersdb;Username=erp_orders;Password=Ra$hWee5Pei1e$
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=ordersdb;Username=erp_orders;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
     depends_on:
       postgres:
@@ -180,7 +181,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/companydb
       SPRING_DATASOURCE_USERNAME: erp_company
-      SPRING_DATASOURCE_PASSWORD: Ra$hWee5Pei1e$
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-RaxhWee5Pei1e}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ""
       SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
     depends_on:
@@ -232,7 +233,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notificationdb
       SPRING_DATASOURCE_USERNAME: erp_notification
-      SPRING_DATASOURCE_PASSWORD: Ra$hWee5Pei1e$
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-RaxhWee5Pei1e}
       SMTP_HOST: smtp.example.com
       SMTP_PORT: 587
       SMTP_USERNAME: your-email@example.com
@@ -294,7 +295,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/scriptingdb
       SPRING_DATASOURCE_USERNAME: erp_scripting
-      SPRING_DATASOURCE_PASSWORD: Ra$hWee5Pei1e$
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-RaxhWee5Pei1e}
     depends_on:
       postgres:
         condition: service_healthy
@@ -324,7 +325,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 8087
-      DATABASE_URL: postgresql://erp_templates:${DB_PASSWORD:-Ra$hWee5Pei1e$}@postgres:5432/templatesdb
+      DATABASE_URL: postgresql://erp_templates:${DB_PASSWORD:-RaxhWee5Pei1e}@postgres:5432/templatesdb
     depends_on:
       postgres:
         condition: service_healthy
@@ -391,7 +392,7 @@ services:
     container_name: erp-frontend
     environment:
       VITE_API_URL: /graphql
-      VITE_API_WS_URL: ws://shopping-now.net:8088/graphql
+      VITE_API_WS_URL: ws://${DEPLOY_DOMAIN:-shopping-now.net}:8088/graphql
     logging: *default-logging
     networks:
       - erp-network
@@ -438,6 +439,7 @@ services:
   # ==========================================================================
   # Monitoring Services
   # ==========================================================================
+  # Updated: 2026-01-26
   portainer:
     image: portainer/portainer-ce:latest
     container_name: erp-portainer

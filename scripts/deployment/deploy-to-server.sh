@@ -514,6 +514,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=shopdb;User Id=erp_shop;Password=${DB_PASSWORD};"
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_USE_SSL: "false"
+      MINIO_PUBLIC_URL: https://shopping-now.net/minio
     depends_on:
       postgres:
         condition: service_healthy
@@ -600,6 +605,28 @@ services:
       - erp-network
 
   # Monitoring Services
+  minio:
+    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    container_name: erp_system-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+    networks:
+      - erp-network
+
   portainer:
     image: portainer/portainer-ce:latest
     container_name: erp_system-portainer
@@ -653,6 +680,7 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:
   portainer_data:
   prometheus_data:
   grafana_data:
@@ -1155,6 +1183,50 @@ diagnose_services() {
         fi
     else
         print_error "✗ Could not retrieve templates: $templates_result"
+    fi
+    
+    print_step "Testing shop service connectivity to templates service..."
+    # Test if shop service can reach templates service by making a call from shop container
+    local connectivity_test
+    connectivity_test=$(ssh_exec "docker exec erp_system-shop-service curl -s --connect-timeout 5 http://templates-service:8087/api/templates?assignedState=shipped" 2>/dev/null || echo "failed")
+    if [[ "$connectivity_test" != "failed" ]] && [[ "$connectivity_test" != "" ]]; then
+        print_status "✓ Shop service can reach templates service"
+    else
+        print_error "✗ Shop service cannot reach templates service: $connectivity_test"
+    fi
+    
+    print_step "Testing shop service connectivity to MinIO..."
+    # First check if MinIO container is running
+    local minio_running
+    minio_running=$(ssh_exec "docker ps | grep -q minio && echo 'running' || echo 'not running'" 2>/dev/null)
+    if [[ "$minio_running" != "running" ]]; then
+        print_error "✗ MinIO container is not running"
+    else
+        print_status "✓ MinIO container is running"
+        # Test if shop service can reach MinIO
+        local minio_test
+        minio_test=$(ssh_exec "docker exec erp_system-shop-service curl -s --connect-timeout 5 http://minio:9000/minio/health/ready" 2>/dev/null || echo "failed")
+        if [[ "$minio_test" == "OK" ]]; then
+            print_status "✓ Shop service can reach MinIO"
+        else
+            print_error "✗ Shop service cannot reach MinIO: $minio_test"
+        fi
+    fi
+    
+    print_step "Checking shop service logs for document generation errors..."
+    local shop_logs
+    shop_logs=$(ssh_exec "docker logs erp_system-shop-service --tail 50" 2>/dev/null || echo "failed")
+    if [[ "$shop_logs" != "failed" ]]; then
+        if echo "$shop_logs" | grep -q "Error generating documents"; then
+            print_error "✗ Found document generation errors in shop service logs"
+            echo "$shop_logs" | grep -A 5 -B 5 "Error generating documents" | head -20
+        elif echo "$shop_logs" | grep -q "Generated document"; then
+            print_status "✓ Found successful document generation in logs"
+        else
+            print_warning "? No document generation activity found in recent logs"
+        fi
+    else
+        print_warning "Could not retrieve shop service logs"
     fi
     
     print_step "Checking container logs (last 20 lines)..."
