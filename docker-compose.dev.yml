@@ -98,6 +98,7 @@ services:
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
+      - Services__TemplatesService=http://templates-service:8087
     depends_on:
       - postgres
 

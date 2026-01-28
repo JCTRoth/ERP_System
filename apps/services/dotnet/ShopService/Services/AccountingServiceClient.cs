@@ -52,9 +52,9 @@ public class AccountingServiceClient
                     orderId,
                     orderNumber,
                     customerName,
-                    issueDate = DateTime.UtcNow,
+                    invoiceDate = DateTime.UtcNow,
                     dueDate = DateTime.UtcNow.AddDays(30),
-                    taxRate = taxAmount > 0 && subtotal > 0 ? (taxAmount / subtotal * 100) : 0,
+                    taxRate = taxAmount > 0 && subtotal > 0 ? (taxAmount / subtotal) : 0,
                     currency,
                     lineItems = lineItems.Select(li => new
                     {
@@ -64,9 +64,10 @@ public class AccountingServiceClient
                         quantity = li.Quantity,
                         unit = li.Unit,
                         unitPrice = li.UnitPrice,
-                        discountAmount = li.DiscountAmount,
-                        taxRate = li.TaxRate,
-                        taxAmount = li.TaxAmount
+                        discountPercent = li.DiscountAmount > 0 && li.UnitPrice > 0 
+                            ? (li.DiscountAmount / (li.UnitPrice * li.Quantity) * 100) 
+                            : 0,
+                        taxRate = li.TaxRate
                     }).ToList()
                 }
             };

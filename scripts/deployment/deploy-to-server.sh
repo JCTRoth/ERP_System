@@ -514,11 +514,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=shopdb;User Id=erp_shop;Password=${DB_PASSWORD};"
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_USE_SSL: "false"
-      MINIO_PUBLIC_URL: https://shopping-now.net/minio
+      Minio__Endpoint: minio:9000
+      Minio__AccessKey: minioadmin
+      Minio__SecretKey: minioadmin
+      Minio__UseSSL: "false"
+      Minio__PublicUrl: https://${DEPLOY_DOMAIN}/minio
     depends_on:
       postgres:
         condition: service_healthy
@@ -612,14 +612,14 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_SERVER_URL: https://${DEPLOY_DOMAIN}
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "9000"]
+do it       test: ["CMD-SHELL", "mc alias set local http://localhost:9000 minioadmin minioadmin && mc admin info local --json | grep -q '\"status\":\"success\"' || exit 0"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 30s
     ports:
       - "9000:9000"
       - "9001:9001"

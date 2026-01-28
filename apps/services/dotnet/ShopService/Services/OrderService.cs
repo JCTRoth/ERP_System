@@ -67,6 +67,7 @@ public class OrderService : IOrderService
             .Include(o => o.Items)
             .Include(o => o.Payments)
             .Include(o => o.ShippingMethod)
+            .Include(o => o.Documents)
             .FirstOrDefaultAsync(o => o.Id == id);
     }
 
@@ -75,6 +76,8 @@ public class OrderService : IOrderService
         return await _context.Orders
             .Include(o => o.Items)
             .Include(o => o.Payments)
+            .Include(o => o.ShippingMethod)
+            .Include(o => o.Documents)
             .FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
     }
 

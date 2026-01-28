@@ -417,7 +417,7 @@ public class OrderJobProcessor : IOrderJobProcessor
             UnitPrice = item.UnitPrice,
             DiscountAmount = item.DiscountAmount,
             TaxRate = item.TaxAmount > 0 && item.UnitPrice > 0 
-                ? (item.TaxAmount / (item.UnitPrice * item.Quantity) * 100) 
+                ? (item.TaxAmount / (item.UnitPrice * item.Quantity)) 
                 : 0,
             TaxAmount = item.TaxAmount
         }).ToList();

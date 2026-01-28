@@ -76,11 +76,12 @@ services:
       ASPNETCORE_URLS: http://*:5003
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=shopdb;Username=erp_shop;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
-      MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_USE_SSL: "false"
-      MINIO_PUBLIC_URL: https://shopping-now.net/minio
+      Minio__Endpoint: minio:9000
+      Minio__AccessKey: minioadmin
+      Minio__SecretKey: minioadmin
+      Minio__UseSSL: "false"
+      Minio__PublicUrl: https://${DEPLOY_DOMAIN:-shopping-now.net}/minio
+      Services__TemplatesService: http://templates-service:8087
     depends_on:
       postgres:
         condition: service_healthy
@@ -495,10 +496,11 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_SERVER_URL: https://${DEPLOY_DOMAIN:-shopping-now.net}
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "mc alias set local http://localhost:9000 minioadmin minioadmin && mc admin info local --json | grep -q '\"status\":\"ok\"' || exit 0"]
+      test: ["CMD-SHELL", "mc alias set local http://localhost:9000 minioadmin minioadmin && mc admin info local --json | grep -q '\"status\":\"success\"' || exit 0"]
       interval: 30s
       timeout: 10s
       retries: 5
