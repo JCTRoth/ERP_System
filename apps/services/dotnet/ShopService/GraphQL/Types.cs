@@ -276,6 +276,23 @@ public class OrderType : ObjectType<Order>
 
 public class OrderResolvers
 {
+    public static async Task<Order?> ResolveReference(
+        Guid id,
+        [Service] ShopDbContext context)
+    {
+        var order = await context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id);
+        if (order == null)
+        {
+            return new Order 
+            { 
+                Id = id, 
+                OrderNumber = "", 
+                CustomerId = Guid.Empty
+            };
+        }
+        return order;
+    }
+
     public IQueryable<OrderItem> GetItems([Parent] Order order, [Service] ShopDbContext context)
     {
         return context.OrderItems.Where(i => i.OrderId == order.Id);

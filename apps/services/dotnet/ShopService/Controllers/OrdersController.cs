@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using ShopService.Services;
 using ShopService.DTOs;
+using ShopService.Data;
+using ShopService.Models;
 
 namespace ShopService.Controllers;
 
@@ -11,10 +14,14 @@ namespace ShopService.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly IOrderService _orderService;
+    private readonly ShopDbContext _context;
+    private readonly IOrderJobProcessor _jobProcessor;
 
-    public OrdersController(IOrderService orderService)
+    public OrdersController(IOrderService orderService, ShopDbContext context, IOrderJobProcessor jobProcessor)
     {
         _orderService = orderService;
+        _context = context;
+        _jobProcessor = jobProcessor;
     }
 
     [HttpGet]
@@ -114,4 +121,77 @@ public class OrdersController : ControllerBase
             return NotFound();
         return NoContent();
     }
+
+    [HttpPost("process-external")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ProcessExternalOrder([FromBody] ExternalOrderDto dto)
+    {
+        var existingOrder = await _context.Orders
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.Id == dto.Id);
+
+        if (existingOrder != null)
+        {
+            _context.Orders.Remove(existingOrder);
+            await _context.SaveChangesAsync();
+        }
+
+        var order = new Order
+        {
+            Id = dto.Id,
+            OrderNumber = dto.OrderNumber,
+            CustomerId = dto.CustomerId,
+            Status = Enum.TryParse<OrderStatus>(dto.Status, true, out var status) ? status : OrderStatus.Pending,
+            Total = dto.TotalAmount,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Currency = "USD",
+            Subtotal = dto.TotalAmount,
+            TaxAmount = 0,
+            ShippingAmount = 0,
+            DiscountAmount = 0,
+            PaymentStatus = PaymentStatus.Pending
+        };
+
+        foreach (var item in dto.Items)
+        {
+            order.Items.Add(new OrderItem
+            {
+                Id = Guid.NewGuid(),
+                OrderId = order.Id,
+                ProductId = item.ProductId,
+                ProductName = "Product " + item.ProductId,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                Total = item.Quantity * item.UnitPrice,
+                Sku = "SKU-" + item.ProductId,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
+
+        await _jobProcessor.EnqueueDocumentGenerationAsync(order.Id, "SHIPPED");
+
+        return Ok(new { message = "Order synced and document generation triggered", orderId = order.Id });
+    }
+}
+
+public class ExternalOrderDto
+{
+    public Guid Id { get; set; }
+    public string OrderNumber { get; set; } = string.Empty;
+    public Guid CustomerId { get; set; }
+    public string Status { get; set; } = "Pending";
+    public DateTime OrderDate { get; set; }
+    public decimal TotalAmount { get; set; }
+    public List<ExternalOrderItemDto> Items { get; set; } = new();
+}
+
+public class ExternalOrderItemDto
+{
+    public Guid ProductId { get; set; }
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
 }
