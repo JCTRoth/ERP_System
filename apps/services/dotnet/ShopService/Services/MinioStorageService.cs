@@ -2,6 +2,8 @@ using System.Text;
 using System.Text.Json;
 using Minio;
 using Minio.DataModel.Args;
+using ShopService.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ShopService.Services;
 
@@ -15,15 +17,17 @@ public class MinioStorageService
     private readonly string _bucketPrefix;
     private readonly string _publicUrl;
     private readonly IConfiguration _configuration;
+    private readonly ShopDbContext _dbContext;
 
-    public MinioStorageService(IMinioClient minioClient, ILogger<MinioStorageService> logger, IConfiguration configuration)
+    public MinioStorageService(IMinioClient minioClient, ILogger<MinioStorageService> logger, IConfiguration configuration, ShopDbContext dbContext)
     {
         _minioClient = minioClient;
         _logger = logger;
         _bucketPrefix = configuration.GetValue<string>("Minio:BucketPrefix") ?? "documents";
         _publicUrl = configuration.GetValue<string>("Minio:PublicUrl");
         _configuration = configuration;
-        _logger.LogInformation("MinioStorageService initialized with PublicUrl: {PublicUrl}", _publicUrl);
+        _dbContext = dbContext;
+        _logger.LogInformation("MinioStorageService initialized with PublicUrl fallback: {PublicUrl}", _publicUrl);
     }
 
     /// <summary>
@@ -62,6 +66,28 @@ public class MinioStorageService
         }
     }
 
+    private async Task<string> GetPublicUrlAsync()
+    {
+        try
+        {
+            // Try to get from database first
+            var config = await _dbContext.AppConfigurations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Key == "MinioPublicUrl");
+            
+            if (config != null && !string.IsNullOrWhiteSpace(config.Value))
+            {
+                return config.Value;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to retrieve MinioPublicUrl from database, falling back to configuration");
+        }
+
+        return _publicUrl;
+    }
+
     /// <summary>
     /// Upload PDF document to MinIO
     /// </summary>
@@ -98,9 +124,10 @@ public class MinioStorageService
             // Generate presigned URL (valid for 7 days)
             // Use a temporary client with the public URL for URL generation
             string presignedUrl;
-            if (!string.IsNullOrEmpty(_publicUrl))
+            var publicUrl = await GetPublicUrlAsync();
+
+            if (!string.IsNullOrEmpty(publicUrl))
             {
-                var publicUrl = _publicUrl;
                 var endpoint = publicUrl.Replace("http://", "").Replace("https://", "");
                 _logger.LogInformation("Creating temporary MinIO client with endpoint: {Endpoint}", endpoint);
                 var tempClient = new MinioClient()
@@ -108,7 +135,7 @@ public class MinioStorageService
                     .WithCredentials(
                         _configuration.GetValue<string>("Minio:AccessKey") ?? "minioadmin",
                         _configuration.GetValue<string>("Minio:SecretKey") ?? "minioadmin")
-                    .WithSSL(false)
+                    .WithSSL(publicUrl.StartsWith("https"))
                     .Build();
 
                 presignedUrl = await tempClient.PresignedGetObjectAsync(
@@ -151,9 +178,10 @@ public class MinioStorageService
         {
             // Use a temporary client with the public URL for URL generation
             string presignedUrl;
-            if (!string.IsNullOrEmpty(_publicUrl))
+            var publicUrl = await GetPublicUrlAsync();
+
+            if (!string.IsNullOrEmpty(publicUrl))
             {
-                var publicUrl = _publicUrl;
                 var tempClient = new MinioClient()
                     .WithEndpoint(publicUrl.Replace("http://", "").Replace("https://", ""))
                     .WithCredentials(

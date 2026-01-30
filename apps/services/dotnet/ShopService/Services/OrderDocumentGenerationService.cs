@@ -196,7 +196,8 @@ public class OrderJobProcessor : IOrderJobProcessor
                 .FirstOrDefault();
             var paymentMethod = primaryPayment?.Method.ToString();
             
-            var templates = await _templatesClient.GetTemplatesByStateAsync(state, "1");
+            // Convert state to lowercase as templates-service expects lowercase states (e.g., "shipped" vs "Shipped")
+            var templates = await _templatesClient.GetTemplatesByStateAsync(state.ToLower(), "1");
             
             if (templates == null || !templates.Any())
             {

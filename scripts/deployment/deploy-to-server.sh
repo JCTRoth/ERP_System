@@ -512,13 +512,14 @@ services:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-shop-service:${IMAGE_VERSION}
     container_name: erp_system-shop-service
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=shopdb;User Id=erp_shop;Password=${DB_PASSWORD};"
       Minio__Endpoint: minio:9000
       Minio__AccessKey: minioadmin
       Minio__SecretKey: minioadmin
       Minio__UseSSL: "false"
-      Minio__PublicUrl: https://${DEPLOY_DOMAIN}/minio
+      Minio__PublicUrl: https://${DEPLOY_DOMAIN}
+      Services__TemplatesService: http://templates-service:8087
     depends_on:
       postgres:
         condition: service_healthy
@@ -616,7 +617,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-do it       test: ["CMD-SHELL", "mc alias set local http://localhost:9000 minioadmin minioadmin && mc admin info local --json | grep -q '\"status\":\"success\"' || exit 0"]
+      test: ["CMD-SHELL", "mc alias set local http://localhost:9000 minioadmin minioadmin && mc admin info local --json | grep -q '\"status\":\"success\"' || exit 0"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -632,7 +633,6 @@ do it       test: ["CMD-SHELL", "mc alias set local http://localhost:9000 minioa
     container_name: erp_system-portainer
     ports:
       - "9443:9443"
-      - "9000:9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data

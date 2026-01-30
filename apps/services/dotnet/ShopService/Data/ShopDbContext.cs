@@ -25,6 +25,7 @@ public class ShopDbContext : DbContext
     public DbSet<Coupon> Coupons => Set<Coupon>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<AppConfiguration> AppConfigurations => Set<AppConfiguration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
