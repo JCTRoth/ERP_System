@@ -202,6 +202,118 @@ public class AccountingServiceClient
             return 0;
         }
     }
+
+    /// <summary>
+    /// Get an invoice by its invoice number from the accounting service
+    /// </summary>
+    public async Task<AccountingInvoiceSummary?> GetInvoiceByNumberAsync(
+        string invoiceNumber,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = @"
+                query GetInvoiceByNumber($invoiceNumber: String!) {
+                    invoiceByNumber(invoiceNumber: $invoiceNumber) {
+                        id
+                        invoiceNumber
+                        status
+                    }
+                }";
+
+            var variables = new { invoiceNumber };
+            var request = new { query, variables };
+            var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/graphql", content, cancellationToken);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var result = JsonSerializer.Deserialize<GraphQLResponse<GetInvoiceByNumberData>>(json);
+
+            if (result?.Errors != null && result.Errors.Length > 0)
+            {
+                _logger.LogWarning("GraphQL errors getting invoice by number: {Errors}",
+                    string.Join(", ", result.Errors.Select(e => e.Message)));
+                return null;
+            }
+
+            return result?.Data?.InvoiceByNumber;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting invoice by number: {InvoiceNumber}", invoiceNumber);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Create a payment record in the accounting service and (optionally) link it to an invoice
+    /// </summary>
+    public async Task<CreatedPaymentRecord?> CreatePaymentRecordAsync(
+        string type,
+        Guid? invoiceId,
+        Guid? bankAccountId,
+        Guid? accountId,
+        string method,
+        decimal amount,
+        string currency,
+        DateTime paymentDate,
+        string? reference,
+        string? notes,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var mutation = @"
+                mutation CreatePaymentRecord($input: CreatePaymentRecordInput!) {
+                    createPaymentRecord(input: $input) {
+                        id
+                        status
+                        invoiceId
+                    }
+                }";
+
+            var input = new
+            {
+                type,
+                invoiceId,
+                bankAccountId,
+                accountId,
+                method,
+                amount,
+                currency,
+                paymentDate,
+                reference,
+                payerName = (string?)null,
+                payeeName = (string?)null,
+                payerIban = (string?)null,
+                payeeIban = (string?)null,
+                notes,
+                paymentMethod = (string?)null,
+                referenceNumber = (string?)null
+            };
+
+            var request = new { query = mutation, variables = new { input } };
+            var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/graphql", content, cancellationToken);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var result = JsonSerializer.Deserialize<GraphQLResponse<CreatePaymentRecordData>>(json);
+
+            if (result?.Errors != null && result.Errors.Length > 0)
+            {
+                _logger.LogError("GraphQL errors creating payment record: {Errors}",
+                    string.Join(", ", result.Errors.Select(e => e.Message)));
+                return null;
+            }
+
+            return result?.Data?.CreatePaymentRecord;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating payment record for invoice {InvoiceId}", invoiceId);
+            return null;
+        }
+    }
 }
 
 public class InvoiceLineItemInput
@@ -229,6 +341,18 @@ public class CreateInvoiceData
     public CreateInvoiceResult CreateInvoice { get; set; } = new();
 }
 
+public class AccountingInvoiceSummary
+{
+    public string Id { get; set; } = string.Empty;
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+}
+
+public class GetInvoiceByNumberData
+{
+    public AccountingInvoiceSummary InvoiceByNumber { get; set; } = new();
+}
+
 public class ConfirmPaymentRecordData
 {
     public ConfirmPaymentRecordResult ConfirmPaymentRecord { get; set; } = new();
@@ -248,6 +372,18 @@ public class GetPaymentRecordsTotalData
 public class PaymentRecordsTotalResult
 {
     public decimal TotalAmount { get; set; }
+}
+
+public class CreatedPaymentRecord
+{
+    public string Id { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string? InvoiceId { get; set; }
+}
+
+public class CreatePaymentRecordData
+{
+    public CreatedPaymentRecord CreatePaymentRecord { get; set; } = new();
 }
 
 public class GraphQLResponse<T>

@@ -18,32 +18,41 @@ public class NotificationServiceClient
     }
 
     /// <summary>
-    /// Send email notification with optional PDF attachment
+    /// Send email notification using Notification Service GraphQL API.
+    /// Uses the SendEmailInput schema from notification-service.
     /// </summary>
     public async Task<bool> SendEmailAsync(
         string toEmail,
         string subject,
-        string body,
-        string? pdfUrl = null,
-        string? pdfFileName = null,
+        string? bodyHtml = null,
+        string? bodyText = null,
+        string? templateName = null,
+        object? templateData = null,
+        string? language = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var mutation = @"
                 mutation SendEmail($input: SendEmailInput!) {
-                    sendEmail(input: $input)
+                    sendEmail(input: $input) {
+                        id
+                        status
+                    }
                 }";
 
             var variables = new
             {
                 input = new
                 {
-                    to = toEmail,
+                    toEmail = toEmail,
+                    toName = (string?)null,
                     subject,
-                    body,
-                    attachmentUrl = pdfUrl,
-                    attachmentName = pdfFileName
+                    templateName = templateName,
+                    templateData = templateData,
+                    bodyHtml = bodyHtml,
+                    bodyText = bodyText,
+                    language = language
                 }
             };
 
@@ -69,7 +78,7 @@ public class NotificationServiceClient
             }
 
             var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-            var result = JsonSerializer.Deserialize<GraphQLResponse<SendEmailData>>(responseJson, new JsonSerializerOptions
+            var result = JsonSerializer.Deserialize<GraphQLResponse<SendEmailResponse>>(responseJson, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
@@ -81,7 +90,8 @@ public class NotificationServiceClient
                 return false;
             }
 
-            return result?.Data?.SendEmail ?? false;
+            // Consider the operation successful if an EmailNotification object is returned
+            return result?.Data?.SendEmail != null;
         }
         catch (Exception ex)
         {
@@ -102,18 +112,25 @@ public class NotificationServiceClient
         CancellationToken cancellationToken = default)
     {
         var subject = $"Order {orderNumber} - Status Update: {status}";
-        var body = GenerateOrderStatusEmailBody(orderNumber, status, trackingNumber);
+        var bodyHtml = GenerateOrderStatusEmailBody(orderNumber, status, trackingNumber, pdfUrl);
         
         return await SendEmailAsync(
             customerEmail,
             subject,
-            body,
-            pdfUrl,
-            $"order-{orderNumber}-{status.ToLower()}.pdf",
+            bodyHtml: bodyHtml,
+            bodyText: null,
+            templateName: "order-confirmation",
+            templateData: new
+            {
+                orderId = orderNumber,
+                orderTotal = (string?)null,
+                documentUrl = pdfUrl
+            },
+            language: "en",
             cancellationToken);
     }
 
-    private string GenerateOrderStatusEmailBody(string orderNumber, string status, string? trackingNumber)
+    private string GenerateOrderStatusEmailBody(string orderNumber, string status, string? trackingNumber, string? pdfUrl)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"<h2>Order {orderNumber} Update</h2>");
@@ -124,13 +141,24 @@ public class NotificationServiceClient
             sb.AppendLine($"<p>Tracking Number: <strong>{trackingNumber}</strong></p>");
         }
 
+        if (!string.IsNullOrEmpty(pdfUrl))
+        {
+            sb.AppendLine($"<p>You can download your document here: <a href=\"{pdfUrl}\">Download PDF</a></p>");
+        }
+
         sb.AppendLine("<p>Thank you for your business!</p>");
         
         return sb.ToString();
     }
 }
 
-public class SendEmailData
+public class SendEmailResponse
 {
-    public bool SendEmail { get; set; }
+    public EmailNotificationPayload? SendEmail { get; set; }
+}
+
+public class EmailNotificationPayload
+{
+    public string Id { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
 }
