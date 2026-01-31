@@ -27,6 +27,7 @@ public interface IOrderJobProcessor
     Task EnqueueInvoiceCreationAsync(Guid orderId);
     Task ProcessPendingJobsAsync(CancellationToken cancellationToken = default);
     Task GenerateDocumentsForOrderAsync(Guid orderId, string state);
+    Task CreateInvoiceAndSyncPaymentsForOrderAsync(Guid orderId);
 }
 
 public class OrderJobProcessor : IOrderJobProcessor
@@ -37,6 +38,7 @@ public class OrderJobProcessor : IOrderJobProcessor
     private readonly MinioStorageService _minioStorage;
     private readonly AccountingServiceClient _accountingClient;
     private readonly NotificationServiceClient _notificationClient;
+    private readonly IOrderPaymentService _orderPaymentService;
 
     // Static queue shared across all instances
     private static readonly Queue<OrderJobPayload> _jobQueue = new Queue<OrderJobPayload>();
@@ -48,7 +50,8 @@ public class OrderJobProcessor : IOrderJobProcessor
         TemplatesServiceClient templatesClient,
         MinioStorageService minioStorage,
         AccountingServiceClient accountingClient,
-        NotificationServiceClient notificationClient)
+        NotificationServiceClient notificationClient,
+        IOrderPaymentService orderPaymentService)
     {
         _context = context;
         _logger = logger;
@@ -56,6 +59,7 @@ public class OrderJobProcessor : IOrderJobProcessor
         _minioStorage = minioStorage;
         _accountingClient = accountingClient;
         _notificationClient = notificationClient;
+        _orderPaymentService = orderPaymentService;
     }
 
     public async Task EnqueueDocumentGenerationAsync(Guid orderId, string state)
@@ -104,6 +108,18 @@ public class OrderJobProcessor : IOrderJobProcessor
         };
 
         await ProcessDocumentGenerationAsync(job);
+    }
+
+    public async Task CreateInvoiceAndSyncPaymentsForOrderAsync(Guid orderId)
+    {
+        var job = new OrderJobPayload
+        {
+            OrderId = orderId,
+            JobType = "CreateInvoice",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await ProcessInvoiceCreationAsync(job);
     }
 
     public async Task ProcessPendingJobsAsync(CancellationToken cancellationToken = default)
@@ -393,6 +409,7 @@ public class OrderJobProcessor : IOrderJobProcessor
     {
         var order = await _context.Orders
             .Include(o => o.Items)
+            .Include(o => o.Payments)
             .FirstOrDefaultAsync(o => o.Id == job.OrderId);
 
         if (order == null)
@@ -401,53 +418,162 @@ public class OrderJobProcessor : IOrderJobProcessor
             return;
         }
 
-        var customer = await _context.Customers.FindAsync(order.CustomerId);
-        if (customer == null)
+        // Try to reuse existing invoice if we already have an invoice number
+        AccountingInvoiceSummary? invoice = null;
+
+        if (!string.IsNullOrEmpty(order.InvoiceNumber))
         {
-            _logger.LogWarning("Customer not found for order {OrderNumber}, skipping invoice creation", order.OrderNumber);
+            try
+            {
+                invoice = await _accountingClient.GetInvoiceByNumberAsync(order.InvoiceNumber);
+
+                if (invoice != null)
+                {
+                    _logger.LogInformation("Using existing invoice {InvoiceNumber} for order {OrderNumber}",
+                        invoice.InvoiceNumber, order.OrderNumber);
+                }
+                else
+                {
+                    _logger.LogWarning("Invoice with number {InvoiceNumber} referenced by order {OrderNumber} was not found in Accounting, a new invoice will be created",
+                        order.InvoiceNumber, order.OrderNumber);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching existing invoice {InvoiceNumber} for order {OrderNumber}",
+                    order.InvoiceNumber, order.OrderNumber);
+            }
+        }
+
+        // Create invoice in accounting if none exists
+        if (invoice == null)
+        {
+            var customer = await _context.Customers.FindAsync(order.CustomerId);
+            if (customer == null)
+            {
+                _logger.LogWarning("Customer not found for order {OrderNumber}, skipping invoice creation", order.OrderNumber);
+                return;
+            }
+
+            var lineItems = order.Items.Select(item => new InvoiceLineItemInput
+            {
+                Description = item.ProductName,
+                Sku = item.Sku,
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                Unit = "pcs",
+                UnitPrice = item.UnitPrice,
+                DiscountAmount = item.DiscountAmount,
+                TaxRate = item.TaxAmount > 0 && item.UnitPrice > 0
+                    ? (item.TaxAmount / (item.UnitPrice * item.Quantity))
+                    : 0,
+                TaxAmount = item.TaxAmount
+            }).ToList();
+
+            var result = await _accountingClient.CreateInvoiceFromOrderAsync(
+                order.Id,
+                order.OrderNumber,
+                customer.Id,
+                $"{customer.FirstName} {customer.LastName}".Trim(),
+                order.Subtotal,
+                order.TaxAmount,
+                order.Total,
+                order.Currency,
+                lineItems);
+
+            if (result == null)
+            {
+                _logger.LogWarning("Failed to create invoice for order {OrderNumber}", order.OrderNumber);
+                throw new InvalidOperationException($"Invoice creation returned null for order {order.OrderNumber}");
+            }
+
+            invoice = new AccountingInvoiceSummary
+            {
+                Id = result.Id,
+                InvoiceNumber = result.InvoiceNumber,
+                Status = result.Status
+            };
+
+            // Store invoice reference on order if not already set
+            if (string.IsNullOrEmpty(order.InvoiceNumber))
+            {
+                order.InvoiceNumber = result.InvoiceNumber;
+                order.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+
+            _logger.LogInformation("Created invoice {InvoiceNumber} for order {OrderNumber}",
+                result.InvoiceNumber, order.OrderNumber);
+        }
+
+        // At this point we have an invoice in Accounting; try to sync completed payments
+        try
+        {
+            if (invoice != null && Guid.TryParse(invoice.Id, out var invoiceId))
+            {
+                await SyncOrderPaymentsToInvoiceAsync(order, invoiceId);
+            }
+            else
+            {
+                _logger.LogWarning("Cannot sync payments for order {OrderNumber} because invoice ID is invalid", order.OrderNumber);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error syncing payments for order {OrderId} to invoice", order.Id);
+            // Do not throw here to avoid re-queuing invoice creation job solely due to payment sync problems
+        }
+    }
+
+    private async Task SyncOrderPaymentsToInvoiceAsync(Order order, Guid invoiceId)
+    {
+        var completedPayments = order.Payments
+            .Where(p => p.Status == PaymentTransactionStatus.Completed)
+            .ToList();
+
+        if (!completedPayments.Any())
+        {
+            _logger.LogInformation("No completed payments to sync for order {OrderNumber}", order.OrderNumber);
             return;
         }
 
-        var lineItems = order.Items.Select(item => new InvoiceLineItemInput
+        foreach (var payment in completedPayments)
         {
-            Description = item.ProductName,
-            Sku = item.Sku,
-            ProductId = item.ProductId,
-            Quantity = item.Quantity,
-            Unit = "pcs",
-            UnitPrice = item.UnitPrice,
-            DiscountAmount = item.DiscountAmount,
-            TaxRate = item.TaxAmount > 0 && item.UnitPrice > 0 
-                ? (item.TaxAmount / (item.UnitPrice * item.Quantity)) 
-                : 0,
-            TaxAmount = item.TaxAmount
-        }).ToList();
+            try
+            {
+                var paymentRecord = await _accountingClient.CreatePaymentRecordAsync(
+                    type: "CustomerPayment",
+                    invoiceId: invoiceId,
+                    bankAccountId: null,
+                    accountId: null,
+                    method: payment.Method.ToString(),
+                    amount: payment.Amount,
+                    currency: payment.Currency,
+                    paymentDate: payment.ProcessedAt ?? payment.CreatedAt,
+                    reference: $"Order {order.OrderNumber} payment {payment.Id}",
+                    notes: null);
 
-        var result = await _accountingClient.CreateInvoiceFromOrderAsync(
-            order.Id,
-            order.OrderNumber,
-            customer.Id,
-            $"{customer.FirstName} {customer.LastName}".Trim(),
-            order.Subtotal,
-            order.TaxAmount,
-            order.Total,
-            order.Currency,
-            lineItems);
+                if (paymentRecord?.Id == null)
+                {
+                    _logger.LogWarning("Failed to create payment record in Accounting for order {OrderNumber} payment {PaymentId}",
+                        order.OrderNumber, payment.Id);
+                    continue;
+                }
 
-        if (result != null)
-        {
-            // Store invoice reference on order
-            order.InvoiceNumber = result.InvoiceNumber;
-            order.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+                if (!Guid.TryParse(paymentRecord.Id, out var paymentRecordId))
+                {
+                    _logger.LogWarning("Accounting payment record ID {PaymentRecordId} is not a valid GUID for order {OrderNumber}",
+                        paymentRecord.Id, order.OrderNumber);
+                    continue;
+                }
 
-            _logger.LogInformation("Created invoice {InvoiceNumber} for order {OrderNumber}", 
-                result.InvoiceNumber, order.OrderNumber);
-        }
-        else
-        {
-            _logger.LogWarning("Failed to create invoice for order {OrderNumber}", order.OrderNumber);
-            throw new InvalidOperationException($"Invoice creation returned null for order {order.OrderNumber}");
+                await _orderPaymentService.LinkPaymentRecordAsync(order.Id, paymentRecordId, payment.Amount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error syncing payment {PaymentId} for order {OrderId} to invoice {InvoiceId}",
+                    payment.Id, order.Id, invoiceId);
+            }
         }
     }
 }

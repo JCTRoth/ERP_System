@@ -19,11 +19,16 @@ public class PaymentService : IPaymentService
 {
     private readonly ShopDbContext _context;
     private readonly ILogger<PaymentService> _logger;
+    private readonly IOrderJobProcessor _orderJobProcessor;
 
-    public PaymentService(ShopDbContext context, ILogger<PaymentService> logger)
+    public PaymentService(
+        ShopDbContext context,
+        ILogger<PaymentService> logger,
+        IOrderJobProcessor orderJobProcessor)
     {
         _context = context;
         _logger = logger;
+        _orderJobProcessor = orderJobProcessor;
     }
 
     public async Task<Payment?> GetByIdAsync(Guid id)
@@ -88,6 +93,7 @@ public class PaymentService : IPaymentService
 
             // Update order payment status
             var order = payment.Order;
+            var previousPaymentStatus = order.PaymentStatus;
             var totalPaid = await _context.Payments
                 .Where(p => p.OrderId == order.Id && p.Status == PaymentTransactionStatus.Completed)
                 .SumAsync(p => p.Amount) + payment.Amount;
@@ -108,6 +114,34 @@ public class PaymentService : IPaymentService
 
             _logger.LogInformation("Payment processed: {PaymentId}, Status: {Status}",
                 paymentId, payment.Status);
+
+            // When the order transitions to fully paid, trigger invoice creation,
+            // accounting payment record sync, and customer-facing invoice documents
+            if (previousPaymentStatus != Models.PaymentStatus.Paid &&
+                order.PaymentStatus == Models.PaymentStatus.Paid)
+            {
+                try
+                {
+                    await _orderJobProcessor.CreateInvoiceAndSyncPaymentsForOrderAsync(order.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Error creating invoice and syncing payments for fully paid order {OrderId}",
+                        order.Id);
+                }
+
+                try
+                {
+                    // Use the confirmed state so the invoice template is applied
+                    await _orderJobProcessor.GenerateDocumentsForOrderAsync(order.Id, "confirmed");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Error generating documents for fully paid order {OrderId}", order.Id);
+                }
+            }
         }
         catch (Exception ex)
         {
