@@ -24,7 +24,8 @@ public class Mutation
     public async Task<PaymentRecord> CreatePaymentRecord(
         CreatePaymentRecordInput input,
         [Service] AccountingDbContext context,
-        [Service] IInvoiceService invoiceService)
+        [Service] IInvoiceService invoiceService,
+        [Service] IJournalEntryService journalEntryService)
     {
         var payment = new PaymentRecord
         {
@@ -35,6 +36,7 @@ public class Mutation
                 global::AccountingService.Models.PaymentRecordType.CustomerPayment),
             InvoiceId = input.InvoiceId,
             BankAccountId = input.BankAccountId,
+            AccountId = input.AccountId,
             Method = TryParsePaymentMethod(input.Method ?? input.PaymentMethod),
             Amount = input.Amount,
             Currency = string.IsNullOrWhiteSpace(input.Currency) ? "EUR" : input.Currency!,
@@ -51,6 +53,140 @@ public class Mutation
 
         context.PaymentRecords.Add(payment);
         await context.SaveChangesAsync();
+
+        // Create and post the corresponding journal entry so that
+        // cash/bank and AR/AP balances reflect this payment.
+        // Determine invoice and whether this is a receivable (customer) payment.
+        Invoice? invoice = null;
+        if (payment.InvoiceId.HasValue)
+        {
+            invoice = await invoiceService.GetByIdAsync(payment.InvoiceId.Value);
+        }
+
+        var isReceivable = (invoice != null && invoice.Type.ToString() == "SalesInvoice")
+            || payment.Type.ToString() == "CustomerPayment";
+
+        // Determine cash/bank account (from input accountId if provided,
+        // otherwise fall back to the seeded Cash account 1000).
+        Account cashAccount;
+        if (payment.AccountId.HasValue)
+        {
+            cashAccount = await context.Accounts
+                .FirstAsync(a => a.Id == payment.AccountId.Value);
+        }
+        else
+        {
+            cashAccount = await context.Accounts
+                .FirstAsync(a => a.AccountNumber == "1000");
+            payment.AccountId = cashAccount.Id;
+        }
+
+        // Determine offset account: AR (1200) for customer/receivable payments,
+        // AP (2000) otherwise.
+        Account offsetAccount;
+        if (isReceivable)
+        {
+            offsetAccount = await context.Accounts
+                .FirstAsync(a => a.AccountNumber == "1200");
+        }
+        else
+        {
+            offsetAccount = await context.Accounts
+                .FirstAsync(a => a.AccountNumber == "2000");
+        }
+
+        var lines = new List<CreateJournalEntryLineInput>();
+
+        if (payment.Amount > 0)
+        {
+            if (isReceivable)
+            {
+                // Customer payment: Debit Cash/Bank, Credit AR
+                lines.Add(new CreateJournalEntryLineInput(
+                    cashAccount.Id,
+                    $"Payment received: {payment.PaymentNumber}",
+                    payment.Amount,
+                    0
+                ));
+                lines.Add(new CreateJournalEntryLineInput(
+                    offsetAccount.Id,
+                    $"Payment received: {payment.PaymentNumber}",
+                    0,
+                    payment.Amount
+                ));
+            }
+            else
+            {
+                // Vendor payment: Debit AP, Credit Cash/Bank
+                lines.Add(new CreateJournalEntryLineInput(
+                    offsetAccount.Id,
+                    $"Payment made: {payment.PaymentNumber}",
+                    payment.Amount,
+                    0
+                ));
+                lines.Add(new CreateJournalEntryLineInput(
+                    cashAccount.Id,
+                    $"Payment made: {payment.PaymentNumber}",
+                    0,
+                    payment.Amount
+                ));
+            }
+        }
+        else if (payment.Amount < 0)
+        {
+            // Refunds: reverse the entries using the absolute amount.
+            var refundAmount = Math.Abs(payment.Amount);
+            if (isReceivable)
+            {
+                lines.Add(new CreateJournalEntryLineInput(
+                    offsetAccount.Id,
+                    $"Refund: {payment.PaymentNumber}",
+                    refundAmount,
+                    0
+                ));
+                lines.Add(new CreateJournalEntryLineInput(
+                    cashAccount.Id,
+                    $"Refund: {payment.PaymentNumber}",
+                    0,
+                    refundAmount
+                ));
+            }
+            else
+            {
+                lines.Add(new CreateJournalEntryLineInput(
+                    cashAccount.Id,
+                    $"Refund received: {payment.PaymentNumber}",
+                    refundAmount,
+                    0
+                ));
+                lines.Add(new CreateJournalEntryLineInput(
+                    offsetAccount.Id,
+                    $"Refund received: {payment.PaymentNumber}",
+                    0,
+                    refundAmount
+                ));
+            }
+        }
+
+        if (lines.Count > 0)
+        {
+            var journalEntry = await journalEntryService.CreateAsync(new CreateJournalEntryInput(
+                payment.PaymentDate,
+                $"Payment: {payment.PaymentNumber}",
+                payment.PaymentNumber,
+                "Payment",
+                null,
+                payment.Id,
+                lines
+            ));
+
+            payment.JournalEntryId = journalEntry.Id;
+
+            // Post the journal entry to update account balances
+            await journalEntryService.PostAsync(journalEntry.Id);
+
+            await context.SaveChangesAsync();
+        }
 
         if (payment.InvoiceId.HasValue)
         {

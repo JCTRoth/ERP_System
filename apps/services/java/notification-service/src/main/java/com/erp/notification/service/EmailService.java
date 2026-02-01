@@ -6,8 +6,11 @@ import com.erp.notification.entity.EmailTemplate;
 import com.erp.notification.repository.EmailNotificationRepository;
 import com.erp.notification.repository.EmailTemplateRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.activation.DataSource;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.util.ByteArrayDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 
+import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +45,10 @@ public class EmailService {
     private final EmailNotificationRepository notificationRepository;
     private final EmailTemplateRepository templateRepository;
     private final ObjectMapper objectMapper;
+    
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .build();
     
     @Value("${notification.email.from}")
     private String fromEmail;
