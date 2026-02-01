@@ -171,6 +171,14 @@ public class InvoiceService : IInvoiceService
 
         _logger.LogInformation("Invoice created: {InvoiceNumber}", invoiceNumber);
 
+        // Automatically create and post the journal entry so that
+        // the chart of accounts reflects the financial impact
+        var journalEntry = await CreateInvoiceJournalEntryAsync(invoice);
+        invoice.JournalEntryId = journalEntry.Id;
+        await _journalService.PostAsync(journalEntry.Id);
+
+        await _context.SaveChangesAsync();
+
         return invoice;
     }
 
@@ -351,22 +359,22 @@ public class InvoiceService : IInvoiceService
         var date = DateTime.UtcNow;
         var yearPrefix = $"{prefix}-{date:yyyy}";
 
-        var lastInvoice = await _context.Invoices
+        // Use numeric max of all existing suffixes to avoid collisions
+        // even if historical invoice numbers used different zero padding.
+        var existingNumbers = await _context.Invoices
             .Where(i => i.InvoiceNumber.StartsWith(yearPrefix))
-            .OrderByDescending(i => i.InvoiceNumber)
-            .FirstOrDefaultAsync();
+            .Select(i => i.InvoiceNumber)
+            .ToListAsync();
 
-        int sequence = 1;
-        if (lastInvoice != null)
-        {
-            var lastSequence = lastInvoice.InvoiceNumber.Split('-').LastOrDefault();
-            if (int.TryParse(lastSequence, out var num))
-            {
-                sequence = num + 1;
-            }
-        }
+        var maxSequence = existingNumbers
+            .Select(n => n.Split('-').LastOrDefault())
+            .Select(s => int.TryParse(s, out var num) ? num : 0)
+            .DefaultIfEmpty(0)
+            .Max();
 
-        return $"{yearPrefix}-{sequence:D5}";
+        var nextSequence = maxSequence + 1;
+
+        return $"{yearPrefix}-{nextSequence:D5}";
     }
 
     private async Task<string> GeneratePaymentNumberAsync()

@@ -48,6 +48,9 @@ public class EmailNotification {
     @Column(name = "body_text", columnDefinition = "text")
     private String bodyText;
     
+    @Column(name = "attachments_json", columnDefinition = "text")
+    private String attachmentsJson;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private NotificationStatus status;

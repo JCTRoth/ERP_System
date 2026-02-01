@@ -62,6 +62,16 @@ input SendEmailInput {
     bodyHtml: String
     bodyText: String
     language: String
+    attachments: [EmailAttachmentInput!]
+}
+
+input EmailAttachmentInput {
+    """URL to download the attachment from (e.g., MinIO URL)"""
+    url: String!
+    """Filename for the attachment in the email"""
+    filename: String!
+    """Optional MIME type (defaults to application/pdf)"""
+    contentType: String
 }
 
 input CreateEmailTemplateInput {
