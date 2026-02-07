@@ -25,7 +25,29 @@ export default function LoginPage() {
         navigate('/');
       }
     } catch (err: any) {
-      setError(err.message || t('auth.auth.error.invalidCredentials', { default: 'Invalid email or password' }));
+      // Check for GraphQL errors with specific codes
+      const graphQLError = err.graphQLErrors?.[0];
+      if (graphQLError?.extensions?.code) {
+        const errorCode = graphQLError.extensions.code;
+        switch (errorCode) {
+          case 'EMAIL_NOT_FOUND':
+            setError(t('auth.error.emailNotFound', { default: 'The email address you entered does not exist in our system. Please check your email or register for a new account.' }));
+            break;
+          case 'INVALID_PASSWORD':
+            setError(t('auth.error.invalidPassword', { default: 'The password you entered is incorrect. Please try again or reset your password.' }));
+            break;
+          case 'ACCOUNT_INACTIVE':
+            setError(t('auth.error.accountInactive', { default: 'Your account has been deactivated. Please contact support for assistance.' }));
+            break;
+          case 'EMAIL_NOT_VERIFIED':
+            setError(t('auth.error.emailNotVerified', { default: 'Please verify your email address before logging in. Check your inbox for a verification link.' }));
+            break;
+          default:
+            setError(t('auth.loginError', { default: 'Login failed. Please check your credentials.' }));
+        }
+      } else {
+        setError(err.message || t('auth.loginError', { default: 'Login failed. Please check your credentials.' }));
+      }
     } finally {
       setLoading(false);
     }
