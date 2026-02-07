@@ -57,6 +57,7 @@ builder.Services
     .AddFiltering()
     .AddSorting()
     .AddProjections()
+    .AddErrorFilter<ErrorFilter>()
     .AddHttpRequestInterceptor(async (context, executor, builder, cancellationToken) =>
     {
         // Extract user ID from JWT token and set it in global state

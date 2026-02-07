@@ -4,6 +4,7 @@ using BCrypt.Net;
 using UserService.Data;
 using UserService.DTOs;
 using UserService.Models;
+using UserService.Exceptions;
 
 namespace UserService.Services;
 
@@ -38,16 +39,28 @@ public class AuthService : IAuthService
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user == null)
         {
-            _logger.LogWarning("Failed login attempt for email: {Email}", request.Email);
-            return null;
+            _logger.LogWarning("Login attempt for non-existent email: {Email}", request.Email);
+            throw new AuthenticationException("EMAIL_NOT_FOUND", "The email address you entered does not exist in our system. Please check your email or register for a new account.");
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        {
+            _logger.LogWarning("Invalid password for email: {Email}", request.Email);
+            throw new AuthenticationException("INVALID_PASSWORD", "The password you entered is incorrect. Please try again or reset your password.");
         }
 
         if (!user.IsActive)
         {
             _logger.LogWarning("Login attempt for inactive user: {Email}", request.Email);
-            return null;
+            throw new AuthenticationException("ACCOUNT_INACTIVE", "Your account has been deactivated. Please contact support for assistance.");
+        }
+
+        if (!user.EmailVerified)
+        {
+            _logger.LogWarning("Login attempt for unverified email: {Email}", request.Email);
+            throw new AuthenticationException("EMAIL_NOT_VERIFIED", "Please verify your email address before logging in. Check your inbox for a verification link.");
         }
 
         // Update last login
