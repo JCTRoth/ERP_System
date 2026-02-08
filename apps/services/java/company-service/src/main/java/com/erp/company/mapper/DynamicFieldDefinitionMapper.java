@@ -4,6 +4,7 @@ import com.erp.company.dto.DynamicFieldDefinitionDto;
 import com.erp.company.entity.DynamicFieldDefinition;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.IterableMapping;
 
 import java.util.List;
 
@@ -13,5 +14,6 @@ public interface DynamicFieldDefinitionMapper {
     @Mapping(target = "companyId", source = "company.id")
     DynamicFieldDefinitionDto toDto(DynamicFieldDefinition entity);
     
+    @IterableMapping(elementTargetType = DynamicFieldDefinitionDto.class)
     List<DynamicFieldDefinitionDto> toDtoList(List<DynamicFieldDefinition> entities);
 }
