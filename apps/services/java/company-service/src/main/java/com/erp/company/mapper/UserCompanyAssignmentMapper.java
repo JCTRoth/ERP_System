@@ -15,4 +15,8 @@ public interface UserCompanyAssignmentMapper {
     UserCompanyAssignmentDto toDto(UserCompanyAssignment entity);
     
     List<UserCompanyAssignmentDto> toDtoList(List<UserCompanyAssignment> entities);
+    
+    default List<UserCompanyAssignmentDto> toDefaultDtoList(List<UserCompanyAssignment> entities) {
+        return entities.stream().map(this::toDto).toList();
+    }
 }

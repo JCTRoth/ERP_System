@@ -3,6 +3,7 @@ package com.erp.company.mapper;
 import com.erp.company.dto.CompanyDto;
 import com.erp.company.entity.Company;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
@@ -16,6 +17,7 @@ public interface CompanyMapper {
     
     Company toEntity(CompanyDto dto);
     
+    @Mapping(target = ".", source = ".")
     List<CompanyDto> toDtoList(List<Company> entities);
     
     void updateEntity(@MappingTarget Company entity, CompanyDto dto);

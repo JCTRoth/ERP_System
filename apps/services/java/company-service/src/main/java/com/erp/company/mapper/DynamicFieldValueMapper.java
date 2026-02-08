@@ -14,5 +14,7 @@ public interface DynamicFieldValueMapper {
     @Mapping(target = "fieldName", source = "definition.fieldName")
     DynamicFieldValueDto toDto(DynamicFieldValue entity);
     
-    List<DynamicFieldValueDto> toDtoList(List<DynamicFieldValue> entities);
+    default List<DynamicFieldValueDto> toDtoList(List<DynamicFieldValue> entities) {
+        return entities.stream().map(this::toDto).toList();
+    }
 }
