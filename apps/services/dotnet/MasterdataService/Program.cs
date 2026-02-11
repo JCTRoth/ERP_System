@@ -65,6 +65,7 @@ builder.Services
     .AddInMemorySubscriptions()
     .AddApolloFederation()
     .AddAuthorization()
+    .AllowIntrospection()  // Enable GraphQL introspection for development and debugging
     .ModifyCostOptions(options =>
     {
         // Relax cost limits for development to allow richer queries
