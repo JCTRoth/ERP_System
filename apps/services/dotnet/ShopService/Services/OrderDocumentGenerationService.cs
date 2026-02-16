@@ -537,8 +537,21 @@ public class OrderJobProcessor : IOrderJobProcessor
             return;
         }
 
+        var existingLinks = PaymentRecordLinkSerializer.Deserialize(order.PaymentRecordIds, _logger);
+        var linkedPaymentIds = existingLinks
+            .Where(link => link.PaymentId.HasValue)
+            .Select(link => link.PaymentId!.Value)
+            .ToHashSet();
+
         foreach (var payment in completedPayments)
         {
+            if (linkedPaymentIds.Contains(payment.Id))
+            {
+                _logger.LogDebug("Payment {PaymentId} already synced with Accounting for order {OrderNumber}",
+                    payment.Id, order.OrderNumber);
+                continue;
+            }
+
             try
             {
                 var paymentRecord = await _accountingClient.CreatePaymentRecordAsync(
@@ -567,7 +580,8 @@ public class OrderJobProcessor : IOrderJobProcessor
                     continue;
                 }
 
-                await _orderPaymentService.LinkPaymentRecordAsync(order.Id, paymentRecordId, payment.Amount);
+                await _orderPaymentService.LinkPaymentRecordAsync(order.Id, paymentRecordId, payment.Id, payment.Amount);
+                linkedPaymentIds.Add(payment.Id);
             }
             catch (Exception ex)
             {

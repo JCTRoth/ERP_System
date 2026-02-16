@@ -112,6 +112,8 @@ public class PaymentService : IPaymentService
 
             await _context.SaveChangesAsync();
 
+            await SyncAccountingForOrderAsync(order.Id);
+
             _logger.LogInformation("Payment processed: {PaymentId}, Status: {Status}",
                 paymentId, payment.Status);
 
@@ -120,17 +122,6 @@ public class PaymentService : IPaymentService
             if (previousPaymentStatus != Models.PaymentStatus.Paid &&
                 order.PaymentStatus == Models.PaymentStatus.Paid)
             {
-                try
-                {
-                    await _orderJobProcessor.CreateInvoiceAndSyncPaymentsForOrderAsync(order.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex,
-                        "Error creating invoice and syncing payments for fully paid order {OrderId}",
-                        order.Id);
-                }
-
                 try
                 {
                     // Use the confirmed state so the invoice template is applied
@@ -209,6 +200,8 @@ public class PaymentService : IPaymentService
 
         await _context.SaveChangesAsync();
 
+        await SyncAccountingForOrderAsync(order.Id);
+
         _logger.LogInformation("Payment refunded: {PaymentId}, Amount: {Amount}, Reason: {Reason}",
             paymentId, refundAmount, reason);
 
@@ -235,5 +228,19 @@ public class PaymentService : IPaymentService
         _logger.LogInformation("Payment voided: {PaymentId}, Reason: {Reason}", paymentId, reason);
 
         return true;
+    }
+
+    private async Task SyncAccountingForOrderAsync(Guid orderId)
+    {
+        try
+        {
+            await _orderJobProcessor.CreateInvoiceAndSyncPaymentsForOrderAsync(orderId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error syncing accounting records for order {OrderId} after financial transaction",
+                orderId);
+        }
     }
 }

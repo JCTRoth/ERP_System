@@ -65,7 +65,6 @@ builder.Services
     .AddInMemorySubscriptions()
     .AddApolloFederation()
     .AddAuthorization()
-    .AllowIntrospection()  // Enable GraphQL introspection for development and debugging
     .ModifyCostOptions(options =>
     {
         // Relax cost limits for development to allow richer queries
@@ -142,8 +141,8 @@ using (var scope = app.Services.CreateScope())
                         Rate = 16m, 
                         Type = Models.TaxType.Sales, 
                         IsActive = true, 
-                        EffectiveFrom = DateTime.UtcNow, 
-                        CreatedAt = DateTime.UtcNow 
+                        EffectiveFrom = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc), 
+                        CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc) 
                     });
                 }
                 else
