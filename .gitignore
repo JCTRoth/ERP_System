@@ -10,6 +10,8 @@ out/
 target/
 bin/
 obj/
+apps/services/dotnet/ShopService/bin-root/
+apps/services/dotnet/ShopService/obj-root/
 
 # Nx
 .nx/

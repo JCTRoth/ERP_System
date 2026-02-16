@@ -81,6 +81,7 @@ public class OrdersControllerTests : IClassFixture<CustomWebApplicationFactory>
                 )
             },
             Notes: null,
+            TaxRate: null,
             ShippingName: null,
             ShippingAddress: null,
             ShippingCity: null,
