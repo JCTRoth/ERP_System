@@ -209,7 +209,9 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
 
-      - name: Build and push
+      - name: Build and push (attempt 1)
+        id: build_push_1
+        continue-on-error: true
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
@@ -219,6 +221,46 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build and push (attempt 2)
+        id: build_push_2
+        if: steps.build_push_1.outcome == 'failure'
+        continue-on-error: true
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push (attempt 3)
+        id: build_push_3
+        if: steps.build_push_1.outcome == 'failure' && steps.build_push_2.outcome == 'failure'
+        continue-on-error: true
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify build result
+        if: always()
+        run: |
+          if [ "${{ steps.build_push_1.outcome }}" = "success" ] || \
+             [ "${{ steps.build_push_2.outcome }}" = "success" ] || \
+             [ "${{ steps.build_push_3.outcome }}" = "success" ]; then
+            echo "Docker build and push succeeded."
+          else
+            echo "Docker build and push failed after 3 attempts."
+            exit 1
+          fi
 
   # Deploy to Development
   deploy-dev:
