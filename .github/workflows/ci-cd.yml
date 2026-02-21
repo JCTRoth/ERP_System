@@ -248,28 +248,28 @@ jobs:
             --set global.imageTag=${{ github.sha }}
 
   # Deploy to Production
-  deploy-prod:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: docker-build
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
+  # deploy-prod:
+  #   name: Deploy to Production
+  #   runs-on: ubuntu-latest
+  #   needs: docker-build
+  #   if: github.ref == 'refs/heads/main'
+  #   environment:
+  #     name: production
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v3
+  #     - name: Setup kubectl
+  #       uses: azure/setup-kubectl@v3
 
-      - name: Configure kubectl
-        run: |
-          echo "${{ secrets.KUBE_CONFIG_PROD }}" | base64 -d > kubeconfig
-          echo "KUBECONFIG=kubeconfig" >> $GITHUB_ENV
+  #     - name: Configure kubectl
+  #       run: |
+  #         echo "${{ secrets.KUBE_CONFIG_PROD }}" | base64 -d > kubeconfig
+  #         echo "KUBECONFIG=kubeconfig" >> $GITHUB_ENV
 
-      - name: Deploy to Kubernetes
-        run: |
-          helm upgrade --install erp-system ./infrastructure/helm/erp-system \
-            --namespace erp-prod \
-            --set global.environment=production \
-            --set global.imageTag=${{ github.sha }}
+  #     - name: Deploy to Kubernetes
+  #       run: |
+  #         helm upgrade --install erp-system ./infrastructure/helm/erp-system \
+  #           --namespace erp-prod \
+  #           --set global.environment=production \
+  #           --set global.imageTag=${{ github.sha }}
