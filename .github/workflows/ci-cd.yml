@@ -36,7 +36,7 @@ jobs:
         run: npm run lint
 
       - name: Type check
-        run: npm run typecheck
+        run: npm run type-check
 
       - name: Run tests
         run: npm run test -- --coverage
@@ -84,8 +84,9 @@ jobs:
 
       - name: Run tests
         run: |
-          if [ -d "apps/services/dotnet/${{ matrix.service }}.Tests" ]; then
-            dotnet test apps/services/dotnet/${{ matrix.service }}.Tests/${{ matrix.service }}.Tests.csproj --no-build -c Release --collect:"XPlat Code Coverage"
+          TEST_PROJECT="apps/services/dotnet/${{ matrix.service }}.Tests/${{ matrix.service }}.Tests.csproj"
+          if [ -f "$TEST_PROJECT" ]; then
+            dotnet test "$TEST_PROJECT" -c Release --collect:"XPlat Code Coverage"
           fi
 
   # Java Services Job
