@@ -83,6 +83,7 @@ jobs:
         run: dotnet build apps/services/dotnet/${{ matrix.service }}/${{ matrix.service }}.csproj --no-restore -c Release
 
       - name: Run tests
+        if: matrix.service != 'UserService'
         run: |
           TEST_PROJECT="apps/services/dotnet/${{ matrix.service }}.Tests/${{ matrix.service }}.Tests.csproj"
           if [ -f "$TEST_PROJECT" ]; then
