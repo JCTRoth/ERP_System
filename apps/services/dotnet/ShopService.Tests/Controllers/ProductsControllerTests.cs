@@ -142,7 +142,14 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
+        builder.UseEnvironment("Testing");
+        builder.ConfigureAppConfiguration(config =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string>
+            {
+                ["SkipDatabaseInitialization"] = "true"
+            });
+        });
         builder.ConfigureServices(services =>
         {
             var descriptor = services.SingleOrDefault(

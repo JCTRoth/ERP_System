@@ -10,10 +10,14 @@ using ShopService.GraphQL;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
+var defaultConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 // Database
 builder.Services.AddDbContext<ShopDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(defaultConnectionString
+        ?? "Host=localhost;Port=5432;Database=shopdb;Username=postgres;Password=postgres");
+});
 
 // Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? builder.Configuration["Jwt:Secret"] 
@@ -128,8 +132,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
 // Health checks
-builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+var healthChecks = builder.Services.AddHealthChecks();
+if (!string.IsNullOrWhiteSpace(defaultConnectionString))
+{
+    healthChecks.AddNpgSql(defaultConnectionString);
+}
 
 // CORS
 builder.Services.AddCors(options =>
@@ -166,91 +173,101 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 app.MapMetrics();
 
+var skipDatabaseInitialization = app.Environment.IsEnvironment("Testing") ||
+    builder.Configuration.GetValue<bool>("SkipDatabaseInitialization", false);
+
 // Apply migrations and seed data on startup
-app.Logger.LogInformation("Initializing database...");
-try
+if (skipDatabaseInitialization)
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ShopDbContext>();
-    var seedService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
-
-    // Wait for DNS resolution to be available
-    app.Logger.LogInformation("Waiting for DNS resolution to be available...");
-    const int maxRetries = 10;
-    const int delayMs = 2000;
-    bool dnsResolved = false;
-
-    for (int i = 0; i < maxRetries; i++)
-    {
-        try
-        {
-            // Use postgres database for DNS check since shopdb might not exist yet
-            var testConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!
-                .Replace("Database=shopdb", "Database=postgres");
-            using var testConnection = new NpgsqlConnection(testConnectionString);
-            await testConnection.OpenAsync();
-            testConnection.Close();
-            dnsResolved = true;
-            app.Logger.LogInformation("DNS resolution successful");
-            break;
-        }
-        catch (Exception ex)
-        {
-            app.Logger.LogWarning(ex, $"DNS resolution attempt {i + 1}/{maxRetries} failed, retrying in {delayMs}ms...");
-            await Task.Delay(delayMs);
-        }
-    }
-
-    if (!dnsResolved)
-    {
-        throw new Exception("Failed to resolve DNS after all retries");
-    }
-
-    // Ensure database exists and tables are created
-    app.Logger.LogInformation("Ensuring database is created and migrated...");
+    app.Logger.LogInformation("Skipping database initialization for test environment or configuration override");
+}
+else
+{
+    app.Logger.LogInformation("Initializing database...");
     try
     {
-        app.Logger.LogInformation("Dropping existing database to ensure clean schema...");
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ShopDbContext>();
+        var seedService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
+
+        // Wait for DNS resolution to be available
+        app.Logger.LogInformation("Waiting for DNS resolution to be available...");
+        const int maxRetries = 10;
+        const int delayMs = 2000;
+        bool dnsResolved = false;
+
+        for (int i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                // Use postgres database for DNS check since shopdb might not exist yet
+                var testConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!
+                    .Replace("Database=shopdb", "Database=postgres");
+                using var testConnection = new NpgsqlConnection(testConnectionString);
+                await testConnection.OpenAsync();
+                testConnection.Close();
+                dnsResolved = true;
+                app.Logger.LogInformation("DNS resolution successful");
+                break;
+            }
+            catch (Exception ex)
+            {
+                app.Logger.LogWarning(ex, $"DNS resolution attempt {i + 1}/{maxRetries} failed, retrying in {delayMs}ms...");
+                await Task.Delay(delayMs);
+            }
+        }
+
+        if (!dnsResolved)
+        {
+            throw new Exception("Failed to resolve DNS after all retries");
+        }
+
+        // Ensure database exists and tables are created
+        app.Logger.LogInformation("Ensuring database is created and migrated...");
         try
         {
-            // Drop and recreate the database to ensure schema is correct
-            await db.Database.EnsureDeletedAsync();
-            app.Logger.LogInformation("Dropped existing database");
+            app.Logger.LogInformation("Dropping existing database to ensure clean schema...");
+            try
+            {
+                // Drop and recreate the database to ensure schema is correct
+                await db.Database.EnsureDeletedAsync();
+                app.Logger.LogInformation("Dropped existing database");
+            }
+            catch (Exception ex)
+            {
+                app.Logger.LogWarning(ex, "Failed to drop database, attempting to continue...");
+            }
+
+            app.Logger.LogInformation("Creating database with correct schema...");
+            var created = await db.Database.EnsureCreatedAsync();
+            if (created)
+            {
+                app.Logger.LogInformation("Database created successfully");
+            }
+            else
+            {
+                app.Logger.LogInformation("Database already exists, verifying schema...");
+            }
+
+            app.Logger.LogInformation("Database creation completed successfully");
         }
         catch (Exception ex)
         {
-            app.Logger.LogWarning(ex, "Failed to drop database, attempting to continue...");
+            app.Logger.LogError(ex, "Failed to create database schema");
+            throw;
         }
 
-        app.Logger.LogInformation("Creating database with correct schema...");
-        var created = await db.Database.EnsureCreatedAsync();
-        if (created)
-        {
-            app.Logger.LogInformation("Database created successfully");
-        }
-        else
-        {
-            app.Logger.LogInformation("Database already exists, verifying schema...");
-        }
+        // Always attempt to seed data (the SeedDataService handles checking for existing data)
+        app.Logger.LogInformation("Checking and seeding initial data...");
+        await seedService.SeedAsync();
+        app.Logger.LogInformation("Database initialization completed successfully");
 
-        app.Logger.LogInformation("Database creation completed successfully");
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Failed to create database schema");
+        app.Logger.LogError(ex, "Failed to initialize database");
         throw;
     }
-
-    // Always attempt to seed data (the SeedDataService handles checking for existing data)
-    app.Logger.LogInformation("Checking and seeding initial data...");
-    await seedService.SeedAsync();
-    app.Logger.LogInformation("Database initialization completed successfully");
-
-}
-catch (Exception ex)
-{
-    app.Logger.LogError(ex, "Failed to initialize database");
-    throw;
 }
 
 app.Run();
