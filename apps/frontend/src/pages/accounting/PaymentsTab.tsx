@@ -23,6 +23,7 @@ const GET_PAYMENT_RECORDS = gql`
         reference
         notes
         invoiceId
+        accountId
         bankAccountId
         invoice {
           id
@@ -98,6 +99,7 @@ const UPDATE_PAYMENT_RECORD = gql`
       reference
       notes
       invoiceId
+      accountId
       invoice {
         id
         invoiceNumber
@@ -116,6 +118,7 @@ interface PaymentRecord {
   reference: string;
   notes: string;
   invoiceId: string | null;
+  accountId: string | null;
   bankAccountId: string | null;
   invoice: { id: string; invoiceNumber: string } | null;
   createdAt: string;
@@ -224,7 +227,7 @@ export default function PaymentsTab() {
       reference: payment.reference || "",
       notes: payment.notes || "",
       invoiceId: payment.invoiceId || "",
-      accountId: (payment as any).accountId || (payment as any).bankAccountId || "",
+      accountId: payment.accountId || payment.bankAccountId || "",
     });
     setShowModal(true);
   };
@@ -274,21 +277,21 @@ export default function PaymentsTab() {
     if (editingPayment) {
       // Update existing payment
       const input: any = {
-        Id: editingPayment.id,
-        Amount: amountNumber,
-        Currency: formState.currency || "EUR",
-        Method: formState.method,
-        PaymentDate: isoDate,
-        Reference: formState.reference || null,
-        Notes: formState.notes || null,
+        id: editingPayment.id,
+        amount: amountNumber,
+        currency: formState.currency || "EUR",
+        method: formState.method,
+        paymentDate: isoDate,
+        reference: formState.reference || null,
+        notes: formState.notes || null,
       };
 
       if (formState.invoiceId) {
-        input.InvoiceId = formState.invoiceId;
+        input.invoiceId = formState.invoiceId;
       }
 
       if (formState.accountId) {
-        input.AccountId = formState.accountId;
+        input.accountId = formState.accountId;
       }
 
       await updatePaymentRecord({ variables: { input } });
