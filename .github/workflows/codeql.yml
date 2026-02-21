@@ -44,7 +44,17 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Build Java services (manual)
+        if: matrix.language == 'java'
+        run: |
+          for service in company-service notification-service translation-service scripting-service edifact-service; do
+            echo "Building $service for CodeQL extraction"
+            chmod +x apps/services/java/$service/gradlew
+            (cd apps/services/java/$service && ./gradlew classes testClasses -x test --no-daemon)
+          done
+
       - name: Autobuild
+        if: matrix.language != 'java'
         uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis

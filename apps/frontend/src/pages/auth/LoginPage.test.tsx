@@ -56,18 +56,18 @@ describe('LoginPage', () => {
     );
     
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
-  it('shows demo credentials', () => {
+  it('shows remember me option', () => {
     render(
       <TestWrapper>
         <LoginPage />
       </TestWrapper>
     );
     
-    expect(screen.getByText(/demo credentials/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/remember me/i)).toBeInTheDocument();
   });
 
   it('updates input values when typing', () => {
@@ -78,7 +78,7 @@ describe('LoginPage', () => {
     );
     
     const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement;
-    const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement;
+    const passwordInput = screen.getByLabelText(/^password$/i) as HTMLInputElement;
     
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
