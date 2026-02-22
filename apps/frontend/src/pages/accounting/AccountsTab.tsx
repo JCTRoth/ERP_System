@@ -81,6 +81,8 @@ const ACCOUNT_TYPE_COLORS: Record<string, string> = {
   EXPENSE: 'text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/30',
 };
 
+const ACCOUNTS_REFRESH_INTERVAL_MS = 10000;
+
 export default function AccountsTab() {
   const { t } = useI18n();
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE']));
@@ -96,6 +98,9 @@ export default function AccountsTab() {
   });
 
   const { data, loading, error, refetch } = useQuery(GET_ACCOUNTS, {
+    fetchPolicy: 'network-only',
+    nextFetchPolicy: 'network-only',
+    pollInterval: ACCOUNTS_REFRESH_INTERVAL_MS,
     errorPolicy: 'all',
   });
 
