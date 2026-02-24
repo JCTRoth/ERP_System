@@ -1,0 +1,66 @@
+= Accounting Module Guide
+:toc:
+:toclevels: 3
+:icons: font
+
+This guide explains how the Accounting workspace at `/accounting` works. It is organized by the five tabs visible in the page: Invoices, Payments, Chart of Accounts, Journal Entries, and Reports.
+
+== Access & Navigation
+- Open **Accounting** from the sidebar (calculator icon). You remain inside the accounting module while switching tabs.
+- A header shows the title and subtitle; tab buttons switch content without leaving the page.
+- If a backend service is unavailable, a yellow "Service Unavailable" card is shown and the tab becomes read-only until services return.
+
+== Invoices Tab
+- **Purpose**: Create, view, filter, and manage sales/purchase invoices, credit notes, and debit notes.
+- **Filters**: Use the type filter (SalesInvoice, PurchaseInvoice, CreditNote, DebitNote) and status filter (Draft, Pending, Sent, Partial, Paid, Overdue). Both support `All`.
+- **Table**: Columns include Invoice #, Customer, Type, Status, Invoice Date, Due Date, Total, Balance, and Actions. Overdue items show a red status chip and due date.
+- **Actions**:
+  - **Create Invoice**: Opens the invoice modal. Required fields include type, customer, invoice date, due date, and at least one line item. Currency defaults to USD.
+  - **View**: Opens the modal in read-only mode for any status.
+  - **Edit/Delete**: Allowed only when status is `DRAFT`.
+- **Invoice Modal Highlights**:
+  - **Order linking**: Select an order (confirmed/shipped/delivered) to auto-fill customer, currency, and line items from the order.
+  - **Customer selection**: Pick a customer; a summary box shows contact details and limits when available.
+  - **Line items**: Each line needs description, quantity (>0), unit price (≥0), account, and tax rate. Add/remove lines; taxes accept percent or fractional values. Subtotal, tax, and total are calculated live.
+  - **Accounts & products**: Choose revenue/expense accounts for each line; products can be linked via SKU. A default bank account (1100) is prefilled when available.
+  - **Notes & currency**: Optional notes, editable currency; due date defaults to 30 days from today.
+  - **Validation**: The form blocks save when customer is missing, no line items exist, or line data is incomplete. Read-only mode engages automatically for non-editable statuses.
+  - **Delete**: Available in the modal when editing a draft; asks for confirmation.
+
+== Payments Tab
+- **Purpose**: Record incoming payments and link them to invoices and accounts.
+- **List**: Shows Payment Date, Amount (with currency), Method, Reference, Invoice #, and Actions.
+- **Actions**:
+  - **Add Payment**: Opens a modal with amount, currency, payment date, method, reference, optional invoice link, optional account, and notes.
+  - **Edit Payment**: Loads the selected payment into the modal.
+  - **Delete Payment**: Confirmation dialog is shown before removal.
+- **Validation & defaults**: Amount must be positive; payment date defaults to today; currency defaults to EUR; method defaults to BankTransfer. Linking an invoice is optional.
+
+== Chart of Accounts Tab
+- **Purpose**: Browse and manage the chart of accounts with type and category grouping.
+- **Filters**: Type filter for Asset, Liability, Equity, Revenue, Expense or All.
+- **Presentation**: Collapsible groups per account type show counts and type totals; balances are formatted in USD. A 10s poll keeps data fresh.
+- **Actions**:
+  - **Add Account**: Opens the account modal in create mode.
+  - **Edit Account**: Pencil icon opens edit mode for the selected account.
+- **Account Modal Fields**: Account number, name, type, category (e.g., Cash, Bank Account, Accounts Receivable, Inventory), currency (create-only, default USD), active toggle, description, and optional parent account.
+- **System accounts**: Some rows are marked as system accounts and display translated names (cash, bank account, AR/AP, revenue, COGS, operating expenses).
+- **Summary**: A totals card shows per-type balances at the bottom.
+
+== Journal Entries Tab
+- **Purpose**: View journal entries and inspect their debit/credit lines.
+- **Filters**: Type (Standard, Adjusting, Closing, Reversing, Recurring) and Status (Draft, Pending, Posted, Reversed) with `All` options.
+- **List & Detail**: Select a row to open the side panel showing entry metadata, lines (account number/name, DR/CR amounts), and totals. A green "Balanced" indicator appears when debits equal credits.
+- **Actions**: A Create button is present but creation/editing is not wired yet; posted data is read-only from the service.
+
+== Reports Tab
+- **Purpose**: Generate financial statements.
+- **Report picker**: Buttons for Balance Sheet, Income Statement, Trial Balance, Cash Flow, Aging. Balance Sheet and Income Statement currently fetch data; others are placeholders.
+- **Date selection**: Balance Sheet uses `As of` date; Income Statement uses period start/end. Inputs accept calendar dates.
+- **Export**: An Export PDF button is present for future use.
+- **Rendering**: Balance Sheet shows assets (current/non-current) and liabilities/equity with totals; Income Statement shows revenue and expenses with gross profit/operating income/net income. System accounts render with friendly names when applicable.
+
+== Service Notes & Troubleshooting
+- If any tab shows a yellow "Service Unavailable" card, the accounting backend is offline. Retries happen automatically on refetch; no user data is changed in that state.
+- Totals and balances are formatted in USD by default; currency on invoices and payments can differ but summaries in Chart of Accounts/Reports assume USD.
+- If filters hide records unexpectedly, set filters to `All` and retry.

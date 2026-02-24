@@ -1,0 +1,42 @@
+= ERP System User Guide
+:toc:
+:toclevels: 2
+:icons: font
+
+== Getting Started
+- Sign in at `/auth/login` with your company credentials. Use **Forgot Password** and **Reset Password** if you need to recover access.
+- After signing in, you are redirected to the main dashboard. All app routes require authentication; unauthenticated users are sent back to the login page.
+
+== Layout and Navigation
+- **Sidebar** (left) holds the main modules: Dashboard, Products, Orders, Accounting, Master Data, Templates, Translations, UI Builder, Companies, Users, Settings. Use the ERP System logo or the hamburger icon on mobile to show/hide it.
+- **Header** (top) provides language selector, theme toggle (light → dark → system), and logout.
+- **Content area** renders the currently selected module. Most pages use tables with filters/actions at the top and detail panels or modals for create/edit.
+
+== Global Controls
+- **Language**: Pick from the globe menu; labels come from the translation system and update immediately.
+- **Theme**: Cycle through light, dark, and system modes via the sun/moon/A button in the header.
+- **Logout**: Use the exit icon to end your session safely.
+
+== Modules Overview
+- **Dashboard**: Landing area after login.
+- **Products**: Manage product catalog (names, SKUs, pricing). Appears under `/products`.
+- **Orders**: View and manage shop orders at `/orders`.
+- **Accounting**: Financial workspace (invoices, payments, chart of accounts, journal, reports) at `/accounting`.
+- **Master Data**: Shared reference data at `/masterdata`.
+- **Templates**: Document templates (AsciiDoc/PDF) at `/templates`.
+- **Translations**: Manage UI translations at `/translations`.
+- **UI Builder**: Custom UI composition at `/ui-builder`.
+- **Companies** and **Users**: Administration of organizations and people.
+- **Settings**: Profile and system preferences.
+
+== Common Interaction Patterns
+- **Filtering & sorting**: Many tables expose drop-down filters or clickable headers. Apply filters before creating exports or reports.
+- **Create/Edit**: Actions usually open a modal dialog with required fields marked by `*`. Save/Cancel buttons sit at the bottom right of the modal.
+- **Delete**: Destructive actions prompt for confirmation.
+- **Status chips**: Colored labels communicate lifecycle state (e.g., draft/pending/posted). Hover for tooltips where present.
+- **Service availability**: If a backend service is offline, a yellow warning card appears and the feature is read-only until services return.
+
+== Tips
+- Prefer the sidebar for navigation; browser back/forward also works because routes are client-side.
+- When you change language or theme, the choice persists across pages in the same session.
+- If data looks stale, use page-level refresh controls or revisit the route; some views poll automatically (e.g., chart of accounts every 10s).
