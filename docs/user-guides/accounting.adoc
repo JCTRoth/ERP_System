@@ -53,6 +53,13 @@ This guide explains how the Accounting workspace at `/accounting` works. It is o
 - **List & Detail**: Select a row to open the side panel showing entry metadata, lines (account number/name, DR/CR amounts), and totals. A green "Balanced" indicator appears when debits equal credits.
 - **Actions**: A Create button is present but creation/editing is not wired yet; posted data is read-only from the service.
 
+== Bookings Tab
+- **Purpose**: Read-only log of all journal bookings (same data source as Journal Entries) with quick filters.
+- **Filters**: Date range, Status (Draft/Pending/Posted/Reversed), and Type (Standard/Adjusting/Closing/Reversing/Recurring). Defaults to last 30 days.
+- **List**: Shows Entry #, Date, Type, Status, Reference, Description (with a peek at first lines), and totals for Debit/Credit.
+- **Details**: Selecting a row reveals full line items with DR/CR amounts and account numbers.
+- **Export**: Use **Export CSV** to download the current filtered view. No create/edit/delete in this tab.
+
 == Reports Tab
 - **Purpose**: Generate financial statements.
 - **Report picker**: Buttons for Balance Sheet, Income Statement, Trial Balance, Cash Flow, Aging. Balance Sheet and Income Statement currently fetch data; others are placeholders.
