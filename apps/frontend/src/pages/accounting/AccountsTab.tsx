@@ -290,7 +290,8 @@ export default function AccountsTab() {
                     {accountsByType[type].map((account: Account) => (
                       <div
                         key={account.id}
-                        className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                        onClick={() => handleEditAccount(account)}
                       >
                         <div className="flex items-center gap-4">
                           <span className="w-20 font-mono text-sm text-gray-500">
@@ -324,7 +325,10 @@ export default function AccountsTab() {
                             {t(`accounting.category.${account.category.toLowerCase()}`)}
                           </p>
                           <button
-                            onClick={() => handleEditAccount(account)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditAccount(account);
+                            }}
                             className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                             title={t('common.edit')}
                           >
