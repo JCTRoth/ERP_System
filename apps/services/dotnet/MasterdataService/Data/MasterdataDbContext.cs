@@ -171,6 +171,11 @@ public class MasterdataDbContext : DbContext
             entity.HasIndex(e => e.Code).IsUnique();
         });
 
+        if (Environment.GetEnvironmentVariable("ENABLE_MASTERDATA_MODEL_SEEDING") != "true")
+        {
+            return;
+        }
+
         // Seed default currencies
         modelBuilder.Entity<Currency>().HasData(
             new Currency { Id = Guid.NewGuid(), Code = "USD", Name = "US Dollar", Symbol = "$", DecimalPlaces = 2, ExchangeRate = 1, IsBaseCurrency = true, IsActive = true, CreatedAt = DateTime.UtcNow },

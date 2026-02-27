@@ -152,8 +152,10 @@ export const shopApolloClient = new ApolloClient({
   queryDeduplication: false,
   assumeImmutableResults: false,
   // Prevent Apollo DevTools from introspecting this client
-  name: 'ShopClient',
-  version: '1.0',
+  clientAwareness: {
+    name: 'ShopClient',
+    version: '1.0',
+  },
 });
 
 export const apolloClient = new ApolloClient({
@@ -185,6 +187,10 @@ export const apolloClient = new ApolloClient({
     query: {
       fetchPolicy: 'no-cache', // Force network requests to bypass cache
     },
+  },
+  clientAwareness: {
+    name: 'WebApp',
+    version: '1.0',
   },
 });
 
