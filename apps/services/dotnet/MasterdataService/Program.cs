@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Prometheus;
-using MasterdataService.Services;
 using Models = MasterdataService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
