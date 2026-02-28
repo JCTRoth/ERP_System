@@ -690,6 +690,32 @@
   "users.role": "Rolle",
   "users.subtitle": "Verwalten Sie Systembenutzer und deren Berechtigungen",
   "users.title": "Benutzer",
-  "users.user": "Benutzer"
+  "users.user": "Benutzer",
+
+  "settings.shortcuts": "Tastenkürzel",
+  "shortcuts.title": "Tastenkürzel",
+  "shortcuts.settingsDescription": "Verwenden Sie diese Tastenkürzel, um effizienter in der Anwendung zu navigieren und zu interagieren. Drücken Sie jederzeit ?, um die Tastenkürzel-Hilfe anzuzeigen.",
+  "shortcuts.settingsTip": "Einzeltasten-Kürzel (N, R, /) funktionieren nur, wenn kein Textfeld fokussiert ist und kein Dialog geöffnet ist. Navigationskürzel (Alt+Taste) funktionieren jederzeit.",
+  "shortcuts.tipLabel": "Tipp",
+  "shortcuts.tip": "Drücken Sie ? um dieses Fenster ein-/auszublenden",
+  "shortcuts.category.global": "Global",
+  "shortcuts.category.navigation": "Navigation",
+  "shortcuts.category.actions": "Seitenaktionen",
+  "shortcuts.category.modal": "Dialoge & Formulare",
+  "shortcuts.showHelp": "Tastenkürzel anzeigen",
+  "shortcuts.closeModal": "Dialog schließen / Fokus aufheben",
+  "shortcuts.focusSearch": "Suchfeld fokussieren",
+  "shortcuts.goSettings": "Zu Einstellungen wechseln",
+  "shortcuts.navDashboard": "Zum Dashboard",
+  "shortcuts.navProducts": "Zu Produkte",
+  "shortcuts.navOrders": "Zu Bestellungen",
+  "shortcuts.navAccounting": "Zur Buchhaltung",
+  "shortcuts.navMasterdata": "Zu Stammdaten",
+  "shortcuts.navTemplates": "Zu Vorlagen",
+  "shortcuts.navUsers": "Zu Benutzer",
+  "shortcuts.navCompanies": "Zu Firmen",
+  "shortcuts.createNew": "Neuen Eintrag erstellen",
+  "shortcuts.refresh": "Aktuelle Daten aktualisieren",
+  "shortcuts.saveForm": "Formular speichern / absenden"
 }
 

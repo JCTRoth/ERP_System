@@ -3,6 +3,7 @@ import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import TemplateVariablesPanel from './TemplateVariablesPanel';
 import { useTemplateVariables } from '../../hooks/useTemplateVariables';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface Template {
   id: string;
@@ -30,6 +31,7 @@ export default function TemplateEditorModal({
   onSave,
 }: TemplateEditorModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const [formData, setFormData] = useState({
     name: '',
     key: '',

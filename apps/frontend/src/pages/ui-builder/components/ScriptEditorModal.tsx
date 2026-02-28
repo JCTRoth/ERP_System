@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { XMarkIcon, PlayIcon } from '@heroicons/react/24/outline';
+import { useEscapeKey } from '../../../hooks/useEscapeKey';
 
 interface ScriptEditorModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function ScriptEditorModal({
   script,
   onSave,
 }: ScriptEditorModalProps) {
+  useEscapeKey(onClose, isOpen);
   const [code, setCode] = useState(script || '');
   const [testOutput, setTestOutput] = useState<string>('');
   const [testError, setTestError] = useState<string>('');

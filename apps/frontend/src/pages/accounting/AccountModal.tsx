@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface Account {
   id: string;
@@ -25,6 +26,7 @@ interface AccountModalProps {
 
 export function AccountModal({ isOpen, mode, account, onClose, onSave }: AccountModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose, isOpen);
   const [formData, setFormData] = useState({
     accountNumber: '',
     name: '',
@@ -64,7 +66,29 @@ export function AccountModal({ isOpen, mode, account, onClose, onSave }: Account
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (mode === 'edit' && account) {
+      // UpdateAccountInput only accepts: id, name, description, category, parentAccountId, isActive
+      onSave({
+        id: account.id,
+        name: formData.name,
+        description: formData.description || null,
+        category: formData.category,
+        parentAccountId: formData.parentAccountId || null,
+        isActive: formData.isActive,
+      });
+    } else {
+      // CreateAccountInput: accountNumber, name, description, type, category, parentAccountId, currency, isActive
+      onSave({
+        accountNumber: formData.accountNumber,
+        name: formData.name,
+        description: formData.description || null,
+        type: formData.type,
+        category: formData.category,
+        parentAccountId: formData.parentAccountId || null,
+        currency: formData.currency,
+        isActive: formData.isActive,
+      });
+    }
   };
 
   const handleInputChange = (field: string, value: any) => {

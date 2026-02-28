@@ -1,0 +1,155 @@
+= Keyboard Shortcuts Guide
+:toc:
+:toclevels: 2
+:icons: font
+
+This guide documents all keyboard shortcuts available in the ERP System. Shortcuts help you navigate the application, perform actions, and interact with dialogs without reaching for the mouse.
+
+== Quick Reference
+
+Press **?** at any time to open the on-screen keyboard shortcuts help overlay. Press **?** or **Escape** again to dismiss it.
+
+== Where Shortcuts Work
+
+* **Single-key shortcuts** (such as `N`, `R`, `/`, `?`) only activate when no text field, dropdown, or editable element has focus. Start typing in a field and they are automatically suppressed so you can type normally.
+* **Modified shortcuts** (`Alt+…`, `Ctrl+…`) work regardless of focus state because the modifier key signals an intentional shortcut action.
+* **Page-level action shortcuts** (`N`, `R`) are suppressed when a modal dialog is open to prevent unexpected background actions.
+* **Escape** works inside modals and dialogs to close them. Every modal in the application supports closing with Escape.
+
+== Global Shortcuts
+
+[cols="1,3", options="header"]
+|===
+| Key | Action
+
+| `?`
+| Toggle the keyboard shortcuts help overlay.
+
+| `Escape`
+| Close the currently open modal, dialog, or overlay. Also removes focus from the active element.
+
+| `/`
+| Move focus to the search / filter input on the current page (if present).
+
+| `Ctrl+,`
+| Navigate to the Settings page.
+|===
+
+== Navigation Shortcuts
+
+All navigation shortcuts use the `Alt` modifier combined with a letter key. They work from any page, including when a text field is focused.
+
+[cols="1,3", options="header"]
+|===
+| Key | Destination
+
+| `Alt+H`
+| Dashboard (Home)
+
+| `Alt+P`
+| Products
+
+| `Alt+O`
+| Orders
+
+| `Alt+A`
+| Accounting
+
+| `Alt+M`
+| Master Data
+
+| `Alt+T`
+| Templates
+
+| `Alt+U`
+| Users
+
+| `Alt+C`
+| Companies
+|===
+
+TIP: The mnemonic letters match the first letter of each module (**H**ome, **P**roducts, **O**rders, **A**ccounting, **M**aster Data, **T**emplates, **U**sers, **C**ompanies).
+
+== Page Action Shortcuts
+
+These shortcuts trigger common actions on the current page. They are disabled when a text input is focused or a modal dialog is open.
+
+[cols="1,3", options="header"]
+|===
+| Key | Action
+
+| `N`
+| Click the primary "Create" / "New" button on the current page (e.g., Create Product, New Order).
+
+| `R`
+| Click the refresh button to reload the current page's data.
+|===
+
+To make a page's create button respond to `N`, the button should either:
+
+* have the CSS class `btn-primary`, or
+* carry the attribute `data-shortcut-create`.
+
+Similarly, a refresh button should carry the attribute `data-shortcut-refresh`.
+
+== Modal & Form Shortcuts
+
+[cols="1,3", options="header"]
+|===
+| Key | Action
+
+| `Escape`
+| Close the currently open modal or dialog without saving.
+
+| `Ctrl+Enter`
+| Submit / save the form in the currently open modal. This clicks the primary submit button so you can confirm without moving the mouse.
+|===
+
+== Settings Tab
+
+A dedicated **Shortcuts** tab is available in the Settings page (`/settings`). It displays the same information as this guide in a formatted table, grouped by category, directly inside the application. Open it via sidebar → Settings → Shortcuts tab, or press `Ctrl+,` and select the Shortcuts tab.
+
+== Technical Notes for Developers
+
+=== Adding Escape Support to a New Modal
+
+All modals should support closing with `Escape`. Import and call the `useEscapeKey` hook:
+
+[source,typescript]
+----
+import { useEscapeKey } from '../../hooks/useEscapeKey';
+
+// Pattern A – modal is conditionally rendered by its parent:
+useEscapeKey(onClose);
+
+// Pattern B – modal manages its own visibility with an isOpen prop:
+useEscapeKey(onClose, isOpen);
+----
+
+=== Registering New Shortcuts
+
+All shortcuts are defined in `hooks/keyboardShortcuts.ts`. To add a new shortcut:
+
+1. Add a `KeyboardShortcut` entry to the `KEYBOARD_SHORTCUTS` array with a unique `id`, the `keys` string, an `i18nKey` for the translated label, a fallback `description`, and the `category`.
+2. Implement the handler in `components/KeyboardShortcutsProvider.tsx` inside the `handleKeyDown` function.
+3. Add the translation key to all four locale files (`en.json`, `de.json`, `fr.json`, `ru.json`).
+
+=== Data Attributes
+
+The global shortcut handler looks for specific elements on the page using CSS selectors and data attributes:
+
+* `data-shortcut-search` — marks the search input for `/` focus.
+* `data-shortcut-create` — marks the create button for `N` activation.
+* `data-shortcut-refresh` — marks the refresh button for `R` activation.
+* `.btn-primary` — fallback selector for the create button when `data-shortcut-create` is not present.
+
+=== Architecture
+
+The shortcut system consists of four parts:
+
+1. **`hooks/useEscapeKey.ts`** — Lightweight hook that attaches and removes a `keydown` listener for `Escape`.
+2. **`hooks/keyboardShortcuts.ts`** — Central registry of all shortcut metadata used by both the help overlay and the settings tab.
+3. **`components/KeyboardShortcutsProvider.tsx`** — React context provider that listens for keyboard events globally and dispatches actions (navigate, focus, click).
+4. **`components/KeyboardShortcutsHelp.tsx`** — Floating overlay that renders the shortcut reference, toggled with `?`.
+
+The provider is mounted in `main.tsx` inside `BrowserRouter` so it has access to React Router's `useNavigate` and `useLocation`.

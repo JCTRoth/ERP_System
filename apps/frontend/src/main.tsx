@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { ApolloProvider } from '@apollo/client';
 import { apolloClient } from './lib/apollo';
 import { I18nProvider } from './providers/I18nProvider';
+import KeyboardShortcutsProvider from './components/KeyboardShortcutsProvider';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles/index.css';
@@ -14,7 +15,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ApolloProvider client={apolloClient}>
         <I18nProvider>
           <BrowserRouter>
-            <App />
+            <KeyboardShortcutsProvider>
+              <App />
+            </KeyboardShortcutsProvider>
           </BrowserRouter>
         </I18nProvider>
       </ApolloProvider>

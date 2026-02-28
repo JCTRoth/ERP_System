@@ -3,6 +3,7 @@ import { useI18n } from '../../providers/I18nProvider';
 import type { Template as ApiTemplate } from '../../lib/api/templates';
 import { useTemplatePreview } from '../../hooks/useTemplatePreview';
 import { buildTemplateContext } from '../../lib/templateUtils';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import * as templatesApi from '../../lib/api/templates';
 
 interface TemplatePreviewModalProps {
@@ -15,6 +16,7 @@ export default function TemplatePreviewModal({
   onClose,
 }: TemplatePreviewModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const { state, updateSelection } = useTemplatePreview(template);
 
   return (

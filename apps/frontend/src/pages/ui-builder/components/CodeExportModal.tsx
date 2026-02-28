@@ -3,6 +3,7 @@ import { XMarkIcon, ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline
 import { UIComponent } from '../types';
 import { generateReactFromRows } from '../utils';
 import { useI18n } from '../../../providers/I18nProvider';
+import { useEscapeKey } from '../../../hooks/useEscapeKey';
 
 interface CodeExportModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ type ExportFormat = 'react' | 'json';
 
 export default function CodeExportModal({ isOpen, onClose, rows }: CodeExportModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose, isOpen);
   const [format, setFormat] = useState<ExportFormat>('react');
   const [copied, setCopied] = useState(false);
 

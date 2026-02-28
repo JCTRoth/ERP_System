@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../../providers/I18nProvider';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const CREATE_USER = gql`
   mutation Register($email: String!, $password: String!, $firstName: String!, $lastName: String!, $preferredLanguage: String) {
@@ -41,6 +42,7 @@ interface Props {
 
 export default function UserModal({ user, onClose }: Props) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const isEditing = !!user;
 
   const [formData, setFormData] = useState({

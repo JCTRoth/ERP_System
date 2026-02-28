@@ -3,6 +3,7 @@ import { useQuery, useMutation, gql } from '@apollo/client';
 import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { apolloClient } from '../../lib/apollo';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 // Helper function to format UUID with dashes
 const formatUUID = (uuid: string): string => {
@@ -153,6 +154,7 @@ const ORDER_STATUS_COLORS: Record<string, string> = {
 
 export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const [editingAddresses, setEditingAddresses] = useState(false);
   const [shippingAddress, setShippingAddress] = useState({
     street: '',

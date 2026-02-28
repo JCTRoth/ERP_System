@@ -8,9 +8,11 @@ import {
   ServerIcon,
   UserIcon,
   ChartBarIcon,
+  CommandLineIcon,
 } from '@heroicons/react/24/outline';
+import { KEYBOARD_SHORTCUTS, SHORTCUT_CATEGORIES } from '@/hooks/keyboardShortcuts';
 
-type SettingsTab = 'general' | 'developer' | 'interface' | 'monitoring' | 'smtpServer' | 'account';
+type SettingsTab = 'general' | 'developer' | 'interface' | 'monitoring' | 'smtpServer' | 'account' | 'shortcuts';
 
 export default function SettingsPage() {
   const { t, language, setLanguage } = useI18n();
@@ -204,6 +206,7 @@ export default function SettingsPage() {
     { id: 'interface' as const, label: t('settings.interface') || 'Interfaces', icon: ServerIcon },
     { id: 'monitoring' as const, label: 'Monitoring', icon: ChartBarIcon },
     { id: 'smtpServer' as const, label: t('settings.smtpServer') || 'SMTP Server', icon: ServerIcon },
+    { id: 'shortcuts' as const, label: t('settings.shortcuts') || 'Shortcuts', icon: CommandLineIcon },
     { id: 'account' as const, label: t('settings.account') || 'Account', icon: UserIcon },
   ];
 
@@ -722,6 +725,70 @@ export default function SettingsPage() {
                 <span className="text-gray-600 dark:text-gray-400">{t('users.role') || 'Role'}</span>
                 <span className="capitalize">{user?.role || 'user'}</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Shortcuts Tab */}
+        {activeTab === 'shortcuts' && (
+          <div className="card p-6">
+            <h2 className="mb-4 text-lg font-semibold">{t('settings.shortcuts') || 'Keyboard Shortcuts'}</h2>
+            <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+              {t('shortcuts.settingsDescription') || 'Use these keyboard shortcuts to navigate and interact with the application more efficiently. Press ? at any time to open the shortcut help overlay.'}
+            </p>
+
+            <div className="space-y-8">
+              {SHORTCUT_CATEGORIES.map((category) => {
+                const shortcuts = KEYBOARD_SHORTCUTS.filter(
+                  (s) => s.category === category.id
+                );
+                if (shortcuts.length === 0) return null;
+
+                return (
+                  <div key={category.id}>
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      {t(category.i18nKey) || category.label}
+                    </h3>
+                    <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                      <table className="w-full">
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {shortcuts.map((shortcut) => (
+                            <tr
+                              key={shortcut.id}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                            >
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                {t(shortcut.i18nKey) || shortcut.description}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  {shortcut.keys.split('+').map((part, i) => (
+                                    <span key={i} className="inline-flex items-center">
+                                      {i > 0 && (
+                                        <span className="mx-0.5 text-gray-400">+</span>
+                                      )}
+                                      <kbd className="inline-flex min-w-[1.75rem] items-center justify-center rounded border border-gray-300 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                        {part}
+                                      </kbd>
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>{t('shortcuts.tipLabel') || 'Tip'}:</strong>{' '}
+                {t('shortcuts.settingsTip') || 'Single-key shortcuts (N, R, /) only work when no text input is focused and no modal is open. Navigation shortcuts (Alt+key) work at any time.'}
+              </p>
             </div>
           </div>
         )}

@@ -36,6 +36,20 @@
 - **Status chips**: Colored labels communicate lifecycle state (e.g., draft/pending/posted). Hover for tooltips where present.
 - **Service availability**: If a backend service is offline, a yellow warning card appears and the feature is read-only until services return.
 
+== Keyboard Shortcuts
+The application supports keyboard shortcuts for fast navigation, page actions, and modal handling.
+Press **?** at any time to open the shortcuts help overlay.
+
+Key highlights:
+
+- **Escape** closes any open modal or dialog.
+- **/** focuses the search input on the current page.
+- **N** clicks the primary create button, **R** refreshes data.
+- **Alt+H/P/O/A/M/T/U/C** navigates directly to Dashboard, Products, Orders, Accounting, Master Data, Templates, Users, or Companies.
+- **Ctrl+,** opens Settings; **Ctrl+Enter** submits the current modal form.
+
+A full reference is available in the **Shortcuts** tab under Settings, or in the separate link:keyboard-shortcuts.adoc[Keyboard Shortcuts Guide].
+
 == Tips
 - Prefer the sidebar for navigation; browser back/forward also works because routes are client-side.
 - When you change language or theme, the choice persists across pages in the same session.

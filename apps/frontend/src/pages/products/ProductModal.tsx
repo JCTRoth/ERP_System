@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const CREATE_PRODUCT = gql`
   mutation CreateProduct($input: CreateProductInput!) {
@@ -66,6 +67,7 @@ interface ProductModalProps {
 
 export default function ProductModal({ product, onClose }: ProductModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const isEditing = !!product;
 
   const [formData, setFormData] = useState({

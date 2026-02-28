@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const CREATE_CUSTOMER = gql`
   mutation CreateCustomer($input: CreateCustomerInput!) {
@@ -44,6 +45,7 @@ interface CustomerModalProps {
 
 export default function CustomerModal({ customer, onClose }: CustomerModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const isEditing = !!customer;
 
   const [formData, setFormData] = useState({

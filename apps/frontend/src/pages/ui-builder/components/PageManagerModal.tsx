@@ -7,6 +7,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useUIBuilderStore, UIPage } from '../../../stores/uiBuilderStore';
 import { useI18n } from '../../../providers/I18nProvider';
+import { useEscapeKey } from '../../../hooks/useEscapeKey';
 
 interface PageManagerModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface PageManagerModalProps {
 
 export default function PageManagerModal({ isOpen, onClose, onSelectPage }: PageManagerModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose, isOpen);
   const {
     pages,
     currentPageId,
