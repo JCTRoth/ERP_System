@@ -46,7 +46,7 @@ export default function TemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<SelectedTemplate | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<SelectedTemplate | null>(null);
 
-  const companyId = currentCompanyId || '1';
+  const companyId = currentCompanyId || '';
 
   // Fetch templates
   useEffect(() => {

@@ -12,7 +12,7 @@ public class ShopDbContext : DbContext
     /// Well-known demo company ID used for seed data.
     /// Must match the company created in CompanyService.
     /// </summary>
-    public static readonly Guid DemoCompanyId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    public static readonly Guid DemoCompanyId = Guid.Parse("ae161374-7185-4aa5-97f4-bcb35cf0ae19");
 
     public ShopDbContext(DbContextOptions<ShopDbContext> options, ICompanyContext companyContext) : base(options)
     {
