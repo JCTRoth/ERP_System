@@ -198,6 +198,7 @@ const availableVariables = {
 // Load templates from files and seed database
 async function loadTemplatesFromFiles() {
   const templatesDir = path.join(__dirname, 'templates');
+  const defaultCompanyId = process.env.DEFAULT_COMPANY_ID || '1';
 
   if (!fs.existsSync(templatesDir)) {
     console.log('Templates directory not found');
@@ -262,7 +263,7 @@ async function loadTemplatesFromFiles() {
          ON CONFLICT (key, company_id) DO UPDATE SET content = EXCLUDED.content, send_email = EXCLUDED.send_email, updated_at = EXCLUDED.updated_at`,
         [
           id,
-          '1',
+          defaultCompanyId,
           key,
           name,
           content,

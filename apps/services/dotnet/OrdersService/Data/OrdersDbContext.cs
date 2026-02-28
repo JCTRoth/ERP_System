@@ -8,7 +8,7 @@ public class OrdersDbContext : DbContext
 {
     private readonly Guid? _companyId;
 
-    public static readonly Guid DemoCompanyId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    public static readonly Guid DemoCompanyId = Guid.Parse("ae161374-7185-4aa5-97f4-bcb35cf0ae19");
 
     public OrdersDbContext(DbContextOptions<OrdersDbContext> options, ICompanyContext companyContext) : base(options)
     {

@@ -271,6 +271,7 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://erp_templates:postgres@postgres:5432/templatesdb
+      - DEFAULT_COMPANY_ID=ae161374-7185-4aa5-97f4-bcb35cf0ae19
     depends_on:
       - postgres
 
