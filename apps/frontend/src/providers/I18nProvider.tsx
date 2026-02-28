@@ -26,9 +26,21 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | null>(null);
 
+function getLanguageStorageKey(companyId?: string | null): string {
+  return companyId ? `erp-language:${companyId}` : 'erp-language';
+}
+
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+
   const [language, setLanguageState] = useState<Language>(() => {
+    const initialCompanyId = useAuthStore.getState().currentCompanyId;
+    const scopedStored = localStorage.getItem(getLanguageStorageKey(initialCompanyId));
+    if (scopedStored && SUPPORTED_LANGUAGES.includes(scopedStored as Language)) {
+      return scopedStored as Language;
+    }
+
     const stored = localStorage.getItem('erp-language');
     if (stored && SUPPORTED_LANGUAGES.includes(stored as Language)) {
       return stored as Language;
@@ -47,7 +59,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     });
     return initial;
   });
-  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  useEffect(() => {
+    const scopedStored = localStorage.getItem(getLanguageStorageKey(currentCompanyId));
+    if (scopedStored && SUPPORTED_LANGUAGES.includes(scopedStored as Language) && scopedStored !== language) {
+      setLanguageState(scopedStored as Language);
+    }
+  }, [currentCompanyId, language]);
 
   // Load local translations when language changes
   useEffect(() => {
@@ -102,6 +119,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
     
     setLanguageState(lang);
+    localStorage.setItem(getLanguageStorageKey(currentCompanyId), lang);
     localStorage.setItem('erp-language', lang);
     document.documentElement.lang = lang;
 
@@ -112,7 +130,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       // ignore if Apollo client not available
     }
-  }, []);
+  }, [currentCompanyId]);
 
   const refreshTranslations = useCallback(async () => {
     try {

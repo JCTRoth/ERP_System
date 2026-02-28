@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
+import { useUIStore } from './stores/uiStore';
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
 import LoginPage from './pages/auth/LoginPage';
@@ -44,6 +46,24 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  const setTheme = useUIStore((state) => state.setTheme);
+  const setShowTranslationKeys = useUIStore((state) => state.setShowTranslationKeys);
+
+  useEffect(() => {
+    const scope = currentCompanyId || 'global';
+
+    const scopedTheme = localStorage.getItem(`erp-ui-theme:${scope}`) as 'light' | 'dark' | 'system' | null;
+    if (scopedTheme && ['light', 'dark', 'system'].includes(scopedTheme)) {
+      setTheme(scopedTheme);
+    }
+
+    const scopedShowKeys = localStorage.getItem(`erp-ui-showTranslationKeys:${scope}`);
+    if (scopedShowKeys !== null) {
+      setShowTranslationKeys(scopedShowKeys === 'true');
+    }
+  }, [currentCompanyId, setTheme, setShowTranslationKeys]);
+
   return (
     <Routes>
       {/* Auth Routes */}

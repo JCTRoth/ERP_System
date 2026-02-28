@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -25,10 +26,11 @@ public class SmtpConfigurationController {
      * Returns database configuration if exists, otherwise returns configuration from environment variables
      */
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getConfiguration() {
+    public ResponseEntity<Map<String, Object>> getConfiguration(@RequestHeader(value = "X-Company-Id", required = false) String companyIdHeader) {
         try {
-            SmtpConfiguration dbConfig = smtpConfigurationService.getDatabaseConfiguration();
-            SmtpConfiguration effectiveConfig = smtpConfigurationService.getEffectiveConfiguration(null);
+            UUID companyId = parseCompanyId(companyIdHeader);
+            SmtpConfiguration dbConfig = smtpConfigurationService.getDatabaseConfiguration(companyId);
+            SmtpConfiguration effectiveConfig = smtpConfigurationService.getEffectiveConfiguration(companyId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("config", sanitizeConfiguration(effectiveConfig));
@@ -46,7 +48,10 @@ public class SmtpConfigurationController {
      * Save SMTP configuration
      */
     @PostMapping
-    public ResponseEntity<Map<String, Object>> saveConfiguration(@RequestBody SmtpConfiguration config) {
+    public ResponseEntity<Map<String, Object>> saveConfiguration(
+            @RequestBody SmtpConfiguration config,
+            @RequestHeader(value = "X-Company-Id", required = false) String companyIdHeader
+    ) {
         try {
             log.info("Saving SMTP configuration: host={}, port={}, username={}", 
                 config.getSmtpHost(), config.getSmtpPort(), config.getSmtpUsername());
@@ -62,8 +67,8 @@ public class SmtpConfigurationController {
                 throw new IllegalArgumentException("SMTP Port must be valid");
             }
             
-            // Set company ID to null for global configuration
-            config.setCompanyId(null);
+            UUID companyId = parseCompanyId(companyIdHeader);
+            config.setCompanyId(companyId);
             config.setIsActive(true);
             
             SmtpConfiguration saved = smtpConfigurationService.saveConfiguration(config);
@@ -192,5 +197,18 @@ public class SmtpConfigurationController {
         sanitized.setUpdatedAt(config.getUpdatedAt());
         
         return sanitized;
+    }
+
+    private UUID parseCompanyId(String companyIdHeader) {
+        if (companyIdHeader == null || companyIdHeader.isBlank()) {
+            return null;
+        }
+
+        try {
+            return UUID.fromString(companyIdHeader);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Invalid X-Company-Id header '{}', falling back to global config", companyIdHeader);
+            return null;
+        }
     }
 }

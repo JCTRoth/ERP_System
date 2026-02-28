@@ -69,7 +69,14 @@ public class SmtpConfigurationService {
     /**
      * Get configuration from database or null if using environment variables
      */
-    public SmtpConfiguration getDatabaseConfiguration() {
+    public SmtpConfiguration getDatabaseConfiguration(UUID companyId) {
+        if (companyId != null) {
+            Optional<SmtpConfiguration> companyConfig = smtpConfigurationRepository.findByCompanyIdAndIsActiveTrue(companyId);
+            if (companyConfig.isPresent()) {
+                return companyConfig.get();
+            }
+        }
+
         return smtpConfigurationRepository.findGlobalConfiguration().orElse(null);
     }
     
@@ -84,9 +91,16 @@ public class SmtpConfigurationService {
             log.info("Updating SMTP configuration with ID: {}", config.getId());
         }
         
-        // Ensure only one global configuration is active
+        // Ensure only one active configuration per scope (global or specific company)
         if (config.getCompanyId() == null) {
             smtpConfigurationRepository.findGlobalConfiguration().ifPresent(existingConfig -> {
+                if (!existingConfig.getId().equals(config.getId())) {
+                    existingConfig.setIsActive(false);
+                    smtpConfigurationRepository.save(existingConfig);
+                }
+            });
+        } else {
+            smtpConfigurationRepository.findByCompanyIdAndIsActiveTrue(config.getCompanyId()).ifPresent(existingConfig -> {
                 if (!existingConfig.getId().equals(config.getId())) {
                     existingConfig.setIsActive(false);
                     smtpConfigurationRepository.save(existingConfig);

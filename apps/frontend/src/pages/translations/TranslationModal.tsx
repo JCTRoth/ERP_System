@@ -15,8 +15,8 @@ const CREATE_TRANSLATION_KEY = gql`
 `;
 
 const UPDATE_TRANSLATION = gql`
-  mutation UpdateTranslation($keyId: ID!, $language: String!, $valueText: String!) {
-    setTranslation(input: { keyId: $keyId, language: $language, valueText: $valueText }) {
+  mutation UpdateTranslation($keyId: ID!, $language: String!, $valueText: String!, $companyId: ID) {
+    setTranslation(input: { keyId: $keyId, language: $language, valueText: $valueText, companyId: $companyId }) {
       id
       valueText
     }
@@ -37,11 +37,12 @@ interface TranslationKey {
 
 interface Props {
   translationKey: TranslationKey | null;
+  companyId?: string | null;
   onSaved?: () => Promise<void> | void;
   onClose: () => void;
 }
 
-export default function TranslationModal({ translationKey, onSaved, onClose }: Props) {
+export default function TranslationModal({ translationKey, companyId, onSaved, onClose }: Props) {
   const { t } = useI18n();
   useEscapeKey(onClose);
   const isEditing = !!translationKey;
@@ -73,6 +74,7 @@ export default function TranslationModal({ translationKey, onSaved, onClose }: P
               keyId: translationKey.id,
               language: lang,
               valueText: values[lang],
+              companyId,
             },
           });
         }
@@ -97,6 +99,7 @@ export default function TranslationModal({ translationKey, onSaved, onClose }: P
               keyId: newKeyId,
               language: lang,
               valueText: values[lang],
+              companyId,
             },
           });
         }
