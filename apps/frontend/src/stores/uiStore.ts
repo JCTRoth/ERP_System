@@ -11,6 +11,7 @@ interface UIState {
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   setTheme: (theme: Theme) => void;
+  setShowTranslationKeys: (value: boolean) => void;
   toggleTranslationKeys: () => void;
 }
 
@@ -32,6 +33,10 @@ export const useUIStore = create<UIState>()(
       setTheme: (theme) => {
         set({ theme });
         applyTheme(theme);
+      },
+
+      setShowTranslationKeys: (value) => {
+        set({ showTranslationKeys: value });
       },
 
       toggleTranslationKeys: () => {

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { PlusIcon, PencilIcon, ArrowDownTrayIcon, ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../../providers/I18nProvider';
+import { useUIStore } from '../../stores/uiStore';
+import { useAuthStore } from '../../stores/authStore';
 import TranslationModal from './TranslationModal';
 
 const GET_TRANSLATION_KEYS = gql`
@@ -13,6 +15,7 @@ const GET_TRANSLATION_KEYS = gql`
       values {
         language
         valueText
+        companyId
       }
     }
   }
@@ -21,6 +24,7 @@ const GET_TRANSLATION_KEYS = gql`
 interface TranslationValue {
   language: string;
   valueText: string;
+  companyId?: string | null;
 }
 
 interface TranslationKey {
@@ -32,6 +36,8 @@ interface TranslationKey {
 
 export default function TranslationsPage() {
   const { t, language, refreshTranslations } = useI18n();
+  const showTranslationKeys = useUIStore((state) => state.showTranslationKeys);
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<TranslationKey | null>(null);
   const [filterNamespace, setFilterNamespace] = useState<string>('');
@@ -68,11 +74,26 @@ export default function TranslationsPage() {
   // Filter translations
   const filteredKeys = data?.translationKeys?.filter((tk: TranslationKey) => {
     const matchesNamespace = !filterNamespace || tk.namespace === filterNamespace;
+    const fullKey = `${tk.namespace}.${tk.keyName}`.toLowerCase();
     const matchesSearch = !searchTerm || 
+      tk.namespace.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tk.keyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fullKey.includes(searchTerm.toLowerCase()) ||
       tk.values.some(v => v.valueText.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesNamespace && matchesSearch;
   }) || [];
+
+  const getEffectiveValue = (tk: TranslationKey, lang: string): string | undefined => {
+    if (currentCompanyId) {
+      const companyValue = tk.values.find(v => v.language === lang && v.companyId === currentCompanyId);
+      if (companyValue?.valueText) {
+        return companyValue.valueText;
+      }
+    }
+
+    const defaultValue = tk.values.find(v => v.language === lang && (v.companyId === null || v.companyId === undefined));
+    return defaultValue?.valueText;
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -136,6 +157,15 @@ export default function TranslationsPage() {
         </p>
       </div>
 
+      {showTranslationKeys && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            <span className="font-semibold">Key display mode is active.</span>{' '}
+            The UI intentionally shows translation keys (like <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs dark:bg-amber-900/50">nav.templates</code>) instead of translated text.
+          </p>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden flex-1 min-h-0">
         <div className="overflow-x-auto h-full">
@@ -185,7 +215,7 @@ export default function TranslationsPage() {
                   <tr key={tk.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="whitespace-nowrap px-6 py-4 font-mono text-sm">
                       <div className="flex items-center gap-2">
-                        <span>{tk.keyName}</span>
+                        <span>{fullKey}</span>
                         <CopyRefButton refKey={fullKey} />
                       </div>
                     </td>
@@ -193,10 +223,10 @@ export default function TranslationsPage() {
                       {tk.namespace}
                     </td>
                     {SUPPORTED_LANGUAGES.map((lang) => {
-                      const value = tk.values.find(v => v.language === lang);
+                      const valueText = getEffectiveValue(tk, lang);
                       return (
                         <td key={lang} className="max-w-xs truncate px-6 py-4">
-                          {value?.valueText || (
+                          {valueText || (
                             <span className="text-gray-400 italic">
                               {t('translations.missing')}
                             </span>
@@ -225,6 +255,7 @@ export default function TranslationsPage() {
       {isModalOpen && (
         <TranslationModal
           translationKey={editingKey}
+          companyId={currentCompanyId}
           onSaved={handleModalSaved}
           onClose={handleModalClose}
         />

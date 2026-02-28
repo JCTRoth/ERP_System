@@ -19,9 +19,10 @@ export default function SettingsPage() {
   const theme = useUIStore((state) => state.theme);
   const setTheme = useUIStore((state) => state.setTheme);
   const showTranslationKeys = useUIStore((state) => state.showTranslationKeys);
-  const toggleTranslationKeys = useUIStore((state) => state.toggleTranslationKeys);
+  const setShowTranslationKeys = useUIStore((state) => state.setShowTranslationKeys);
   const user = useAuthStore((state) => state.user);
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
   
   // Use current window location to construct dynamic URLs for API interfaces
   // This ensures the links work regardless of the domain (localhost, shopping-now.net, etc.)
@@ -42,6 +43,23 @@ export default function SettingsPage() {
   const [smtpLoading, setSmtpLoading] = useState(false);
   const [smtpMessage, setSmtpMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [testEmailAddress, setTestEmailAddress] = useState('');
+  const settingScope = currentCompanyId || 'global';
+
+  const handleThemeChange = (themeOption: 'light' | 'dark' | 'system') => {
+    setTheme(themeOption);
+    localStorage.setItem(`erp-ui-theme:${settingScope}`, themeOption);
+  };
+
+  const handleTranslationKeysToggle = () => {
+    const nextValue = !showTranslationKeys;
+    setShowTranslationKeys(nextValue);
+    localStorage.setItem(`erp-ui-showTranslationKeys:${settingScope}`, String(nextValue));
+  };
+
+  const smtpHeaders = {
+    'Content-Type': 'application/json',
+    ...(currentCompanyId ? { 'X-Company-Id': currentCompanyId } : {}),
+  };
 
   // Load SMTP configuration when SMTP tab is selected
   useEffect(() => {
@@ -53,7 +71,9 @@ export default function SettingsPage() {
     try {
       console.log('Loading SMTP configuration from API...');
       setSmtpLoading(true);
-      const response = await fetch('/api/smtp-configuration');
+      const response = await fetch('/api/smtp-configuration', {
+        headers: smtpHeaders,
+      });
       const data = await response.json();
       console.log('SMTP API response:', data);
       
@@ -91,7 +111,7 @@ export default function SettingsPage() {
       
       const response = await fetch('/api/smtp-configuration', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: smtpHeaders,
         body: JSON.stringify(smtpConfig),
       });
       
@@ -123,7 +143,7 @@ export default function SettingsPage() {
       
       const response = await fetch('/api/smtp-configuration/test', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: smtpHeaders,
         body: JSON.stringify(smtpConfig),
       });
       
@@ -167,7 +187,7 @@ export default function SettingsPage() {
 
       const response = await fetch('/api/smtp-configuration/test-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: smtpHeaders,
         body: JSON.stringify(requestBody),
       });
 
@@ -255,7 +275,7 @@ export default function SettingsPage() {
                     {(['light', 'dark', 'system'] as const).map((themeOption) => (
                       <button
                         key={themeOption}
-                        onClick={() => setTheme(themeOption)}
+                        onClick={() => handleThemeChange(themeOption)}
                         className={`rounded-md px-4 py-2 ${
                           theme === themeOption
                             ? 'bg-primary-600 text-white'
@@ -305,7 +325,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <button
-                  onClick={toggleTranslationKeys}
+                  onClick={handleTranslationKeysToggle}
                   className={`relative h-6 w-11 rounded-full transition-colors ${
                     showTranslationKeys ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'
                   }`}
