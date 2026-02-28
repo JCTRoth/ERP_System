@@ -198,6 +198,26 @@ query GetOrder($id: ID!) {
 
 ### Accounting
 
+#### Frontend Interface (Tab Order)
+
+Accounting page tab order in the frontend is:
+
+1. Invoices
+2. Payments
+3. Bookings
+4. Chart of Accounts
+
+All operations go through the gateway endpoint:
+
+- `POST http://localhost:4000/graphql`
+
+Tab-to-GraphQL mapping:
+
+- **Invoices**: `invoices(first:, where:, order:)`
+- **Payments**: `invoices(...)`, `accounts(...)`, payment mutations (`recordPayment`)
+- **Bookings**: `journalEntries(first:, where:, order:)`
+- **Chart of Accounts**: `accounts(where:, order:)`, account mutations (`createAccount`, `updateAccount`)
+
 ```graphql
 # Get accounts (Chart of Accounts)
 query GetAccounts($where: AccountFilterInput) {
