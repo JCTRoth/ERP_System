@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Prometheus;
+using OrdersService.Services;
 using Models = OrdersService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,10 @@ builder.Services.AddDbContext<OrdersDbContext>(options =>
 // Add Services
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderItemService, OrderItemService>();
+
+// Multi-tenancy
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICompanyContext, CompanyContext>();
 
 // Add Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

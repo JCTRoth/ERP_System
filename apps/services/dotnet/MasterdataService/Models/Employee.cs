@@ -9,6 +9,9 @@ public class Employee
     public Guid Id { get; set; }
     
     [Required]
+    public Guid CompanyId { get; set; }
+    
+    [Required]
     [MaxLength(50)]
     public string EmployeeNumber { get; set; } = string.Empty;
     
@@ -140,6 +143,9 @@ public class Department
     public Guid Id { get; set; }
     
     [Required]
+    public Guid CompanyId { get; set; }
+    
+    [Required]
     [MaxLength(50)]
     public string Code { get; set; } = string.Empty;
     
@@ -172,6 +178,9 @@ public class CostCenter
 {
     [Key]
     public Guid Id { get; set; }
+    
+    [Required]
+    public Guid CompanyId { get; set; }
     
     [Required]
     [MaxLength(50)]
@@ -219,6 +228,9 @@ public class BusinessLocation
 {
     [Key]
     public Guid Id { get; set; }
+    
+    [Required]
+    public Guid CompanyId { get; set; }
     
     [Required]
     [MaxLength(50)]

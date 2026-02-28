@@ -7,6 +7,9 @@ public class Customer
     [Key]
     public Guid Id { get; set; }
 
+    [Required]
+    public Guid CompanyId { get; set; }
+
     // Reference to User in UserService (federated)
     public Guid? UserId { get; set; }
 

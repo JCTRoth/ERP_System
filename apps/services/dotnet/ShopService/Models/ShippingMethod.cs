@@ -9,6 +9,9 @@ public class ShippingMethod
     public Guid Id { get; set; }
 
     [Required]
+    public Guid CompanyId { get; set; }
+
+    [Required]
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 

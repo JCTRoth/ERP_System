@@ -9,6 +9,9 @@ public class Customer
     public Guid Id { get; set; }
     
     [Required]
+    public Guid CompanyId { get; set; }
+    
+    [Required]
     [MaxLength(50)]
     public string CustomerNumber { get; set; } = string.Empty;
     
@@ -83,6 +86,9 @@ public class Supplier
 {
     [Key]
     public Guid Id { get; set; }
+    
+    [Required]
+    public Guid CompanyId { get; set; }
     
     [Required]
     [MaxLength(50)]

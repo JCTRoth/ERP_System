@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Prometheus;
+using MasterdataService.Services;
 using Models = MasterdataService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +25,10 @@ builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IAssetService, AssetService>();
 builder.Services.AddScoped<IAssetCategoryService, AssetCategoryService>();
 builder.Services.AddScoped<IReferenceDataService, ReferenceDataService>();
+
+// Multi-tenancy
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICompanyContext, CompanyContext>();
 
 // Add Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

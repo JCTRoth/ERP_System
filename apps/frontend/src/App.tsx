@@ -18,13 +18,21 @@ import MasterdataPage from './pages/masterdata/MasterdataPage';
 import TemplatesPage from './pages/templates/TemplatesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import CustomPageDisplay from './pages/custom-page/CustomPageDisplay';
+import CompanySelectPage from './pages/auth/CompanySelectPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  const companyAssignments = useAuthStore((state) => state.companyAssignments);
   
   if (!isAuthenticated || !accessToken) {
     return <Navigate to="/auth/login" replace />;
+  }
+
+  // If user has multiple companies but hasn't picked one yet, send to company select
+  if (!currentCompanyId && companyAssignments.length > 1) {
+    return <Navigate to="/auth/select-company" replace />;
   }
   
   return <>{children}</>;
@@ -51,6 +59,9 @@ export default function App() {
         <Route path="forgot-password" element={<ForgotPasswordPage />} />
         <Route path="reset-password" element={<ResetPasswordPage />} />
       </Route>
+
+      {/* Company selection - separate screen after login (authenticated but no company yet) */}
+      <Route path="/auth/select-company" element={<CompanySelectPage />} />
 
       {/* Main Routes */}
       <Route

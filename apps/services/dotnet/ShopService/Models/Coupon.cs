@@ -9,6 +9,9 @@ public class Coupon
     public Guid Id { get; set; }
 
     [Required]
+    public Guid CompanyId { get; set; }
+
+    [Required]
     [MaxLength(50)]
     public string Code { get; set; } = string.Empty;
 

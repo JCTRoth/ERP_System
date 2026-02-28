@@ -9,6 +9,9 @@ public class Asset
     public Guid Id { get; set; }
     
     [Required]
+    public Guid CompanyId { get; set; }
+    
+    [Required]
     [MaxLength(50)]
     public string AssetNumber { get; set; } = string.Empty;
     
@@ -133,6 +136,9 @@ public class AssetCategory
     public Guid Id { get; set; }
     
     [Required]
+    public Guid CompanyId { get; set; }
+    
+    [Required]
     [MaxLength(50)]
     public string Code { get; set; } = string.Empty;
     
@@ -164,6 +170,9 @@ public class Currency
     public Guid Id { get; set; }
     
     [Required]
+    public Guid CompanyId { get; set; }
+    
+    [Required]
     [MaxLength(10)]
     public string Code { get; set; } = string.Empty;
     
@@ -192,6 +201,9 @@ public class PaymentTerm
 {
     [Key]
     public Guid Id { get; set; }
+    
+    [Required]
+    public Guid CompanyId { get; set; }
     
     [Required]
     [MaxLength(50)]
@@ -230,6 +242,9 @@ public class UnitOfMeasure
 {
     [Key]
     public Guid Id { get; set; }
+    
+    [Required]
+    public Guid CompanyId { get; set; }
     
     [Required]
     [MaxLength(20)]
@@ -273,6 +288,9 @@ public class TaxCode
 {
     [Key]
     public Guid Id { get; set; }
+    
+    [Required]
+    public Guid CompanyId { get; set; }
     
     [Required]
     [MaxLength(20)]

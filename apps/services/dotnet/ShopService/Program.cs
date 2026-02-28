@@ -55,6 +55,10 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 
+// Multi-tenancy
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICompanyContext, CompanyContext>();
+
 // MinIO S3 client
 builder.Services.AddMinio(configureClient => configureClient
     .WithEndpoint(builder.Configuration.GetValue<string>("Minio:Endpoint") ?? "minio:9000")

@@ -1,10 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using ShopService.Models;
+using ShopService.Services;
 
 namespace ShopService.Data;
 
 public class ShopDbContext : DbContext
 {
+    private readonly Guid? _companyId;
+
+    /// <summary>
+    /// Well-known demo company ID used for seed data.
+    /// Must match the company created in CompanyService.
+    /// </summary>
+    public static readonly Guid DemoCompanyId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    public ShopDbContext(DbContextOptions<ShopDbContext> options, ICompanyContext companyContext) : base(options)
+    {
+        _companyId = companyContext.CurrentCompanyId;
+    }
+
+    /// <summary>Design-time constructor (migrations)</summary>
     public ShopDbContext(DbContextOptions<ShopDbContext> options) : base(options) { }
 
     public DbSet<Product> Products => Set<Product>();
@@ -27,6 +42,32 @@ public class ShopDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<AppConfiguration> AppConfigurations => Set<AppConfiguration>();
 
+    public override int SaveChanges()
+    {
+        StampCompanyId();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        StampCompanyId();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void StampCompanyId()
+    {
+        if (_companyId == null) return;
+        foreach (var entry in ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added))
+        {
+            var prop = entry.Metadata.FindProperty("CompanyId");
+            if (prop != null && entry.Property("CompanyId").CurrentValue is Guid g && g == Guid.Empty)
+            {
+                entry.Property("CompanyId").CurrentValue = _companyId.Value;
+            }
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -37,7 +78,10 @@ public class ShopDbContext : DbContext
             entity.ToTable("products");
             entity.HasIndex(e => e.Sku).IsUnique();
             entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.Sku).HasColumnName("sku");
@@ -64,7 +108,6 @@ public class ShopDbContext : DbContext
             entity.Property(e => e.Slug).HasColumnName("slug");
             entity.Property(e => e.MetaTitle).HasColumnName("meta_title");
             entity.Property(e => e.MetaDescription).HasColumnName("meta_description");
-            // entity.Property(e => e.CompanyId).HasColumnName("company_id"); // Temporarily commented out
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.PublishedAt).HasColumnName("published_at");
@@ -138,7 +181,10 @@ public class ShopDbContext : DbContext
         {
             entity.ToTable("categories");
             entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.Slug).HasColumnName("slug");
@@ -160,7 +206,10 @@ public class ShopDbContext : DbContext
         {
             entity.ToTable("brands");
             entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.Slug).HasColumnName("slug");
@@ -176,7 +225,10 @@ public class ShopDbContext : DbContext
         {
             entity.ToTable("suppliers");
             entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Code).HasColumnName("code");
             entity.Property(e => e.ContactPerson).HasColumnName("contact_person");
@@ -199,7 +251,10 @@ public class ShopDbContext : DbContext
         {
             entity.ToTable("orders");
             entity.HasIndex(e => e.OrderNumber).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.OrderNumber).HasColumnName("order_number");
             entity.Property(e => e.CustomerId).HasColumnName("customer_id");
             entity.Property(e => e.Status).HasColumnName("status");
@@ -291,7 +346,10 @@ public class ShopDbContext : DbContext
         {
             entity.ToTable("customers");
             entity.HasIndex(e => e.Email).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.Email).HasColumnName("email");
             entity.Property(e => e.FirstName).HasColumnName("first_name");
@@ -322,7 +380,10 @@ public class ShopDbContext : DbContext
         {
             entity.ToTable("carts");
             entity.HasIndex(e => e.SessionId);
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.CustomerId).HasColumnName("customer_id");
             entity.Property(e => e.SessionId).HasColumnName("session_id");
             entity.Property(e => e.Subtotal).HasColumnName("subtotal");
@@ -384,7 +445,10 @@ public class ShopDbContext : DbContext
         {
             entity.ToTable("shipping_methods");
             entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.Code).HasColumnName("code");
@@ -405,7 +469,10 @@ public class ShopDbContext : DbContext
         {
             entity.ToTable("coupons");
             entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.Code).HasColumnName("code");
             entity.Property(e => e.Description).HasColumnName("description");
             entity.Property(e => e.Type).HasColumnName("type");
@@ -442,6 +509,13 @@ public class ShopDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
         });
 
+        // AppConfiguration query filter for multi-tenancy
+        modelBuilder.Entity<AppConfiguration>(entity =>
+        {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
+        });
+
         // Seed data
         SeedData(modelBuilder);
     }
@@ -459,6 +533,7 @@ public class ShopDbContext : DbContext
             new Category
             {
                 Id = electronicsId,
+                CompanyId = DemoCompanyId,
                 Name = "Electronics",
                 Slug = "electronics",
                 Description = "Electronic devices and accessories",
@@ -469,6 +544,7 @@ public class ShopDbContext : DbContext
             new Category
             {
                 Id = clothingId,
+                CompanyId = DemoCompanyId,
                 Name = "Clothing",
                 Slug = "clothing",
                 Description = "Apparel and fashion items",
@@ -479,17 +555,18 @@ public class ShopDbContext : DbContext
             new Category
             {
                 Id = booksId,
+                CompanyId = DemoCompanyId,
                 Name = "Books",
                 Slug = "books",
                 Description = "Books and publications",
                 IsActive = true,
                 SortOrder = 3,
                 CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            }
-            ,
+            },
             new Category
             {
                 Id = pharmaId,
+                CompanyId = DemoCompanyId,
                 Name = "Pharma",
                 Slug = "pharma",
                 Description = "Pharmaceutical and medical supplies",
@@ -500,6 +577,7 @@ public class ShopDbContext : DbContext
             new Category
             {
                 Id = foodId,
+                CompanyId = DemoCompanyId,
                 Name = "Food",
                 Slug = "food",
                 Description = "Food and grocery items",
@@ -514,6 +592,7 @@ public class ShopDbContext : DbContext
             new Brand
             {
                 Id = Guid.Parse("30000000-0000-0000-0000-000000000001"),
+                CompanyId = DemoCompanyId,
                 Name = "TechCorp",
                 Slug = "techcorp",
                 Description = "Leading technology brand",
@@ -524,6 +603,7 @@ public class ShopDbContext : DbContext
             new Brand
             {
                 Id = Guid.Parse("30000000-0000-0000-0000-000000000002"),
+                CompanyId = DemoCompanyId,
                 Name = "StyleWear",
                 Slug = "stylewear",
                 Description = "Fashion and apparel brand",
@@ -534,6 +614,7 @@ public class ShopDbContext : DbContext
             new Brand
             {
                 Id = Guid.Parse("30000000-0000-0000-0000-000000000003"),
+                CompanyId = DemoCompanyId,
                 Name = "PageTurner",
                 Slug = "pageturner",
                 Description = "Publishing and books brand",
@@ -548,6 +629,7 @@ public class ShopDbContext : DbContext
             new ShippingMethod
             {
                 Id = Guid.Parse("20000000-0000-0000-0000-000000000001"),
+                CompanyId = DemoCompanyId,
                 Name = "Standard Shipping",
                 Code = "STANDARD",
                 Carrier = "DHL",
@@ -562,6 +644,7 @@ public class ShopDbContext : DbContext
             new ShippingMethod
             {
                 Id = Guid.Parse("20000000-0000-0000-0000-000000000002"),
+                CompanyId = DemoCompanyId,
                 Name = "Express Shipping",
                 Code = "EXPRESS",
                 Carrier = "DHL Express",
@@ -575,11 +658,11 @@ public class ShopDbContext : DbContext
         );
 
         // Seed customers (synced with MasterdataService)
-        // Reference the same customer ID from MasterdataService for consistency
         modelBuilder.Entity<Customer>().HasData(
             new Customer
             {
-                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), // Same ID as MasterdataService customer
+                Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 UserId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
                 Email = "jonas.roth@mailbase.info",
                 FirstName = "Jonas",
@@ -608,6 +691,7 @@ public class ShopDbContext : DbContext
             new Customer
             {
                 Id = Guid.Parse("8ec7a010-c34d-4eef-877f-410d25c0606d"),
+                CompanyId = DemoCompanyId,
                 UserId = Guid.Parse("8ec7a010-c34d-4eef-877f-410d25c0606d"),
                 Email = "sales@acme.example.com",
                 FirstName = null,
@@ -640,6 +724,7 @@ public class ShopDbContext : DbContext
             new Product
             {
                 Id = prodA,
+                CompanyId = DemoCompanyId,
                 Name = "Katchup",
                 Description = "Classic tomato katchup in 500ml bottle",
                 Sku = "KTP-1001",
@@ -654,6 +739,7 @@ public class ShopDbContext : DbContext
             new Product
             {
                 Id = prodB,
+                CompanyId = DemoCompanyId,
                 Name = "Cola",
                 Description = "Sparkling cola drink, 330ml can",
                 Sku = "COL-2002",
@@ -668,6 +754,7 @@ public class ShopDbContext : DbContext
             new Product
             {
                 Id = prodC,
+                CompanyId = DemoCompanyId,
                 Name = "Coffe",
                 Description = "Freshly roasted ground coffee, 250g",
                 Sku = "COF-3003",
@@ -687,8 +774,9 @@ public class ShopDbContext : DbContext
             new Order
             {
                 Id = orderId,
+                CompanyId = DemoCompanyId,
                 OrderNumber = "ORD-1001",
-                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), // Reference the correct customer from MasterdataService
+                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
                 Status = OrderStatus.Confirmed,
                 Subtotal = 200.00m,
                 TaxAmount = 38.00m,

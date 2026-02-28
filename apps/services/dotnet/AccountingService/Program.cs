@@ -1,6 +1,7 @@
 using AccountingService.Data;
 using AccountingService.GraphQL;
 using AccountingService.Services;
+using ICompanyContext = AccountingService.Services.ICompanyContext;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -26,6 +27,10 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
 // BankAccountService, PaymentRecordService, and ReportingService temporarily disabled due to model mismatches
+
+// Multi-tenancy
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICompanyContext, CompanyContext>();
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
