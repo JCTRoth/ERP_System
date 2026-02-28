@@ -1,4 +1,6 @@
 import { UIComponent, ComponentStyling } from '../types';
+import { useI18n } from '../../../providers/I18nProvider';
+import { resolveTranslationProp } from '../../../utils/translationResolver';
 
 interface ComponentRendererProps {
   component: UIComponent;
@@ -24,8 +26,15 @@ function getStyleObject(styling?: ComponentStyling): React.CSSProperties {
 }
 
 export default function ComponentRenderer({ component, onButtonClick, isPreview = false }: ComponentRendererProps) {
-  const { type, props, styling } = component;
+  const { t } = useI18n();
+  const { type, styling } = component;
   const customStyle = getStyleObject(styling);
+
+  // Resolve $t{key} translation references in all string props
+  const props: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(component.props)) {
+    props[key] = resolveTranslationProp(value, t);
+  }
 
   switch (type) {
     case 'text':

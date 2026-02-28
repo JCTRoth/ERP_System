@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { UIComponent, UIRow, ComponentType, ComponentStyling, ColumnSpan, getComponentDefinition, getAvailableColumnSpans, getDefaultColumnSpan, getUsedColumnsInRow, getAvailableStartColumns } from '../types';
 import { useI18n } from '../../../providers/I18nProvider';
-import { CodeBracketIcon } from '@heroicons/react/24/outline';
+import { CodeBracketIcon, LanguageIcon } from '@heroicons/react/24/outline';
 
 interface PropertiesPanelProps {
   component: UIComponent | null;
@@ -12,7 +13,7 @@ interface PropertiesPanelProps {
 }
 
 export default function PropertiesPanel({ component, row, rows = [], onUpdate, onEditScript, onMoveComponent }: PropertiesPanelProps) {
-  const { t } = useI18n();
+  const { t, translations } = useI18n();
 
   if (!component) {
     return (
@@ -195,7 +196,7 @@ export default function PropertiesPanel({ component, row, rows = [], onUpdate, o
       </div>
 
       <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
-        {renderPropertiesForType(component.type, component.props, updateProp, t)}
+        {renderPropertiesForType(component.type, component.props, updateProp, t, translations)}
       </div>
 
       <div className="border-t border-gray-200 pt-4 mt-4 dark:border-gray-700">
@@ -210,18 +211,26 @@ function renderPropertiesForType(
   type: ComponentType,
   props: Record<string, unknown>,
   onUpdate: (key: string, value: unknown) => void,
-  t: (key: string) => string
+  t: (key: string) => string,
+  translations?: Map<string, string>
 ) {
   switch (type) {
     case 'text':
       return (
         <>
           <div className="mb-4">
-            <label className="label mb-1">{t('uiBuilder.content')}</label>
+            <label className="label mb-1 flex items-center justify-between">
+              <span>{t('uiBuilder.content')}</span>
+              <TranslationKeyPicker
+                translations={translations}
+                onSelect={(key) => onUpdate('content', (props.content || '') + `$t{${key}}`)}
+              />
+            </label>
             <textarea
               value={(props.content as string) || ''}
               onChange={(e) => onUpdate('content', e.target.value)}
               className="input min-h-[80px]"
+              placeholder="Use $t{key.name} for translations"
             />
           </div>
           <div>
@@ -242,12 +251,19 @@ function renderPropertiesForType(
       return (
         <>
           <div className="mb-4">
-            <label className="label mb-1">{t('uiBuilder.content')}</label>
+            <label className="label mb-1 flex items-center justify-between">
+              <span>{t('uiBuilder.content')}</span>
+              <TranslationKeyPicker
+                translations={translations}
+                onSelect={(key) => onUpdate('content', (props.content || '') + `$t{${key}}`)}
+              />
+            </label>
             <input
               type="text"
               value={(props.content as string) || ''}
               onChange={(e) => onUpdate('content', e.target.value)}
               className="input"
+              placeholder="Use $t{key.name} for translations"
             />
           </div>
           <div>
@@ -272,12 +288,19 @@ function renderPropertiesForType(
       return (
         <>
           <div className="mb-4">
-            <label className="label mb-1">{t('uiBuilder.label')}</label>
+            <label className="label mb-1 flex items-center justify-between">
+              <span>{t('uiBuilder.label')}</span>
+              <TranslationKeyPicker
+                translations={translations}
+                onSelect={(key) => onUpdate('label', (props.label || '') + `$t{${key}}`)}
+              />
+            </label>
             <input
               type="text"
               value={(props.label as string) || ''}
               onChange={(e) => onUpdate('label', e.target.value)}
               className="input"
+              placeholder="Use $t{key.name} for translations"
             />
           </div>
           <div className="mb-4">
@@ -310,12 +333,19 @@ function renderPropertiesForType(
       return (
         <>
           <div className="mb-4">
-            <label className="label mb-1">{t('uiBuilder.label')}</label>
+            <label className="label mb-1 flex items-center justify-between">
+              <span>{t('uiBuilder.label')}</span>
+              <TranslationKeyPicker
+                translations={translations}
+                onSelect={(key) => onUpdate('label', (props.label || '') + `$t{${key}}`)}
+              />
+            </label>
             <input
               type="text"
               value={(props.label as string) || ''}
               onChange={(e) => onUpdate('label', e.target.value)}
               className="input"
+              placeholder="Use $t{key.name} for translations"
             />
           </div>
           <div className="mb-4">
@@ -564,5 +594,75 @@ function renderStylingProperties(
         />
       </div>
     </>
+  );
+}
+
+/**
+ * TranslationKeyPicker — dropdown button to insert $t{key} references.
+ */
+function TranslationKeyPicker({
+  translations,
+  onSelect,
+}: {
+  translations?: Map<string, string>;
+  onSelect: (key: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const keys = translations
+    ? Array.from(translations.keys()).filter(
+        (k) => !search || k.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 hover:bg-teal-100 dark:bg-teal-900/30 dark:text-teal-400 dark:hover:bg-teal-900/50"
+        title="Insert translation reference $t{key}"
+      >
+        <LanguageIcon className="h-3.5 w-3.5" />
+        $t{'{}'}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800 max-h-64 overflow-hidden flex flex-col">
+          <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search translation keys..."
+              className="input text-xs w-full"
+              autoFocus
+            />
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {keys.slice(0, 50).map((key) => (
+              <button
+                key={key}
+                onClick={() => {
+                  onSelect(key);
+                  setOpen(false);
+                  setSearch('');
+                }}
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center"
+              >
+                <span className="font-mono text-teal-700 dark:text-teal-400 truncate">{key}</span>
+                <span className="text-gray-400 truncate ml-2 max-w-[120px]">{translations?.get(key)}</span>
+              </button>
+            ))}
+            {keys.length === 0 && (
+              <p className="px-3 py-2 text-xs text-gray-400">No keys found</p>
+            )}
+            {keys.length > 50 && (
+              <p className="px-3 py-1 text-xs text-gray-400 text-center">...and {keys.length - 50} more</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

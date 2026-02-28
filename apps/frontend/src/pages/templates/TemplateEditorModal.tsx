@@ -1,9 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import Editor, { type Monaco } from '@monaco-editor/react';
 import { useI18n } from '../../providers/I18nProvider';
 import TemplateVariablesPanel from './TemplateVariablesPanel';
 import { useTemplateVariables } from '../../hooks/useTemplateVariables';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import {
+  registerTemplateLanguage,
+  registerTranslationCompletions,
+  TEMPLATE_LANGUAGE_ID,
+  templateEditorOptions,
+} from '../../components/MonacoConfig';
 
 interface Template {
   id: string;
@@ -30,8 +37,9 @@ export default function TemplateEditorModal({
   onClose,
   onSave,
 }: TemplateEditorModalProps) {
-  const { t } = useI18n();
+  const { t, translations } = useI18n();
   useEscapeKey(onClose);
+  const monacoRef = useRef<Monaco | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     key: '',
@@ -47,6 +55,16 @@ export default function TemplateEditorModal({
   const [showVariables, setShowVariables] = useState(false);
   const [contextSelected, setContextSelected] = useState(false); // NEW: only show variables after selection
   const { variables, loading } = useTemplateVariables();
+
+  // Detect dark mode for Monaco theme
+  const isDarkMode = document.documentElement.classList.contains('dark');
+
+  // Register Monaco language on mount
+  const handleEditorMount = (monaco: Monaco) => {
+    monacoRef.current = monaco;
+    registerTemplateLanguage(monaco);
+    registerTranslationCompletions(monaco, Array.from(translations.keys()));
+  };
 
   // Populate form when editing existing template
   useEffect(() => {
@@ -318,14 +336,30 @@ export default function TemplateEditorModal({
               </div>
 
               {/* Editor Panel */}
-              <div className="flex-1 overflow-auto rounded-lg border border-gray-300 dark:border-gray-600 min-h-[220px] h-full">
-                <textarea
-                  className="h-full w-full resize-none bg-gray-50 p-4 font-mono text-sm dark:bg-gray-800 dark:text-white min-h-[220px]"
+              <div className="flex-1 overflow-hidden rounded-lg border border-gray-300 dark:border-gray-600 min-h-[220px] h-full">
+                <Editor
+                  height="100%"
+                  language={TEMPLATE_LANGUAGE_ID}
+                  theme={isDarkMode ? 'template-theme-dark' : 'template-theme-light'}
                   value={formData.content}
-                  onChange={(e) => handleEditorChange(e.target.value)}
-                  placeholder="Enter your AsciiDoc template content here..."
-                  rows={20}
+                  onChange={(value) => handleEditorChange(value ?? '')}
+                  beforeMount={handleEditorMount}
+                  options={{
+                    ...templateEditorOptions,
+                    placeholder: 'Enter your AsciiDoc template content here...\n\nUse $t{key.name} for translation references\nUse {var.path} for data variables\nUse {#items}...{#end} for loops',
+                  } as any}
                 />
+                {/* Syntax help bar */}
+                <div className="flex items-center gap-3 border-t border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50">
+                  <span className="font-bold text-teal-600 dark:text-teal-400">$t{'{key}'}</span>
+                  <span>Translation</span>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                  <span className="font-bold text-blue-600 dark:text-blue-400">{'{var.path}'}</span>
+                  <span>Variable</span>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                  <span className="font-bold text-purple-600 dark:text-purple-400">{'{#loop}...{#end}'}</span>
+                  <span>Loop</span>
+                </div>
               </div>
             </div>
 
