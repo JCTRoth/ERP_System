@@ -16,8 +16,8 @@ type Tab = 'invoices' | 'payments' | 'accounts' | 'bookings';
 const TABS: { key: Tab; labelKey: string; icon: typeof DocumentTextIcon }[] = [
   { key: 'invoices', labelKey: 'accounting.invoices', icon: DocumentTextIcon },
   { key: 'payments', labelKey: 'accounting.payments', icon: CreditCardIcon },
-  { key: 'accounts', labelKey: 'accounting.chartOfAccounts', icon: BanknotesIcon },
   { key: 'bookings', labelKey: 'accounting.bookings', icon: ClipboardDocumentListIcon },
+  { key: 'accounts', labelKey: 'accounting.chartOfAccounts', icon: BanknotesIcon },
 ];
 
 export default function AccountingPage() {
