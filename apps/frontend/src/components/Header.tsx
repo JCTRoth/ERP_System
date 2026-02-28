@@ -50,8 +50,8 @@ export default function Header() {
 
         {/* Right side */}
         <div className="ml-auto flex items-center gap-3">
-          {/* Company Selector */}
-          {companyAssignments.length > 0 && (
+          {/* Company Selector - only show when user has multiple companies */}
+          {companyAssignments.length > 1 && (
             <Menu as="div" className="relative">
               <Menu.Button className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700">
                 <BuildingOffice2Icon className="h-5 w-5 text-gray-500 dark:text-gray-400" />

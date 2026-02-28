@@ -144,7 +144,7 @@ public class AuthService : IAuthService
             LastName = request.LastName,
             PreferredLanguage = request.PreferredLanguage ?? "en",
             IsActive = true,
-            EmailVerified = false
+            EmailVerified = true
         };
 
         _context.Users.Add(user);
