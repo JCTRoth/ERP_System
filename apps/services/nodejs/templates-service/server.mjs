@@ -76,6 +76,66 @@ function injectStylesIntoHtml(html, themeClass) {
   }
 }
 
+// ==================== Translation $t{key} Support ====================
+
+// In-memory translation cache with 5-minute TTL
+const translationCache = new Map();
+const TRANSLATION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Fetch translations from the translation service (via gateway)
+async function fetchTranslations(language = 'en') {
+  const cacheKey = `translations_${language}`;
+  const cached = translationCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < TRANSLATION_CACHE_TTL) {
+    return cached.data;
+  }
+
+  const gatewayUrl = process.env.GATEWAY_URL || 'http://gateway:4000/graphql';
+  try {
+    const response = await fetch(gatewayUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `query GetTranslations($language: String!) { translations(language: $language) { key value } }`,
+        variables: { language },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch translations: HTTP ${response.status}`);
+      return cached?.data || {};
+    }
+
+    const json = await response.json();
+    const translations = {};
+    if (json.data?.translations) {
+      for (const t of json.data.translations) {
+        translations[t.key] = t.value;
+      }
+    }
+
+    translationCache.set(cacheKey, { data: translations, timestamp: Date.now() });
+    console.log(`Fetched ${Object.keys(translations).length} translations for language '${language}'`);
+    return translations;
+  } catch (err) {
+    console.warn('Could not fetch translations from gateway:', err.message);
+    return cached?.data || {};
+  }
+}
+
+// Resolve $t{key.name} references in template source
+function resolveTranslationVars(src, translations) {
+  if (!src || !translations || typeof src !== 'string') return src;
+  return src.replace(/\$t\{([^}]+)\}/g, (match, key) => {
+    const trimmedKey = key.trim();
+    if (translations[trimmedKey] !== undefined) {
+      return translations[trimmedKey];
+    }
+    console.warn(`Translation key not found: ${trimmedKey}`);
+    return match; // Leave unresolved keys as-is
+  });
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -886,14 +946,24 @@ app.post('/api/templates/:id/render', async (req, res) => {
       console.log('DEBUG: First order item:', context.order.items[0]);
     }
 
+    // Resolve $t{key} translation references before variable substitution
+    let templateContent = template.content;
+    try {
+      const lang = template.language || context._language || 'en';
+      const translations = await fetchTranslations(lang);
+      templateContent = resolveTranslationVars(templateContent, translations);
+    } catch (err) {
+      console.warn('Translation resolution failed, continuing without:', err.message);
+    }
+
     // Use robust fallback renderer directly to avoid Mustache parsing issues
     let renderedAdoc;
     try {
-      renderedAdoc = renderWithoutMustache(template.content, context, errors);
+      renderedAdoc = renderWithoutMustache(templateContent, context, errors);
     } catch (err) {
       console.error('Fallback render error in /render:', err);
       errors.push('Template rendering error');
-      renderedAdoc = template.content;
+      renderedAdoc = templateContent;
     }
 
     // Try to render AsciiDoc

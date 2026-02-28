@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { XMarkIcon, PlayIcon } from '@heroicons/react/24/outline';
+import Editor from '@monaco-editor/react';
 import { useEscapeKey } from '../../../hooks/useEscapeKey';
+import { scriptEditorOptions } from '../../../components/MonacoConfig';
 
 interface ScriptEditorModalProps {
   isOpen: boolean;
@@ -122,7 +124,6 @@ console.log('Button "${componentLabel}" clicked!');
 
         {/* Content */}
         <div className="p-6 overflow-auto max-h-[calc(90vh-200px)]">
-          {/* Code Editor */}
           <div className="mb-4">
             <label className="label mb-2 flex items-center justify-between">
               <span>JavaScript Code</span>
@@ -134,13 +135,16 @@ console.log('Button "${componentLabel}" clicked!');
                 Test
               </button>
             </label>
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="input font-mono text-sm min-h-[300px] bg-gray-900 text-green-400"
-              spellCheck={false}
-              placeholder="// Write your JavaScript code here..."
-            />
+            <div className="rounded-md overflow-hidden border border-gray-700">
+              <Editor
+                height="300px"
+                language="javascript"
+                theme={document.documentElement.classList.contains('dark') ? 'vs-dark' : 'vs'}
+                value={code}
+                onChange={(value) => setCode(value || '')}
+                options={scriptEditorOptions}
+              />
+            </div>
           </div>
 
           {/* Test Output */}

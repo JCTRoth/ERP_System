@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
-import { PlusIcon, PencilIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, ArrowDownTrayIcon, ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../../providers/I18nProvider';
 import TranslationModal from './TranslationModal';
 
@@ -122,6 +122,17 @@ export default function TranslationsPage() {
         </select>
       </div>
 
+      {/* $t{} Syntax Info */}
+      <div className="mb-4 rounded-lg border border-teal-200 bg-teal-50 p-3 dark:border-teal-800 dark:bg-teal-900/20">
+        <p className="text-sm text-teal-800 dark:text-teal-300">
+          <span className="font-semibold">Translation references:</span> Use{' '}
+          <code className="rounded bg-teal-100 px-1.5 py-0.5 font-mono text-xs dark:bg-teal-900/50">$t{'{'}<em>key</em>{'}'}</code>{' '}
+          syntax in <strong>UI Builder</strong> and <strong>Template Editor</strong> to reference these translations.
+          Click the copy icon next to any key to copy its <code className="rounded bg-teal-100 px-1.5 py-0.5 font-mono text-xs dark:bg-teal-900/50">$t{'{'}'...{'}'}</code> reference.
+          Translations set here override the built-in frontend language files.
+        </p>
+      </div>
+
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden flex-1 min-h-0">
         <div className="overflow-x-auto h-full">
@@ -165,10 +176,15 @@ export default function TranslationsPage() {
                   </td>
                 </tr>
               ) : (
-                filteredKeys.map((tk: TranslationKey) => (
+                filteredKeys.map((tk: TranslationKey) => {
+                  const fullKey = `${tk.namespace}.${tk.keyName}`;
+                  return (
                   <tr key={tk.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="whitespace-nowrap px-6 py-4 font-mono text-sm">
-                      {tk.keyName}
+                      <div className="flex items-center gap-2">
+                        <span>{tk.keyName}</span>
+                        <CopyRefButton refKey={fullKey} />
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-gray-500 dark:text-gray-400">
                       {tk.namespace}
@@ -194,7 +210,8 @@ export default function TranslationsPage() {
                       </button>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -209,5 +226,31 @@ export default function TranslationsPage() {
         />
       )}
     </div>
+  );
+}
+
+/** Small button to copy $t{key} reference to clipboard */
+function CopyRefButton({ refKey }: { refKey: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await navigator.clipboard.writeText(`$t{${refKey}}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+      title={`Copy $t{${refKey}} to clipboard`}
+    >
+      {copied ? (
+        <CheckIcon className="h-4 w-4 text-green-500" />
+      ) : (
+        <ClipboardIcon className="h-4 w-4" />
+      )}
+    </button>
   );
 }

@@ -104,6 +104,9 @@ function generateComponentCode(component: UIComponent): string {
 
 function escapeHtml(text: string): string {
   if (!text) return '';
+  // Convert $t{key} to {t('key')} for JSX
+  const withTranslations = text.replace(/\$t\{([^}]+)\}/g, (_match, key: string) => `{t('${key.trim()}')}`);
+  if (withTranslations !== text) return withTranslations; // Don't double-escape JSX expressions
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -142,6 +145,18 @@ export function generateReactFromRows(rows: { id: string; components: UIComponen
   const imports = new Set<string>();
   imports.add("import React from 'react';");
 
+  // Check if any component uses $t{} translation references
+  const hasTranslationRefs = rows.some((row) =>
+    row.components.some((c) =>
+      Object.values(c.props).some(
+        (v) => typeof v === 'string' && /\$t\{[^}]+\}/.test(v)
+      )
+    )
+  );
+  if (hasTranslationRefs) {
+    imports.add("import { useI18n } from '../providers/I18nProvider';");
+  }
+
   const rowsCode = rows.map((row) => {
     const comps = row.components.map((component) => {
       const span = component.columnSpan || 1;
@@ -154,9 +169,11 @@ export function generateReactFromRows(rows: { id: string; components: UIComponen
     return `<div key=\"${row.id}\" className=\"grid grid-cols-3 gap-2\">\n        ${comps}\n      </div>`;
   }).join('\n      ');
 
+  const hookLine = hasTranslationRefs ? '\n  const { t } = useI18n();' : '';
+
   return `${Array.from(imports).join('\n')}
 
-export default function GeneratedPage() {
+export default function GeneratedPage() {${hookLine}
   return (
     <div className="p-6">
       <div className="space-y-4">
