@@ -1,10 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using MasterdataService.Models;
+using MasterdataService.Services;
 
 namespace MasterdataService.Data;
 
 public class MasterdataDbContext : DbContext
 {
+    private readonly Guid? _companyId;
+
+    public static readonly Guid DemoCompanyId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    public MasterdataDbContext(DbContextOptions<MasterdataDbContext> options, ICompanyContext companyContext) : base(options)
+    {
+        _companyId = companyContext.CurrentCompanyId;
+    }
+
+    // Design-time constructor
     public MasterdataDbContext(DbContextOptions<MasterdataDbContext> options) : base(options) { }
 
     // Customer and Supplier
@@ -30,6 +41,32 @@ public class MasterdataDbContext : DbContext
     public DbSet<UnitOfMeasure> UnitsOfMeasure => Set<UnitOfMeasure>();
     public DbSet<TaxCode> TaxCodes => Set<TaxCode>();
 
+    public override int SaveChanges()
+    {
+        StampCompanyId();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        StampCompanyId();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void StampCompanyId()
+    {
+        if (_companyId == null) return;
+        foreach (var entry in ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added))
+        {
+            var prop = entry.Metadata.FindProperty("CompanyId");
+            if (prop != null && entry.Property("CompanyId").CurrentValue is Guid g && g == Guid.Empty)
+            {
+                entry.Property("CompanyId").CurrentValue = _companyId.Value;
+            }
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -37,6 +74,8 @@ public class MasterdataDbContext : DbContext
         // Customer configuration
         modelBuilder.Entity<Customer>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.CustomerNumber).IsUnique();
             entity.HasIndex(e => e.Email);
             entity.HasMany(e => e.Addresses)
@@ -56,6 +95,8 @@ public class MasterdataDbContext : DbContext
         // Supplier configuration
         modelBuilder.Entity<Supplier>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.SupplierNumber).IsUnique();
             entity.HasIndex(e => e.Email);
             entity.HasMany(e => e.Addresses)
@@ -75,6 +116,8 @@ public class MasterdataDbContext : DbContext
         // Employee configuration
         modelBuilder.Entity<Employee>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.EmployeeNumber).IsUnique();
             entity.HasIndex(e => e.Email);
             entity.HasOne(e => e.Manager)
@@ -90,6 +133,8 @@ public class MasterdataDbContext : DbContext
         // Department configuration
         modelBuilder.Entity<Department>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasOne(e => e.ParentDepartment)
                 .WithMany(e => e.SubDepartments)
@@ -104,6 +149,8 @@ public class MasterdataDbContext : DbContext
         // CostCenter configuration
         modelBuilder.Entity<CostCenter>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasOne(e => e.ParentCostCenter)
                 .WithMany(e => e.SubCostCenters)
@@ -118,6 +165,8 @@ public class MasterdataDbContext : DbContext
         // Location configuration
         modelBuilder.Entity<BusinessLocation>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasOne(e => e.ParentLocation)
                 .WithMany(e => e.SubLocations)
@@ -128,6 +177,8 @@ public class MasterdataDbContext : DbContext
         // Asset configuration
         modelBuilder.Entity<Asset>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.AssetNumber).IsUnique();
             entity.HasIndex(e => e.SerialNumber);
             entity.HasIndex(e => e.Barcode);
@@ -136,6 +187,8 @@ public class MasterdataDbContext : DbContext
         // AssetCategory configuration
         modelBuilder.Entity<AssetCategory>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasOne(e => e.ParentCategory)
                 .WithMany(e => e.SubCategories)
@@ -146,18 +199,24 @@ public class MasterdataDbContext : DbContext
         // Currency configuration
         modelBuilder.Entity<Currency>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.Code).IsUnique();
         });
 
         // PaymentTerm configuration
         modelBuilder.Entity<PaymentTerm>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.Code).IsUnique();
         });
 
         // UnitOfMeasure configuration
         modelBuilder.Entity<UnitOfMeasure>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasOne(e => e.BaseUnit)
                 .WithMany()
@@ -168,6 +227,8 @@ public class MasterdataDbContext : DbContext
         // TaxCode configuration
         modelBuilder.Entity<TaxCode>(entity =>
         {
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.HasIndex(e => e.Code).IsUnique();
         });
 
@@ -178,38 +239,38 @@ public class MasterdataDbContext : DbContext
 
         // Seed default currencies
         modelBuilder.Entity<Currency>().HasData(
-            new Currency { Id = Guid.NewGuid(), Code = "USD", Name = "US Dollar", Symbol = "$", DecimalPlaces = 2, ExchangeRate = 1, IsBaseCurrency = true, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Currency { Id = Guid.NewGuid(), Code = "EUR", Name = "Euro", Symbol = "€", DecimalPlaces = 2, ExchangeRate = 0.85m, IsBaseCurrency = false, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Currency { Id = Guid.NewGuid(), Code = "GBP", Name = "British Pound", Symbol = "£", DecimalPlaces = 2, ExchangeRate = 0.73m, IsBaseCurrency = false, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new Currency { Id = Guid.NewGuid(), Code = "JPY", Name = "Japanese Yen", Symbol = "¥", DecimalPlaces = 0, ExchangeRate = 110m, IsBaseCurrency = false, IsActive = true, CreatedAt = DateTime.UtcNow }
+            new Currency { Id = Guid.NewGuid(), Code = "USD", Name = "US Dollar", Symbol = "$", DecimalPlaces = 2, ExchangeRate = 1, IsBaseCurrency = true, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new Currency { Id = Guid.NewGuid(), Code = "EUR", Name = "Euro", Symbol = "€", DecimalPlaces = 2, ExchangeRate = 0.85m, IsBaseCurrency = false, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new Currency { Id = Guid.NewGuid(), Code = "GBP", Name = "British Pound", Symbol = "£", DecimalPlaces = 2, ExchangeRate = 0.73m, IsBaseCurrency = false, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new Currency { Id = Guid.NewGuid(), Code = "JPY", Name = "Japanese Yen", Symbol = "¥", DecimalPlaces = 0, ExchangeRate = 110m, IsBaseCurrency = false, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         // Seed default payment terms
         modelBuilder.Entity<PaymentTerm>().HasData(
-            new PaymentTerm { Id = Guid.NewGuid(), Code = "NET30", Name = "Net 30", Description = "Payment due within 30 days", DueDays = 30, Type = PaymentTermType.Net, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new PaymentTerm { Id = Guid.NewGuid(), Code = "NET60", Name = "Net 60", Description = "Payment due within 60 days", DueDays = 60, Type = PaymentTermType.Net, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new PaymentTerm { Id = Guid.NewGuid(), Code = "NET90", Name = "Net 90", Description = "Payment due within 90 days", DueDays = 90, Type = PaymentTermType.Net, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new PaymentTerm { Id = Guid.NewGuid(), Code = "DOR", Name = "Due on Receipt", Description = "Payment due immediately", DueDays = 0, Type = PaymentTermType.DueOnReceipt, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new PaymentTerm { Id = Guid.NewGuid(), Code = "2%10NET30", Name = "2% 10 Net 30", Description = "2% discount if paid within 10 days, otherwise net 30", DueDays = 30, DiscountPercent = 2, DiscountDays = 10, Type = PaymentTermType.Net, IsActive = true, CreatedAt = DateTime.UtcNow }
+            new PaymentTerm { Id = Guid.NewGuid(), Code = "NET30", Name = "Net 30", Description = "Payment due within 30 days", DueDays = 30, Type = PaymentTermType.Net, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new PaymentTerm { Id = Guid.NewGuid(), Code = "NET60", Name = "Net 60", Description = "Payment due within 60 days", DueDays = 60, Type = PaymentTermType.Net, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new PaymentTerm { Id = Guid.NewGuid(), Code = "NET90", Name = "Net 90", Description = "Payment due within 90 days", DueDays = 90, Type = PaymentTermType.Net, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new PaymentTerm { Id = Guid.NewGuid(), Code = "DOR", Name = "Due on Receipt", Description = "Payment due immediately", DueDays = 0, Type = PaymentTermType.DueOnReceipt, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new PaymentTerm { Id = Guid.NewGuid(), Code = "2%10NET30", Name = "2% 10 Net 30", Description = "2% discount if paid within 10 days, otherwise net 30", DueDays = 30, DiscountPercent = 2, DiscountDays = 10, Type = PaymentTermType.Net, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         // Seed default units of measure
         modelBuilder.Entity<UnitOfMeasure>().HasData(
-            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "EA", Name = "Each", Symbol = "ea", Type = UomType.Unit, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "KG", Name = "Kilogram", Symbol = "kg", Type = UomType.Weight, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "LB", Name = "Pound", Symbol = "lb", Type = UomType.Weight, IsBaseUnit = false, ConversionFactor = 0.453592m, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "M", Name = "Meter", Symbol = "m", Type = UomType.Length, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "L", Name = "Liter", Symbol = "L", Type = UomType.Volume, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow },
-            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "HR", Name = "Hour", Symbol = "hr", Type = UomType.Time, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow }
+            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "EA", Name = "Each", Symbol = "ea", Type = UomType.Unit, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "KG", Name = "Kilogram", Symbol = "kg", Type = UomType.Weight, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "LB", Name = "Pound", Symbol = "lb", Type = UomType.Weight, IsBaseUnit = false, ConversionFactor = 0.453592m, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "M", Name = "Meter", Symbol = "m", Type = UomType.Length, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "L", Name = "Liter", Symbol = "L", Type = UomType.Volume, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new UnitOfMeasure { Id = Guid.NewGuid(), Code = "HR", Name = "Hour", Symbol = "hr", Type = UomType.Time, IsBaseUnit = true, ConversionFactor = 1, IsActive = true, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         // Seed default tax codes
         modelBuilder.Entity<TaxCode>().HasData(
-            new TaxCode { Id = Guid.Parse("d1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "STD", Name = "Standard Rate", Description = "Standard sales tax (19%)", Rate = 19m, Type = TaxType.Sales, IsActive = true, IsDefault = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
-            new TaxCode { Id = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "REDUCED", Name = "Reduced Rate", Description = "Reduced sales tax (7%)", Rate = 7m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
-            new TaxCode { Id = Guid.Parse("f3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "REDUCED2", Name = "Reduced Rate 2", Description = "Reduced sales tax (16%)", Rate = 16m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
-            new TaxCode { Id = Guid.Parse("a4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "ZERO", Name = "Zero Rate", Description = "Zero-rated (0%)", Rate = 0m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
-            new TaxCode { Id = Guid.Parse("b5c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "EXEMPT", Name = "Exempt", Description = "Tax exempt", Rate = 0m, Type = TaxType.Exempt, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow }
+            new TaxCode { Id = Guid.Parse("d1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "STD", Name = "Standard Rate", Description = "Standard sales tax (19%)", Rate = 19m, Type = TaxType.Sales, IsActive = true, IsDefault = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new TaxCode { Id = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "REDUCED", Name = "Reduced Rate", Description = "Reduced sales tax (7%)", Rate = 7m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new TaxCode { Id = Guid.Parse("f3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "REDUCED2", Name = "Reduced Rate 2", Description = "Reduced sales tax (16%)", Rate = 16m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new TaxCode { Id = Guid.Parse("a4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "ZERO", Name = "Zero Rate", Description = "Zero-rated (0%)", Rate = 0m, Type = TaxType.Sales, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new TaxCode { Id = Guid.Parse("b5c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "EXEMPT", Name = "Exempt", Description = "Tax exempt", Rate = 0m, Type = TaxType.Exempt, IsActive = true, EffectiveFrom = DateTime.UtcNow, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         //
@@ -221,6 +282,7 @@ public class MasterdataDbContext : DbContext
             new Customer
             {
                 Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 CustomerNumber = "CUST-000001",
                 Name = "Jonas Roth",
                 LegalName = "Mailbase.info",
@@ -240,6 +302,7 @@ public class MasterdataDbContext : DbContext
             new Supplier
             {
                 Id = Guid.Parse("6a2f2e9e-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 SupplierNumber = "SUPP-0001",
                 Name = "ACME Supplies",
                 ContactPerson = "Jane Supplier",
@@ -265,20 +328,20 @@ public class MasterdataDbContext : DbContext
 
         // Seed example department, cost center and location
         modelBuilder.Entity<Department>().HasData(
-            new Department { Id = Guid.Parse("70000000-0000-0000-0000-000000000001"), Code = "SALES", Name = "Sales", CreatedAt = DateTime.UtcNow }
+            new Department { Id = Guid.Parse("70000000-0000-0000-0000-000000000001"), Code = "SALES", Name = "Sales", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         modelBuilder.Entity<CostCenter>().HasData(
-            new CostCenter { Id = Guid.Parse("70000000-0000-0000-0000-000000000002"), Code = "CC-100", Name = "Main Cost Center", CreatedAt = DateTime.UtcNow }
+            new CostCenter { Id = Guid.Parse("70000000-0000-0000-0000-000000000002"), Code = "CC-100", Name = "Main Cost Center", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         modelBuilder.Entity<BusinessLocation>().HasData(
-            new BusinessLocation { Id = Guid.Parse("70000000-0000-0000-0000-000000000003"), Code = "HQ", Name = "Headquarters", CreatedAt = DateTime.UtcNow }
+            new BusinessLocation { Id = Guid.Parse("70000000-0000-0000-0000-000000000003"), Code = "HQ", Name = "Headquarters", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         // Seed example employee
         modelBuilder.Entity<Employee>().HasData(
-            new Employee { Id = Guid.Parse("8a2f2e9e-8548-431f-9f03-9186942bb48f"), EmployeeNumber = "EMP-0001", FirstName = "Alice", LastName = "Admin", Email = "alice.admin@example.com", CreatedAt = DateTime.UtcNow }
+            new Employee { Id = Guid.Parse("8a2f2e9e-8548-431f-9f03-9186942bb48f"), EmployeeNumber = "EMP-0001", FirstName = "Alice", LastName = "Admin", Email = "alice.admin@example.com", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         // Seed a sample address, contact and bank detail linked to customer
@@ -297,11 +360,11 @@ public class MasterdataDbContext : DbContext
 
         // Seed example asset category and asset
         modelBuilder.Entity<AssetCategory>().HasData(
-            new AssetCategory { Id = Guid.Parse("80000000-0000-0000-0000-000000000001"), Code = "IT", Name = "IT Equipment", CreatedAt = DateTime.UtcNow }
+            new AssetCategory { Id = Guid.Parse("80000000-0000-0000-0000-000000000001"), Code = "IT", Name = "IT Equipment", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         modelBuilder.Entity<Asset>().HasData(
-            new Asset { Id = Guid.Parse("80000000-0000-0000-0000-000000000011"), AssetNumber = "ASSET-0001", Name = "Laptop Demo", CategoryId = Guid.Parse("80000000-0000-0000-0000-000000000001"), CreatedAt = DateTime.UtcNow }
+            new Asset { Id = Guid.Parse("80000000-0000-0000-0000-000000000011"), AssetNumber = "ASSET-0001", Name = "Laptop Demo", CategoryId = Guid.Parse("80000000-0000-0000-0000-000000000001"), CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         //
@@ -314,6 +377,7 @@ public class MasterdataDbContext : DbContext
             {
                 Id = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"),
                 CustomerNumber = "CUST-MEDIVITA",
+                CompanyId = DemoCompanyId,
                 Name = "MediVita Pharmaceuticals",
                 LegalName = "MediVita Pharmaceuticals Inc.",
                 Type = CustomerType.Business,
@@ -336,6 +400,7 @@ public class MasterdataDbContext : DbContext
             {
                 Id = Guid.Parse("b1c2f2e9-8548-431f-9f03-9186942bb48f"),
                 SupplierNumber = "SUPP-MEDIVITA",
+                CompanyId = DemoCompanyId,
                 Name = "MediVita Pharmaceuticals",
                 Type = SupplierType.Manufacturer,
                 ContactPerson = "Dr. Michael Chen",
@@ -355,29 +420,29 @@ public class MasterdataDbContext : DbContext
 
         // MediVita Departments
         modelBuilder.Entity<Department>().HasData(
-            new Department { Id = Guid.Parse("c1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "SALES", Name = "Sales & Marketing", CreatedAt = DateTime.UtcNow },
-            new Department { Id = Guid.Parse("c2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "RD", Name = "Research & Development", CreatedAt = DateTime.UtcNow },
-            new Department { Id = Guid.Parse("c3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MFG", Name = "Manufacturing", CreatedAt = DateTime.UtcNow },
-            new Department { Id = Guid.Parse("c4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "QC", Name = "Quality Control", CreatedAt = DateTime.UtcNow },
-            new Department { Id = Guid.Parse("c5c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "REG", Name = "Regulatory Affairs", CreatedAt = DateTime.UtcNow },
-            new Department { Id = Guid.Parse("c6c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "FIN", Name = "Finance", CreatedAt = DateTime.UtcNow },
-            new Department { Id = Guid.Parse("c7c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "HR", Name = "Human Resources", CreatedAt = DateTime.UtcNow }
+            new Department { Id = Guid.Parse("c1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "SALES", Name = "Sales & Marketing", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new Department { Id = Guid.Parse("c2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "RD", Name = "Research & Development", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new Department { Id = Guid.Parse("c3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MFG", Name = "Manufacturing", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new Department { Id = Guid.Parse("c4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "QC", Name = "Quality Control", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new Department { Id = Guid.Parse("c5c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "REG", Name = "Regulatory Affairs", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new Department { Id = Guid.Parse("c6c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "FIN", Name = "Finance", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new Department { Id = Guid.Parse("c7c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "HR", Name = "Human Resources", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         // MediVita Cost Centers
         modelBuilder.Entity<CostCenter>().HasData(
-            new CostCenter { Id = Guid.Parse("d1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "CC-PHARMA", Name = "Pharmaceutical Production", Type = CostCenterType.Department, Budget = 5000000m, CreatedAt = DateTime.UtcNow },
-            new CostCenter { Id = Guid.Parse("d2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "CC-RD", Name = "Research Labs", Type = CostCenterType.Department, Budget = 3000000m, CreatedAt = DateTime.UtcNow },
-            new CostCenter { Id = Guid.Parse("d3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "CC-MKT", Name = "Marketing", Type = CostCenterType.Department, Budget = 2000000m, CreatedAt = DateTime.UtcNow },
-            new CostCenter { Id = Guid.Parse("d4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "CC-DIST", Name = "Distribution", Type = CostCenterType.Department, Budget = 1500000m, CreatedAt = DateTime.UtcNow }
+            new CostCenter { Id = Guid.Parse("d1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "CC-PHARMA", Name = "Pharmaceutical Production", Type = CostCenterType.Department, Budget = 5000000m, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new CostCenter { Id = Guid.Parse("d2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "CC-RD", Name = "Research Labs", Type = CostCenterType.Department, Budget = 3000000m, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new CostCenter { Id = Guid.Parse("d3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "CC-MKT", Name = "Marketing", Type = CostCenterType.Department, Budget = 2000000m, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new CostCenter { Id = Guid.Parse("d4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "CC-DIST", Name = "Distribution", Type = CostCenterType.Department, Budget = 1500000m, CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         // MediVita Business Locations
         modelBuilder.Entity<BusinessLocation>().HasData(
-            new BusinessLocation { Id = Guid.Parse("e1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-HQ", Name = "MediVita Headquarters", Type = LocationType.Headquarters, AddressLine1 = "123 Healthcare Boulevard", City = "New York", PostalCode = "10001", Country = "USA", Phone = "+1-555-123-4567", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow },
-            new BusinessLocation { Id = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-MFG", Name = "MediVita Manufacturing Facility", Type = LocationType.Factory, AddressLine1 = "456 Production Drive", City = "Raleigh", PostalCode = "27601", Country = "USA", Phone = "+1-919-555-0123", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow },
-            new BusinessLocation { Id = Guid.Parse("e3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-DC", Name = "MediVita Distribution Center", Type = LocationType.Warehouse, AddressLine1 = "789 Logistics Parkway", City = "Atlanta", PostalCode = "30301", Country = "USA", Phone = "+1-404-555-0456", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow },
-            new BusinessLocation { Id = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-RD", Name = "MediVita Research Labs", Type = LocationType.Office, AddressLine1 = "321 Innovation Way", City = "Boston", PostalCode = "02101", Country = "USA", Phone = "+1-617-555-0789", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow }
+            new BusinessLocation { Id = Guid.Parse("e1c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-HQ", Name = "MediVita Headquarters", Type = LocationType.Headquarters, AddressLine1 = "123 Healthcare Boulevard", City = "New York", PostalCode = "10001", Country = "USA", Phone = "+1-555-123-4567", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new BusinessLocation { Id = Guid.Parse("e2c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-MFG", Name = "MediVita Manufacturing Facility", Type = LocationType.Factory, AddressLine1 = "456 Production Drive", City = "Raleigh", PostalCode = "27601", Country = "USA", Phone = "+1-919-555-0123", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new BusinessLocation { Id = Guid.Parse("e3c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-DC", Name = "MediVita Distribution Center", Type = LocationType.Warehouse, AddressLine1 = "789 Logistics Parkway", City = "Atlanta", PostalCode = "30301", Country = "USA", Phone = "+1-404-555-0456", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new BusinessLocation { Id = Guid.Parse("e4c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MV-RD", Name = "MediVita Research Labs", Type = LocationType.Office, AddressLine1 = "321 Innovation Way", City = "Boston", PostalCode = "02101", Country = "USA", Phone = "+1-617-555-0789", Timezone = "America/New_York", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         // MediVita Employees
@@ -385,6 +450,7 @@ public class MasterdataDbContext : DbContext
             new Employee
             {
                 Id = Guid.Parse("f1c2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 EmployeeNumber = "EMP-MV-001",
                 FirstName = "Dr. Sarah",
                 LastName = "Johnson",
@@ -410,6 +476,7 @@ public class MasterdataDbContext : DbContext
             new Employee
             {
                 Id = Guid.Parse("f2c2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 EmployeeNumber = "EMP-MV-002",
                 FirstName = "Dr. Michael",
                 LastName = "Chen",
@@ -435,6 +502,7 @@ public class MasterdataDbContext : DbContext
             new Employee
             {
                 Id = Guid.Parse("f3c2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 EmployeeNumber = "EMP-MV-003",
                 FirstName = "Jennifer",
                 LastName = "Williams",
@@ -460,6 +528,7 @@ public class MasterdataDbContext : DbContext
             new Employee
             {
                 Id = Guid.Parse("f4c2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 EmployeeNumber = "EMP-MV-004",
                 FirstName = "Robert",
                 LastName = "Garcia",
@@ -485,6 +554,7 @@ public class MasterdataDbContext : DbContext
             new Employee
             {
                 Id = Guid.Parse("f5c2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 EmployeeNumber = "EMP-MV-005",
                 FirstName = "Dr. Lisa",
                 LastName = "Thompson",
@@ -539,10 +609,10 @@ public class MasterdataDbContext : DbContext
 
         // MediVita Asset Categories
         modelBuilder.Entity<AssetCategory>().HasData(
-            new AssetCategory { Id = Guid.Parse("91c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "LAB-EQUIP", Name = "Laboratory Equipment", CreatedAt = DateTime.UtcNow },
-            new AssetCategory { Id = Guid.Parse("92c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MFG-EQUIP", Name = "Manufacturing Equipment", CreatedAt = DateTime.UtcNow },
-            new AssetCategory { Id = Guid.Parse("93c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "VEHICLES", Name = "Company Vehicles", CreatedAt = DateTime.UtcNow },
-            new AssetCategory { Id = Guid.Parse("94c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "IT-EQUIP", Name = "IT Equipment", CreatedAt = DateTime.UtcNow }
+            new AssetCategory { Id = Guid.Parse("91c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "LAB-EQUIP", Name = "Laboratory Equipment", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new AssetCategory { Id = Guid.Parse("92c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "MFG-EQUIP", Name = "Manufacturing Equipment", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new AssetCategory { Id = Guid.Parse("93c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "VEHICLES", Name = "Company Vehicles", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId },
+            new AssetCategory { Id = Guid.Parse("94c2f2e9-8548-431f-9f03-9186942bb48f"), Code = "IT-EQUIP", Name = "IT Equipment", CreatedAt = DateTime.UtcNow, CompanyId = DemoCompanyId }
         );
 
         // MediVita Assets
@@ -550,6 +620,7 @@ public class MasterdataDbContext : DbContext
             new Asset
             {
                 Id = Guid.Parse("a1c2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 AssetNumber = "MV-LAB-001",
                 Name = "High-Performance Liquid Chromatograph (HPLC)",
                 Description = "Advanced analytical instrument for pharmaceutical testing",
@@ -577,6 +648,7 @@ public class MasterdataDbContext : DbContext
             new Asset
             {
                 Id = Guid.Parse("a2c2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 AssetNumber = "MV-MFG-001",
                 Name = "Tablet Press Machine",
                 Description = "Automated tablet compression machine for pharmaceutical manufacturing",
@@ -604,6 +676,7 @@ public class MasterdataDbContext : DbContext
             new Asset
             {
                 Id = Guid.Parse("a3c2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 AssetNumber = "MV-VEH-001",
                 Name = "Delivery Van - Ford Transit",
                 Description = "Company vehicle for pharmaceutical product delivery",
@@ -631,6 +704,7 @@ public class MasterdataDbContext : DbContext
             new Asset
             {
                 Id = Guid.Parse("a4c2f2e9-8548-431f-9f03-9186942bb48f"),
+                CompanyId = DemoCompanyId,
                 AssetNumber = "MV-IT-001",
                 Name = "Research Server - Dell PowerEdge",
                 Description = "High-performance server for pharmaceutical research computing",

@@ -8,6 +8,9 @@ public class Cart
     [Key]
     public Guid Id { get; set; }
 
+    [Required]
+    public Guid CompanyId { get; set; }
+
     public Guid? CustomerId { get; set; }
 
     // For guest carts (anonymous users)

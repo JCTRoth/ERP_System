@@ -33,6 +33,20 @@ const GET_TOTAL_USERS = gql`
   }
 `;
 
+const GET_CURRENT_COMPANY = gql`
+  query GetCurrentCompany($id: ID!) {
+    company(id: $id) {
+      id
+      name
+      slug
+      description
+      logoUrl
+      settingsJson
+      isActive
+    }
+  }
+`;
+
 const GET_RECENT_CUSTOMERS = gql`
   query GetRecentCustomers($first: Int!) {
     customers(first: $first) {
@@ -74,6 +88,9 @@ const GET_RECENT_ORDERS = gql`
 export default function DashboardPage() {
   const { t } = useI18n();
   const user = useAuthStore((state) => state.user);
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  const companyAssignments = useAuthStore((state) => state.companyAssignments);
+  const currentAssignment = companyAssignments.find(a => a.companyId === currentCompanyId);
 
   // Local UI state for sorting
   const [customerSort, setCustomerSort] = useState<"name-asc" | "name-desc">(
@@ -161,6 +178,23 @@ export default function DashboardPage() {
     errorPolicy: "all",
   });
 
+  // Fetch current company details
+  const {
+    data: companyData,
+    loading: companyLoading,
+  } = useQuery(GET_CURRENT_COMPANY, {
+    variables: { id: currentCompanyId },
+    skip: !currentCompanyId,
+    errorPolicy: "all",
+  });
+
+  const currentCompany = companyData?.company;
+  const companySettings = currentCompany?.settingsJson || {};
+  const companyName = currentCompany?.name || currentAssignment?.companyName || t('dashboard.company', { default: 'Company' });
+  const companyDescription = currentCompany?.description || '';
+  const companySlogan = (companySettings as Record<string, unknown>)?.tagline as string || '';
+  const companyLogoUrl = currentCompany?.logoUrl;
+
   // Check if user is authenticated
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
@@ -241,113 +275,73 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Company Section - MediVita */}
+      {/* Company Section - Dynamic per-tenant */}
+      {currentCompanyId && (
       <div className="card overflow-hidden shadow-lg">
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-8 text-white">
           <div className="flex flex-col items-center gap-6 sm:flex-row">
             {/* Company Logo */}
             <div className="flex-shrink-0">
               <div className="relative h-24 w-24 overflow-hidden rounded-lg bg-white p-2 shadow-md">
-                <svg
-                  className="h-full w-full"
-                  viewBox="0 0 100 100"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  {/* Medical/Pharmaceutical logo with pill and heart */}
-                  <defs>
-                    <linearGradient
-                      id="pillGradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
-                      <stop
-                        offset="0%"
-                        style={{ stopColor: "#3b82f6", stopOpacity: 1 }}
-                      />
-                      <stop
-                        offset="100%"
-                        style={{ stopColor: "#1e40af", stopOpacity: 1 }}
-                      />
-                    </linearGradient>
-                  </defs>
-                  {/* Background */}
-                  <rect width="100" height="100" fill="#ffffff" />
-                  {/* Pill shape */}
-                  <g transform="translate(50, 35)">
-                    <circle cx="-12" cy="0" r="10" fill="url(#pillGradient)" />
-                    <rect
-                      x="-2"
-                      y="-10"
-                      width="4"
-                      height="20"
-                      fill="url(#pillGradient)"
-                    />
-                    <circle cx="12" cy="0" r="10" fill="#ef4444" />
-                  </g>
-                  {/* Heart shape */}
-                  <g transform="translate(50, 65)">
-                    <path
-                      d="M 0,-8 C -8,-16 -16,-16 -16,-6 C -16,0 -8,8 0,16 C 8,8 16,0 16,-6 C 16,-16 8,-16 0,-8 Z"
-                      fill="#10b981"
-                    />
-                  </g>
-                </svg>
+                {companyLoading ? (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+                  </div>
+                ) : companyLogoUrl ? (
+                  <img
+                    src={companyLogoUrl}
+                    alt={`${companyName} logo`}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center rounded bg-gradient-to-br from-blue-100 to-blue-200">
+                    <span className="text-3xl font-bold text-blue-600">
+                      {companyName.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Company Info */}
             <div className="flex-1 text-center sm:text-left">
-              <h2 className="text-3xl font-bold">MediVita</h2>
-              <p className="mt-2 text-lg font-semibold text-blue-100">
-                Crafting Health for Life
-              </p>
-              <p className="mt-3 text-sm leading-relaxed text-blue-50">
-                We specialize in innovative pharmaceuticals, blending advanced
-                science with a passion for well-being. Our mission: to deliver
-                trusted, effective solutions for a healthier world.
-              </p>
+              <h2 className="text-3xl font-bold">{companyName}</h2>
+              {companySlogan && (
+                <p className="mt-2 text-lg font-semibold text-blue-100">
+                  {companySlogan}
+                </p>
+              )}
+              {companyDescription && (
+                <p className="mt-3 text-sm leading-relaxed text-blue-50">
+                  {companyDescription}
+                </p>
+              )}
+              {currentAssignment?.role && (
+                <p className="mt-2 text-xs text-blue-200">
+                  {t('dashboard.yourRole', { default: 'Your role' })}: <span className="font-semibold capitalize">{currentAssignment.role}</span>
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Company Stats */}
+        {/* Company Stats from settingsJson */}
+        {companySettings && typeof companySettings === 'object' && Array.isArray((companySettings as Record<string, unknown>).stats) && (
         <div className="grid grid-cols-3 gap-4 border-t border-gray-200 px-6 py-6 dark:border-gray-700 sm:grid-cols-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-              98%
+          {((companySettings as Record<string, unknown>).stats as Array<{value: string; label: string}>).slice(0, 4).map((stat, idx) => (
+            <div key={idx} className={`text-center${idx === 3 ? ' hidden sm:block' : ''}`}>
+              <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                {stat.value}
+              </div>
+              <div className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+                {stat.label}
+              </div>
             </div>
-            <div className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-              Customer Satisfaction
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-              50+
-            </div>
-            <div className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-              Products
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-              125+
-            </div>
-            <div className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-              Countries
-            </div>
-          </div>
-          <div className="hidden text-center sm:block">
-            <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-              20+
-            </div>
-            <div className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
-              Years
-            </div>
-          </div>
+          ))}
         </div>
+        )}
       </div>
+      )}
 
       {/* Recent Activity Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

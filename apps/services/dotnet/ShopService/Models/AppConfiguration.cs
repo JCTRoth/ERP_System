@@ -13,6 +13,10 @@ public class AppConfiguration
     public Guid Id { get; set; }
 
     [Required]
+    [Column("company_id")]
+    public Guid CompanyId { get; set; }
+
+    [Required]
     [MaxLength(100)]
     [Column("key")]
     public string Key { get; set; } = string.Empty;

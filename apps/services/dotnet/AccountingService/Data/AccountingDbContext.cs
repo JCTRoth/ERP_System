@@ -1,10 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using AccountingService.Models;
+using AccountingService.Services;
 
 namespace AccountingService.Data;
 
 public class AccountingDbContext : DbContext
 {
+    private readonly Guid? _companyId;
+
+    public static readonly Guid DemoCompanyId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    public AccountingDbContext(DbContextOptions<AccountingDbContext> options, ICompanyContext companyContext) : base(options)
+    {
+        _companyId = companyContext.CurrentCompanyId;
+    }
+
+    /// <summary>Design-time constructor (migrations)</summary>
     public AccountingDbContext(DbContextOptions<AccountingDbContext> options) : base(options) { }
 
     public DbSet<Account> Accounts => Set<Account>();
@@ -20,6 +31,32 @@ public class AccountingDbContext : DbContext
     public DbSet<TaxRate> TaxRates => Set<TaxRate>();
     public DbSet<FiscalPeriod> FiscalPeriods => Set<FiscalPeriod>();
 
+    public override int SaveChanges()
+    {
+        StampCompanyId();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        StampCompanyId();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void StampCompanyId()
+    {
+        if (_companyId == null) return;
+        foreach (var entry in ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added))
+        {
+            var prop = entry.Metadata.FindProperty("CompanyId");
+            if (prop != null && entry.Property("CompanyId").CurrentValue is Guid g && g == Guid.Empty)
+            {
+                entry.Property("CompanyId").CurrentValue = _companyId.Value;
+            }
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -29,7 +66,10 @@ public class AccountingDbContext : DbContext
         {
             entity.ToTable("accounts");
             entity.HasIndex(e => e.AccountNumber).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.AccountNumber).HasColumnName("account_number");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Description).HasColumnName("description");
@@ -55,7 +95,10 @@ public class AccountingDbContext : DbContext
         {
             entity.ToTable("invoices");
             entity.HasIndex(e => e.InvoiceNumber).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.InvoiceNumber).HasColumnName("invoice_number");
             entity.Property(e => e.Type).HasColumnName("type");
             entity.Property(e => e.Status).HasColumnName("status");
@@ -136,7 +179,10 @@ public class AccountingDbContext : DbContext
         {
             entity.ToTable("journal_entries");
             entity.HasIndex(e => e.EntryNumber).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.EntryNumber).HasColumnName("entry_number");
             entity.Property(e => e.EntryDate).HasColumnName("entry_date");
             entity.Property(e => e.Description).HasColumnName("description");
@@ -187,7 +233,10 @@ public class AccountingDbContext : DbContext
         {
             entity.ToTable("payment_records");
             entity.HasIndex(e => e.PaymentNumber).IsUnique();
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.PaymentNumber).HasColumnName("payment_number");
             entity.Property(e => e.Type).HasColumnName("type");
             entity.Property(e => e.Status).HasColumnName("status");
@@ -230,7 +279,10 @@ public class AccountingDbContext : DbContext
         {
             entity.ToTable("bank_accounts");
             entity.HasIndex(e => e.Iban);
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.BankName).HasColumnName("bank_name");
             entity.Property(e => e.AccountNumber).HasColumnName("account_number");
@@ -279,7 +331,10 @@ public class AccountingDbContext : DbContext
         modelBuilder.Entity<TaxRate>(entity =>
         {
             entity.ToTable("tax_rates");
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Code).HasColumnName("code");
             entity.Property(e => e.Rate).HasColumnName("rate");
@@ -298,7 +353,10 @@ public class AccountingDbContext : DbContext
         modelBuilder.Entity<FiscalPeriod>(entity =>
         {
             entity.ToTable("fiscal_periods");
+            entity.HasIndex(e => e.CompanyId);
+            entity.HasQueryFilter(e => _companyId == null || e.CompanyId == _companyId);
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompanyId).HasColumnName("company_id");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Year).HasColumnName("year");
             entity.Property(e => e.Period).HasColumnName("period");
@@ -330,6 +388,7 @@ public class AccountingDbContext : DbContext
             new Account
             {
                 Id = cashId,
+                CompanyId = DemoCompanyId,
                 AccountNumber = "1000",
                 Name = "Cash",
                 Type = AccountType.Asset,
@@ -342,6 +401,7 @@ public class AccountingDbContext : DbContext
             new Account
             {
                 Id = bankId,
+                CompanyId = DemoCompanyId,
                 AccountNumber = "1100",
                 Name = "Bank Account",
                 Type = AccountType.Asset,
@@ -354,6 +414,7 @@ public class AccountingDbContext : DbContext
             new Account
             {
                 Id = arId,
+                CompanyId = DemoCompanyId,
                 AccountNumber = "1200",
                 Name = "Accounts Receivable",
                 Type = AccountType.Asset,
@@ -366,6 +427,7 @@ public class AccountingDbContext : DbContext
             new Account
             {
                 Id = apId,
+                CompanyId = DemoCompanyId,
                 AccountNumber = "2000",
                 Name = "Accounts Payable",
                 Type = AccountType.Liability,
@@ -378,6 +440,7 @@ public class AccountingDbContext : DbContext
             new Account
             {
                 Id = revenueId,
+                CompanyId = DemoCompanyId,
                 AccountNumber = "4000",
                 Name = "Sales Revenue",
                 Type = AccountType.Revenue,
@@ -390,6 +453,7 @@ public class AccountingDbContext : DbContext
             new Account
             {
                 Id = cogsId,
+                CompanyId = DemoCompanyId,
                 AccountNumber = "5000",
                 Name = "Cost of Goods Sold",
                 Type = AccountType.Expense,
@@ -402,6 +466,7 @@ public class AccountingDbContext : DbContext
             new Account
             {
                 Id = expenseId,
+                CompanyId = DemoCompanyId,
                 AccountNumber = "6000",
                 Name = "Operating Expenses",
                 Type = AccountType.Expense,
@@ -418,6 +483,7 @@ public class AccountingDbContext : DbContext
             new TaxRate
             {
                 Id = Guid.Parse("b0000000-0000-0000-0000-000000000001"),
+                CompanyId = DemoCompanyId,
                 Name = "Standard VAT",
                 Code = "VAT19",
                 Rate = 0.19m,
@@ -430,6 +496,7 @@ public class AccountingDbContext : DbContext
             new TaxRate
             {
                 Id = Guid.Parse("b0000000-0000-0000-0000-000000000002"),
+                CompanyId = DemoCompanyId,
                 Name = "Reduced VAT",
                 Code = "VAT7",
                 Rate = 0.07m,
@@ -442,6 +509,7 @@ public class AccountingDbContext : DbContext
             new TaxRate
             {
                 Id = Guid.Parse("b0000000-0000-0000-0000-000000000003"),
+                CompanyId = DemoCompanyId,
                 Name = "Zero Rate",
                 Code = "VAT0",
                 Rate = 0m,
@@ -457,7 +525,6 @@ public class AccountingDbContext : DbContext
         // TEST / DEMO DATA
         //
 
-        // Seed a comprehensive invoice with line items and a payment record for testing
         var invoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000001");
         var invoiceLine1 = Guid.Parse("c0000000-0000-0000-0000-000000000011");
         var invoiceLine2 = Guid.Parse("c0000000-0000-0000-0000-000000000012");
@@ -467,12 +534,13 @@ public class AccountingDbContext : DbContext
             new Invoice
             {
                 Id = invoiceId,
+                CompanyId = DemoCompanyId,
                 InvoiceNumber = "INV-2026-0001",
                 Type = InvoiceType.SalesInvoice,
                 Status = InvoiceStatus.Sent,
                 CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"),
                 SupplierId = null,
-                OrderId = null,  // Will be linked via API when orders are available
+                OrderId = null,
                 OrderNumber = null,
                 CustomerName = "Jonas Roth",
                 SupplierName = null,
@@ -508,7 +576,7 @@ public class AccountingDbContext : DbContext
                 Description = "Product A",
                 Sku = "PROD-A-001",
                 ProductId = Guid.Parse("40000000-0000-0000-0000-000000000001"),
-                AccountId = Guid.Parse("a0000000-0000-0000-0000-000000000005"), // revenue
+                AccountId = Guid.Parse("a0000000-0000-0000-0000-000000000005"),
                 Quantity = 2,
                 Unit = "pcs",
                 UnitPrice = 50.00m,
@@ -527,7 +595,7 @@ public class AccountingDbContext : DbContext
                 Description = "Product B",
                 Sku = "PROD-B-002",
                 ProductId = Guid.Parse("40000000-0000-0000-0000-000000000002"),
-                AccountId = Guid.Parse("a0000000-0000-0000-0000-000000000005"), // revenue
+                AccountId = Guid.Parse("a0000000-0000-0000-0000-000000000005"),
                 Quantity = 1,
                 Unit = "pcs",
                 UnitPrice = 100.00m,
@@ -544,6 +612,7 @@ public class AccountingDbContext : DbContext
             new PaymentRecord
             {
                 Id = paymentId,
+                CompanyId = DemoCompanyId,
                 PaymentNumber = "PAY-2026-0001",
                 Type = PaymentRecordType.CustomerPayment,
                 Status = PaymentRecordStatus.Completed,
@@ -564,10 +633,10 @@ public class AccountingDbContext : DbContext
                 JournalEntryId = null,
                 CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)
             },
-            // Additional invoices for seeded customers
             new PaymentRecord
             {
                 Id = Guid.Parse("c0000000-0000-0000-0000-000000000022"),
+                CompanyId = DemoCompanyId,
                 PaymentNumber = "PAY-2026-0002",
                 Type = PaymentRecordType.CustomerPayment,
                 Status = PaymentRecordStatus.Completed,
@@ -589,6 +658,7 @@ public class AccountingDbContext : DbContext
             new PaymentRecord
             {
                 Id = Guid.Parse("c0000000-0000-0000-0000-000000000023"),
+                CompanyId = DemoCompanyId,
                 PaymentNumber = "PAY-2026-0003",
                 Type = PaymentRecordType.CustomerPayment,
                 Status = PaymentRecordStatus.Completed,
@@ -609,15 +679,16 @@ public class AccountingDbContext : DbContext
             }
         );
 
-        // Seed additional invoices for different customers
+        // Seed additional invoices
         modelBuilder.Entity<Invoice>().HasData(
             new Invoice
             {
                 Id = Guid.Parse("c0000000-0000-0000-0000-000000000002"),
+                CompanyId = DemoCompanyId,
                 InvoiceNumber = "INV-2026-0002",
                 Type = InvoiceType.SalesInvoice,
                 Status = InvoiceStatus.Sent,
-                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48c"), // Sarah Mitchell
+                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48c"),
                 SupplierId = null,
                 OrderId = null,
                 OrderNumber = null,
@@ -647,10 +718,11 @@ public class AccountingDbContext : DbContext
             new Invoice
             {
                 Id = Guid.Parse("c0000000-0000-0000-0000-000000000003"),
+                CompanyId = DemoCompanyId,
                 InvoiceNumber = "INV-2026-0003",
                 Type = InvoiceType.SalesInvoice,
                 Status = InvoiceStatus.Sent,
-                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48b"), // Robert Johnson
+                CustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48b"),
                 SupplierId = null,
                 OrderId = null,
                 OrderNumber = null,

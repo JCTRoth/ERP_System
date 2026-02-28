@@ -9,6 +9,9 @@ public class Order
     public Guid Id { get; set; }
 
     [Required]
+    public Guid CompanyId { get; set; }
+
+    [Required]
     [MaxLength(50)]
     public string OrderNumber { get; set; } = string.Empty;
 

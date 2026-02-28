@@ -17,7 +17,7 @@ public class OrderObjectType : ObjectType<Order>
         descriptor.Field(o => o.Id).Type<NonNullType<IdType>>().Shareable();
         descriptor.Field(o => o.OrderNumber).Type<NonNullType<StringType>>().Shareable();
         descriptor.Field(o => o.CustomerId).Type<NonNullType<IdType>>().Shareable();
-        descriptor.Field(o => o.CompanyId).Type<NonNullType<IdType>>().Shareable();
+        descriptor.Field(o => o.CompanyId).Type<NonNullType<UuidType>>().Shareable();
         descriptor.Field(o => o.Status).Type<NonNullType<EnumType<OrderStatus>>>().Shareable();
         descriptor.Field(o => o.OrderDate).Type<NonNullType<DateTimeType>>().Shareable();
         descriptor.Field(o => o.DueDate).Type<NonNullType<DateTimeType>>().Shareable();
