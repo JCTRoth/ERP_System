@@ -1,5 +1,6 @@
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../providers/I18nProvider';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface ConfirmDialogProps {
   title: string;
@@ -23,6 +24,7 @@ export default function ConfirmDialog({
   variant = 'default',
 }: ConfirmDialogProps) {
   const { t } = useI18n();
+  useEscapeKey(onCancel);
 
   const variantStyles = {
     danger: {

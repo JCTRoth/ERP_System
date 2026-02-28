@@ -3,6 +3,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { UIComponent } from '../types';
 import ComponentRenderer from './ComponentRenderer';
 import { useI18n } from '../../../providers/I18nProvider';
+import { useEscapeKey } from '../../../hooks/useEscapeKey';
 
 interface PreviewModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface PreviewModalProps {
 
 export default function PreviewModal({ isOpen, onClose, rows, pageName, scripts = {} }: PreviewModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose, isOpen);
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
 
   const handleButtonClick = useCallback((component: UIComponent, event: React.MouseEvent) => {

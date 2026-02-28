@@ -3,6 +3,7 @@ import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon, UserPlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { normalizeUuid, uuidsEqual } from '../../utils/uuid';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const CREATE_COMPANY = gql`
   mutation CreateCompany($input: CreateCompanyInput!) {
@@ -114,6 +115,7 @@ const ROLES = ['SUPER_ADMIN', 'ADMIN', 'USER', 'VIEWER'] as const;
 
 export default function CompanyModal({ company, onClose }: Props) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const isEditing = !!company;
   const [activeTab, setActiveTab] = useState<Tab>('details');
 

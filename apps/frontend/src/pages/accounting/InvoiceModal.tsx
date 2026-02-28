@@ -3,6 +3,7 @@ import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon, PlusIcon, TrashIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import Tooltip from '../../components/Tooltip';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 // Helper function to format UUID with dashes
 const formatUUID = (uuid: string): string => {
@@ -190,6 +191,7 @@ interface InvoiceModalProps {
 
 export default function InvoiceModal({ invoice, onClose, readOnly = false }: InvoiceModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const isEditing = !!invoice;
   // Allow editing for DRAFT, PENDING, and REVIEW statuses
   const isReadOnly = readOnly || (isEditing && !['DRAFT', 'PENDING', 'REVIEW'].includes(invoice?.status));

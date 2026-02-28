@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const CREATE_EMPLOYEE = gql`
   mutation CreateEmployee($input: CreateEmployeeInput!) {
@@ -55,6 +56,7 @@ interface EmployeeModalProps {
 
 export default function EmployeeModal({ employee, onClose, onSuccess }: EmployeeModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const isEditing = !!employee;
 
   const [formData, setFormData] = useState({

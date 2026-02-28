@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const CREATE_PAYMENT_TERM = gql`
   mutation CreatePaymentTerm($input: CreatePaymentTermInput!) {
@@ -43,6 +44,7 @@ interface PaymentTermModalProps {
 
 export default function PaymentTermModal({ paymentTerm, onClose, onSuccess }: PaymentTermModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const isEditing = !!paymentTerm;
 
   const [formData, setFormData] = useState({

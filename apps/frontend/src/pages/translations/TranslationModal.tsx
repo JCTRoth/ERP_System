@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../../providers/I18nProvider';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const CREATE_TRANSLATION_KEY = gql`
   mutation CreateTranslationKey($input: CreateTranslationKeyInput!) {
@@ -41,6 +42,7 @@ interface Props {
 
 export default function TranslationModal({ translationKey, onClose }: Props) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const isEditing = !!translationKey;
 
   const [key, setKey] = useState(translationKey?.keyName || '');

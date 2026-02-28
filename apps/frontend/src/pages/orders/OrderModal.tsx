@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon, PlusIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const CREATE_ORDER = gql`
   mutation CreateOrder($input: ShopCreateOrderInput!) {
@@ -72,6 +73,7 @@ interface OrderModalProps {
 
 export default function OrderModal({ onClose }: OrderModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   console.log('OrderModal rendered');
   const [customerId, setCustomerId] = useState<string>('');
   const [items, setItems] = useState<OrderItem[]>([]);

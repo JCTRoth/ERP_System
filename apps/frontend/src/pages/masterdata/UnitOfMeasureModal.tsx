@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const CREATE_UNIT_OF_MEASURE = gql`
   mutation CreateUnitOfMeasure($input: CreateUnitOfMeasureInput!) {
@@ -43,6 +44,7 @@ interface UnitOfMeasureModalProps {
 
 export default function UnitOfMeasureModal({ unitOfMeasure, onClose, onSuccess }: UnitOfMeasureModalProps) {
   const { t } = useI18n();
+  useEscapeKey(onClose);
   const isEditing = !!unitOfMeasure;
 
   const [formData, setFormData] = useState({
