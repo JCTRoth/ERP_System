@@ -18,6 +18,7 @@ interface I18nContextType {
   t: (key: string, params?: Record<string, string | number> | { default?: string } ) => string;
   language: Language;
   setLanguage: (lang: Language) => void;
+  refreshTranslations: () => Promise<void>;
   isLoading: boolean;
   localeVersion: number;
   translations: Map<string, string>;
@@ -63,7 +64,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, [language]);
 
-  const { data, loading, error } = useQuery(GET_TRANSLATIONS, {
+  const { data, loading, error, refetch } = useQuery(GET_TRANSLATIONS, {
     variables: { language, companyId: currentCompanyId },
     skip: !language,
     errorPolicy: 'all',
@@ -113,6 +114,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const refreshTranslations = useCallback(async () => {
+    try {
+      await refetch({ language, companyId: currentCompanyId });
+    } catch {
+      // ignore refetch errors and keep existing translations map as fallback
+    }
+  }, [refetch, language, currentCompanyId]);
+
   // localeVersion increments whenever translations or language change, to force consumer updates
   const [localeVersion, setLocaleVersion] = useState(0);
 
@@ -159,7 +168,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     return out;
   }, [translations, showTranslationKeys]);
 
-  const value = useMemo(() => ({ t, language, setLanguage, isLoading: loading, localeVersion, translations }), [t, language, setLanguage, loading, localeVersion, translations]);
+  const value = useMemo(() => ({ t, language, setLanguage, refreshTranslations, isLoading: loading, localeVersion, translations }), [t, language, setLanguage, refreshTranslations, loading, localeVersion, translations]);
 
   return (
     <I18nContext.Provider value={value}>

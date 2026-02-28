@@ -293,6 +293,31 @@ export default function SettingsPage() {
                 ))}
               </div>
             </div>
+
+            <div className="card p-6">
+              <h2 className="mb-4 text-lg font-semibold">{t('settings.localization') || 'Localization'}</h2>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{t('settings.showTranslationKeys') || 'Show Translation Keys'}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {t('settings.showTranslationKeysDesc') || 'Display i18n keys instead of translated text across the UI.'}
+                  </p>
+                </div>
+                <button
+                  onClick={toggleTranslationKeys}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${
+                    showTranslationKeys ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      showTranslationKeys ? 'translate-x-5' : ''
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -302,28 +327,6 @@ export default function SettingsPage() {
             <h2 className="mb-4 text-lg font-semibold">{t('settings.developer')}</h2>
             
             <div className="space-y-6">
-              {/* Show Translation Keys Toggle */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{t('settings.showTranslationKeys')}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {t('settings.showTranslationKeysDesc')}
-                    </p>
-                  </div>
-                  <button
-                    onClick={toggleTranslationKeys}
-                    className={`relative h-6 w-11 rounded-full transition-colors ${
-                      showTranslationKeys ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                        showTranslationKeys ? 'translate-x-5' : ''
-                      }`}
-                    />
-                  </button>
-                </div>
-
               {/* Debug Info */}
               <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
                 <h3 className="mb-3 font-medium">{t('settings.debugInfo') || 'Debug Information'}</h3>

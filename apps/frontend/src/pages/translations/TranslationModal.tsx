@@ -37,10 +37,11 @@ interface TranslationKey {
 
 interface Props {
   translationKey: TranslationKey | null;
+  onSaved?: () => Promise<void> | void;
   onClose: () => void;
 }
 
-export default function TranslationModal({ translationKey, onClose }: Props) {
+export default function TranslationModal({ translationKey, onSaved, onClose }: Props) {
   const { t } = useI18n();
   useEscapeKey(onClose);
   const isEditing = !!translationKey;
@@ -100,6 +101,10 @@ export default function TranslationModal({ translationKey, onClose }: Props) {
           });
         }
       }
+    }
+
+    if (onSaved) {
+      await onSaved();
     }
 
     onClose();
