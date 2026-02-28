@@ -31,7 +31,7 @@ interface TranslationKey {
 }
 
 export default function TranslationsPage() {
-  const { t, language } = useI18n();
+  const { t, language, refreshTranslations } = useI18n();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<TranslationKey | null>(null);
   const [filterNamespace, setFilterNamespace] = useState<string>('');
@@ -49,7 +49,10 @@ export default function TranslationsPage() {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setEditingKey(null);
-    refetch();
+  };
+
+  const handleModalSaved = async () => {
+    await Promise.all([refetch(), refreshTranslations()]);
   };
 
   const handleExport = async (format: 'json' | 'csv' | 'excel') => {
@@ -222,6 +225,7 @@ export default function TranslationsPage() {
       {isModalOpen && (
         <TranslationModal
           translationKey={editingKey}
+          onSaved={handleModalSaved}
           onClose={handleModalClose}
         />
       )}
