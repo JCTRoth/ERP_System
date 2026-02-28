@@ -1,6 +1,7 @@
 import { gql } from '@apollo/client';
 import { getApolloClient } from '../lib/apollo';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore, CompanyAssignment } from '../stores/authStore';
+import { normalizeUuid } from '../utils/uuid';
 
 // GraphQL Mutations
 const LOGIN_MUTATION = gql`
@@ -15,6 +16,17 @@ const LOGIN_MUTATION = gql`
       }
       accessToken
       refreshToken
+    }
+  }
+`;
+
+const GET_USER_ASSIGNMENTS = gql`
+  query GetUserAssignments($userId: ID!) {
+    assignmentsByUser(userId: $userId) {
+      id
+      companyId
+      companyName
+      role
     }
   }
 `;
@@ -105,8 +117,33 @@ class AuthService {
       result.accessToken,
       result.refreshToken
     );
+
+    // Fetch company assignments for the logged-in user
+    try {
+      const assignments = await this.fetchCompanyAssignments(result.user.id);
+      useAuthStore.getState().setCompanyAssignments(assignments);
+    } catch (err) {
+      console.warn('Could not fetch company assignments:', err);
+      useAuthStore.getState().setCompanyAssignments([]);
+    }
     
     return result;
+  }
+
+  async fetchCompanyAssignments(userId: string): Promise<CompanyAssignment[]> {
+    const client = getApolloClient();
+    const normalizedUserId = normalizeUuid(userId);
+    try {
+      const { data } = await client.query({
+        query: GET_USER_ASSIGNMENTS,
+        variables: { userId: normalizedUserId },
+        fetchPolicy: 'network-only',
+      });
+      return data.assignmentsByUser || [];
+    } catch (err) {
+      console.warn('Failed to fetch company assignments:', err);
+      return [];
+    }
   }
 
   async logout(): Promise<void> {

@@ -3,6 +3,13 @@ import { persist } from 'zustand/middleware';
 
 export type UserRole = 'admin' | 'user' | 'viewer';
 
+export interface CompanyAssignment {
+  id: string;
+  companyId: string;
+  companyName: string;
+  role: string;
+}
+
 interface User {
   id: string;
   email: string;
@@ -17,10 +24,13 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   currentCompanyId: string | null;
+  companyAssignments: CompanyAssignment[];
   isAuthenticated: boolean;
   
   isAdmin: () => boolean;
+  isSuperAdmin: () => boolean;
   setAuth: (user: User, accessToken: string, refreshToken: string) => void;
+  setCompanyAssignments: (assignments: CompanyAssignment[]) => void;
   setCurrentCompany: (companyId: string) => void;
   updateUser: (user: Partial<User>) => void;
   logout: () => void;
@@ -33,9 +43,12 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       currentCompanyId: null,
+      companyAssignments: [],
       isAuthenticated: false,
 
       isAdmin: () => get().user?.role === 'admin',
+
+      isSuperAdmin: () => get().user?.role === 'admin',
 
       setAuth: (user, accessToken, refreshToken) => {
         set({
@@ -44,6 +57,10 @@ export const useAuthStore = create<AuthState>()(
           refreshToken,
           isAuthenticated: true,
         });
+      },
+
+      setCompanyAssignments: (assignments) => {
+        set({ companyAssignments: assignments });
       },
 
       setCurrentCompany: (companyId) => {
@@ -63,6 +80,7 @@ export const useAuthStore = create<AuthState>()(
           accessToken: null,
           refreshToken: null,
           currentCompanyId: null,
+          companyAssignments: [],
           isAuthenticated: false,
         });
       },
@@ -74,6 +92,7 @@ export const useAuthStore = create<AuthState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         currentCompanyId: state.currentCompanyId,
+        companyAssignments: state.companyAssignments,
         isAuthenticated: state.isAuthenticated,
       }),
     }

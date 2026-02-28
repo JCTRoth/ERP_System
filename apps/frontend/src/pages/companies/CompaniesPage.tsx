@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, UsersIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import CompanyModal from './CompanyModal';
 
@@ -15,6 +15,14 @@ const GET_COMPANIES = gql`
       isDemo
       isActive
       createdAt
+    }
+  }
+`;
+
+const GET_COMPANY_ASSIGNMENTS_COUNT = gql`
+  query GetCompanyAssignments($companyId: ID!) {
+    assignmentsByCompany(companyId: $companyId) {
+      id
     }
   }
 `;
@@ -34,6 +42,20 @@ interface Company {
   isDemo: boolean;
   isActive: boolean;
   createdAt: string;
+}
+
+function UserCount({ companyId }: { companyId: string }) {
+  const { data, loading } = useQuery(GET_COMPANY_ASSIGNMENTS_COUNT, {
+    variables: { companyId },
+    fetchPolicy: 'cache-and-network',
+  });
+  const count = data?.assignmentsByCompany?.length ?? 0;
+  return (
+    <span className="inline-flex items-center gap-1 text-gray-600 dark:text-gray-400">
+      <UsersIcon className="h-4 w-4" />
+      {loading ? '…' : count}
+    </span>
+  );
 }
 
 export default function CompaniesPage() {
@@ -108,6 +130,9 @@ export default function CompaniesPage() {
                   {t('companies.slug')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                  {t('companies.users', { default: 'Users' })}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('common.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
@@ -121,13 +146,13 @@ export default function CompaniesPage() {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center">
+                  <td colSpan={6} className="px-6 py-4 text-center">
                     {t('common.loading')}
                   </td>
                 </tr>
               ) : data?.companies?.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                     {t('companies.noCompanies')}
                   </td>
                 </tr>
@@ -157,6 +182,9 @@ export default function CompaniesPage() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-gray-500 dark:text-gray-400">
                       {company.slug}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <UserCount companyId={company.id} />
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <span
