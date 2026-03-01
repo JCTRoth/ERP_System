@@ -4,7 +4,9 @@
 # ERP System Build and Push to GitHub Container Registry (GHCR)
 # 
 # This script builds all ERP containers and pushes them to a private GHCR.
-# 
+# It can optionally skip building specific services, useful when some
+# components are disabled in production (e.g. orders-service).
+#
 # Usage:
 #   ./scripts/deployment/deploy-to-registry.sh [OPTIONS]
 #
@@ -16,18 +18,19 @@
 #   --version TAG        Image version tag (default: latest)
 #   --dry-run            Show what would be built without actually building
 #   --parallel N         Number of parallel builds (default: 2)
+#   --skip-services LIST  Comma-separated list of service names to skip building
 #   --help               Show this help message
 #
 # Environment Variables:
 #   GITHUB_USERNAME      GitHub username (alternative to --username)
 #   GITHUB_TOKEN         GitHub PAT (alternative to --token)
 #   REGISTRY_URL         Registry URL (alternative to --registry)
+#   SKIP_SERVICES        Comma-separated names of services to skip (alt to --skip-services)
 #
 # Examples:
 #   ./scripts/deployment/deploy-to-registry.sh --username JCTRoth --token ghp_xxx --version 1.0.0
-#   ./scripts/deployment/deploy-to-registry.sh --config deployment.json
-#   CI=true ./scripts/deployment/deploy-to-registry.sh  # Auto-use env vars in CI/CD
-#
+#   ./scripts/deployment/deploy-to-registry.sh --config deployment.json --skip-services orders-service
+#   CI=true SKIP_SERVICES=orders-service ./scripts/deployment/deploy-to-registry.sh
 ################################################################################
 
 set -euo pipefail
@@ -47,6 +50,8 @@ IMAGE_VERSION="${IMAGE_VERSION:-latest}"
 DRY_RUN=false
 PARALLEL_BUILDS=2
 CONFIG_FILE=""
+# optionally skip building of specific services (comma-separated names)
+SKIP_SERVICES="${SKIP_SERVICES:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")/.."
 
@@ -117,6 +122,7 @@ load_config() {
     REGISTRY_URL=$(jq -r '.registry_url // empty' "$config_file" || echo "ghcr.io")
     IMAGE_VERSION=$(jq -r '.image_version // empty' "$config_file" || echo "latest")
     PARALLEL_BUILDS=$(jq -r '.parallel_builds // empty' "$config_file" || echo "2")
+    SKIP_SERVICES=$(jq -r '.skip_services // [] | join(",")' "$config_file" || echo "")
     
     [ -z "$GITHUB_USERNAME" ] && GITHUB_USERNAME="JCTRoth"
     [ -z "$REGISTRY_URL" ] && REGISTRY_URL="ghcr.io"
@@ -219,6 +225,27 @@ build_and_push_service() {
     set -e  # Restore exit on error
 }
 
+# Filter out skipped services from SERVICES array
+filter_skipped_services() {
+    if [ -n "$SKIP_SERVICES" ]; then
+        IFS=',' read -ra skip <<< "$SKIP_SERVICES"
+        local filtered=()
+        for service_info in "${SERVICES[@]}"; do
+            local name="${service_info%%:*}"
+            local keep=true
+            for s in "${skip[@]}"; do
+                if [ "$s" = "$name" ]; then
+                    keep=false
+                    print_warning "Skipping build for service: $name"
+                    break
+                fi
+            done
+            $keep && filtered+=("$service_info")
+        done
+        SERVICES=("${filtered[@]}")
+    fi
+}
+
 # Build all services sequentially or in parallel
 build_all_services() {
     print_header "Building and Pushing Services"
@@ -290,6 +317,9 @@ display_summary() {
     echo "Services:           ${#SERVICES[@]}"
     echo "Parallel Builds:    $PARALLEL_BUILDS"
     echo "Dry Run:            $DRY_RUN"
+    if [ -n "$SKIP_SERVICES" ]; then
+        echo "Skipped Services:   $SKIP_SERVICES"
+    fi
     echo ""
     
     if [ "$DRY_RUN" = true ]; then
@@ -330,6 +360,10 @@ main() {
                 PARALLEL_BUILDS="$2"
                 shift 2
                 ;;
+            --skip-services)
+                SKIP_SERVICES="$2"
+                shift 2
+                ;;
             --help)
                 show_help
                 exit 0
@@ -355,6 +389,9 @@ main() {
     
     # Display summary
     display_summary
+    
+    # Filter out any services the user asked to skip
+    filter_skipped_services
     
     # Authenticate with GHCR
     authenticate_ghcr || exit 1

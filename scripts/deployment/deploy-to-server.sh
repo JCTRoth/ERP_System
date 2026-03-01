@@ -429,13 +429,9 @@ services:
     networks:
       - erp-network
 
-  # NOTE: shop-service and orders-service disabled in production
-  # Both define overlapping Order mutations, causing Apollo Federation conflicts
-  # See DEPLOYMENT_CHECKLIST.md for details and resolution options
-  # shop-service:
-  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-shop-service:${IMAGE_VERSION}
-  # orders-service:
-  #   image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
+  # NOTE: orders-service is not deployed in production (functionality merged into shop-service)
+  #       keeping the variable empty prevents the gateway from probing a non-existent endpoint.
+  #       shop-service remains active as the single source for order data.
 
   company-service:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-company-service:${IMAGE_VERSION}
@@ -529,20 +525,6 @@ services:
     networks:
       - erp-network
 
-  orders-service:
-    image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-orders-service:${IMAGE_VERSION}
-    container_name: erp_system-orders-service
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=postgres;Port=5432;Database=ordersdb;User Id=erp_orders;Password=${DB_PASSWORD};"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "5004:5004"
-    restart: unless-stopped
-    networks:
-      - erp-network
 
   gateway:
     image: ${REGISTRY_URL}/${REGISTRY_USERNAME}/erp-gateway:${IMAGE_VERSION}
@@ -557,7 +539,8 @@ services:
       TRANSLATION_SERVICE_URL: http://translation-service:8081/graphql
       NOTIFICATION_SERVICE_URL: http://notification-service:8082/graphql
       SHOP_SERVICE_URL: http://shop-service:5003/graphql/
-      ORDERS_SERVICE_URL: http://orders-service:5004/graphql/
+      # orders-service is disabled in production, provide empty URL to avoid gateway probes
+      ORDERS_SERVICE_URL: ""
     depends_on:
       - user-service
       - accounting-service
@@ -1031,6 +1014,10 @@ EOF
     ssh_exec "$login_cmd"
     
     local compose_cmd_prefix="cd /opt/erp-system && COMPOSE_INTERPOLATION=off docker compose --env-file .env"
+
+    # Clean up any old containers before pulling (removes orphans)
+    print_step "Removing existing containers and orphans..."
+    ssh_exec "cd /opt/erp-system && COMPOSE_INTERPOLATION=off docker compose --env-file .env down --remove-orphans"
 
     # Pull images
     print_step "Pulling container images..."
