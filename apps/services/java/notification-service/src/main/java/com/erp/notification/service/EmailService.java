@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 
-import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -39,9 +38,7 @@ public class EmailService {
     private final EmailTemplateRepository templateRepository;
     private final ObjectMapper objectMapper;
     
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30))
-            .build();
+    // HTTP client removed; unused field triggered a compile warning in IDE
     
     @Value("${notification.email.from}")
     private String fromEmail;

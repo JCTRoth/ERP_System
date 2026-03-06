@@ -2,15 +2,13 @@ using UserService.Data;
 using UserService.Services;
 using UserService.GraphQL;
 using UserService.Models;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using System.Security.Claims;
 using Prometheus;
 using BCrypt.Net;
 using System.Linq;
 using Swashbuckle.AspNetCore.Swagger;
+using ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,23 +17,7 @@ builder.Services.AddDbContext<UserDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Authentication
-var jwtKey = builder.Configuration["Jwt:Key"] ?? builder.Configuration["Jwt:Secret"]
-    ?? throw new InvalidOperationException("JWT Key not configured (set Jwt:Key or Jwt:Secret)");
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-        };
-    });
-
+builder.Services.AddJwtAuthenticationFromConfig(builder.Configuration);
 builder.Services.AddAuthorization();
 
 // Services
@@ -47,38 +29,34 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 
 // GraphQL
-builder.Services
-    .AddGraphQLServer()
-    .AddApolloFederation()
-    .AddQueryType<Query>()
-    .AddMutationType<Mutation>()
-    .AddType<UserType>()
-    .AddType<UserDtoType>()
-    .AddFiltering()
-    .AddSorting()
-    .AddProjections()
-    .AddErrorFilter<ErrorFilter>()
-    .AddHttpRequestInterceptor(async (context, executor, builder, cancellationToken) =>
-    {
-        // Extract user ID from JWT token and set it in global state
-        if (context.User.Identity?.IsAuthenticated == true)
+builder.Services.AddGraphQLServerDefaults(
+    builder.Environment,
+    gql => gql
+        .AddQueryType<Query>()
+        .AddMutationType<Mutation>()
+        .AddType<UserType>()
+        .AddType<UserDtoType>()
+        .AddErrorFilter<ErrorFilter>()
+        .AddHttpRequestInterceptor(async (context, executor, builder, cancellationToken) =>
         {
-            var userIdClaim = context.User.FindFirst("sub")?.Value ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (Guid.TryParse(userIdClaim, out var userId))
+            // Extract user ID from JWT token and set it in global state
+            if (context.User.Identity?.IsAuthenticated == true)
             {
-                builder.SetGlobalState("CurrentUserId", userId);
+                var userIdClaim = context.User.FindFirst("sub")?.Value ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdClaim, out var userId))
+                {
+                    builder.SetGlobalState("CurrentUserId", userId);
+                }
             }
-        }
-        await Task.CompletedTask;
-    });
+            await Task.CompletedTask;
+        }));
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Health checks
-builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+builder.Services.AddPostgresHealthChecks(builder.Configuration);
 
 var app = builder.Build();
 
