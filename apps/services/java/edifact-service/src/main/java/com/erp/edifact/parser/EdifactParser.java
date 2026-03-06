@@ -63,7 +63,6 @@ public class EdifactParser {
     
     private Map<String, Object> parseWithSmooks(String edifactContent, String smooksConfig) throws Exception {
         // Note: Smooks 2.x has significant API changes. For now, use basic parsing.
-        // TODO: Migrate to Smooks 2.x API properly if needed for production use
         return parseBasic(edifactContent);
     }
     
