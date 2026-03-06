@@ -189,24 +189,34 @@ build_and_push_service() {
     set +e  # Don't exit on errors in this function
     local service_name=$1
     local service_path=$2
+    local context_path="$PROJECT_ROOT/$service_path"
+    local dockerfile_path="$PROJECT_ROOT/$service_path/Dockerfile"
+
+    # .NET services share the Common project, so build context must be apps/services/dotnet
+    if [[ "$service_path" == *"apps/services/dotnet/"* ]]; then
+        context_path="$PROJECT_ROOT/apps/services/dotnet"
+        local dotnet_service_dir=$(basename "$service_path")
+        dockerfile_path="$context_path/$dotnet_service_dir/Dockerfile"
+    fi
+
     local lowercase_username=$(echo "$GITHUB_USERNAME" | tr '[:upper:]' '[:lower:]')
     local full_image_name="${REGISTRY_URL}/${lowercase_username}/erp-${service_name}:${IMAGE_VERSION}"
     
     print_info "Building: $service_name"
     
     if [ "$DRY_RUN" = true ]; then
-        print_warning "DRY RUN: Would build $full_image_name from $service_path"
+        print_warning "DRY RUN: Would build $full_image_name from $context_path using $dockerfile_path"
         return 0
     fi
     
     # Check if Dockerfile exists
-    if [ ! -f "$PROJECT_ROOT/$service_path/Dockerfile" ]; then
-        print_warning "Dockerfile not found for $service_name at $service_path/Dockerfile"
+    if [ ! -f "$dockerfile_path" ]; then
+        print_warning "Dockerfile not found for $service_name at $dockerfile_path"
         return 0
     fi
     
     # Build image
-    if docker build --no-cache -t "$full_image_name" "$PROJECT_ROOT/$service_path"; then
+    if docker build --no-cache -f "$dockerfile_path" -t "$full_image_name" "$context_path"; then
         print_status "Built: $service_name"
         
         # Push image

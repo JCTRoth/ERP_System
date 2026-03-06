@@ -174,10 +174,10 @@ jobs:
             context: ./apps/gateway
             dockerfile: ./apps/gateway/Dockerfile
           - service: user-service
-            context: ./apps/services/dotnet/UserService
+            context: ./apps/services/dotnet
             dockerfile: ./apps/services/dotnet/UserService/Dockerfile
           - service: shop-service
-            context: ./apps/services/dotnet/ShopService
+            context: ./apps/services/dotnet
             dockerfile: ./apps/services/dotnet/ShopService/Dockerfile
           - service: company-service
             context: ./apps/services/java/company-service
