@@ -7,9 +7,14 @@ RUN apk add --no-cache curl
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
-COPY ["UserService.csproj", "."]
-RUN dotnet restore "./UserService.csproj"
-COPY . .
+# Copy project files and common defaults
+COPY ["UserService/UserService.csproj", "UserService/"]
+COPY ["Common/ServiceDefaults/ServiceDefaultsExtensions.cs", "Common/ServiceDefaults/"]
+RUN dotnet restore "UserService/UserService.csproj"
+
+# Copy full source
+COPY ["UserService/", "UserService/"]
+WORKDIR /src/UserService
 RUN dotnet build "UserService.csproj" -c Release -o /app/build
 
 FROM build AS publish

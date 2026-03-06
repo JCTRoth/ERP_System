@@ -74,6 +74,7 @@ services:
       - "5000:5000"
     volumes:
       - ./apps/services/dotnet/UserService:/app
+      - ./apps/services/dotnet/Common:/Common
     working_dir: /app
     command: dotnet run --urls http://0.0.0.0:5000
     environment:
@@ -91,6 +92,7 @@ services:
       - "5003:5003"
     volumes:
       - ./apps/services/dotnet/ShopService:/app
+      - ./apps/services/dotnet/Common:/Common
     working_dir: /app
     command: dotnet run --urls http://0.0.0.0:5003
     environment:
@@ -124,6 +126,7 @@ services:
       - "5002:5002"
     volumes:
       - ./apps/services/dotnet/MasterdataService:/app
+      - ./apps/services/dotnet/Common:/Common
     working_dir: /app
     command: dotnet run --urls http://0.0.0.0:5002
     environment:
@@ -141,6 +144,7 @@ services:
       - "5004:5004"
     volumes:
       - ./apps/services/dotnet/OrdersService:/app
+      - ./apps/services/dotnet/Common:/Common
     working_dir: /app
     command: dotnet run --urls http://0.0.0.0:5004
     environment:
