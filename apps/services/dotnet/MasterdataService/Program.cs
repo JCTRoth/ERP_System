@@ -2,10 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using MasterdataService.Data;
 using MasterdataService.Services;
 using MasterdataService.GraphQL;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Prometheus;
+using ServiceDefaults;
 using Models = MasterdataService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,61 +28,34 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICompanyContext, CompanyContext>();
 
 // Add Authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-        };
-    });
-
+builder.Services.AddJwtAuthenticationFromConfig(builder.Configuration);
 builder.Services.AddAuthorization();
 
 // Add GraphQL
-builder.Services
-    .AddGraphQLServer()
-    .AddQueryType<Query>()
-    .AddMutationType<Mutation>()
-    .AddSubscriptionType<Subscription>()
-    .AddType<CustomerObjectType>()
-    .AddType<AddressObjectType>()
-    .AddType<ContactObjectType>()
-    .AddType<CurrencyObjectType>()
-    .AddTypeExtension<SupplierType>()
-    .AddTypeExtension<EmployeeType>()
-    .AddTypeExtension<DepartmentType>()
-    .AddTypeExtension<AssetType>()
-    .AddTypeExtension<LocationType>()
-    .AddFiltering()
-    .AddSorting()
-    .AddProjections()
-    .AddInMemorySubscriptions()
-    .AddApolloFederation()
-    .AddAuthorization()
-    .ModifyCostOptions(options =>
-    {
-        // Relax cost limits for development to allow richer queries
-        options.MaxTypeCost = 500000;
-        options.MaxFieldCost = 500000;
-    })
-    .ModifyPagingOptions(options =>
-    {
-        options.MaxPageSize = 5000;
-        options.DefaultPageSize = 50;
-        options.RequirePagingBoundaries = false;
-    });
+builder.Services.AddGraphQLServerDefaults(
+    builder.Environment,
+    gql => gql
+        .AddQueryType<Query>()
+        .AddMutationType<Mutation>()
+        .AddSubscriptionType<Subscription>()
+        .AddType<CustomerObjectType>()
+        .AddType<AddressObjectType>()
+        .AddType<ContactObjectType>()
+        .AddType<CurrencyObjectType>()
+        .AddTypeExtension<SupplierType>()
+        .AddTypeExtension<EmployeeType>()
+        .AddTypeExtension<DepartmentType>()
+        .AddTypeExtension<AssetType>()
+        .AddTypeExtension<LocationType>(),
+    new GraphQlDefaults(
+        MaxTypeCost: 500000,
+        MaxFieldCost: 500000,
+        MaxPageSize: 5000,
+        DefaultPageSize: 50,
+        RequirePagingBoundaries: false));
 
 // Add Health Checks
-builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+builder.Services.AddPostgresHealthChecks(builder.Configuration);
 
 // Add Controllers
 builder.Services.AddControllers();
@@ -92,15 +63,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add CORS
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+builder.Services.AddDefaultCors();
 
 var app = builder.Build();
 

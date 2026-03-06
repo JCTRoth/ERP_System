@@ -2,11 +2,9 @@ using AccountingService.Data;
 using AccountingService.GraphQL;
 using AccountingService.Services;
 using ICompanyContext = AccountingService.Services.ICompanyContext;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Prometheus;
+using ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,57 +31,31 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICompanyContext, CompanyContext>();
 
 // Configure JWT Authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-        };
-    });
-
+builder.Services.AddJwtAuthenticationFromConfig(builder.Configuration);
 builder.Services.AddAuthorization();
 
 // Configure GraphQL
-builder.Services
-    .AddGraphQLServer()
-    .AddQueryType<Query>()
-    .AddMutationType<Mutation>()
-    .AddSubscriptionType<Subscription>()
-    .AddTypeExtension<AccountType>()
-    .AddTypeExtension<InvoiceType>()
-    .AddTypeExtension<JournalEntryType>()
-    .AddTypeExtension<JournalEntryLineType>()
-    .AddTypeExtension<PaymentRecordType>()
-    .AddTypeExtension<BankAccountType>()
-    .AddFiltering()
-    .AddSorting()
-    .AddProjections()
-    .AddInMemorySubscriptions()
-    .AddApolloFederation()
-    .ModifyCostOptions(options =>
-    {
-        options.MaxFieldCost = 250000;
-        options.MaxTypeCost = 250000;
-    })
-    .ModifyPagingOptions(options =>
-    {
-        options.DefaultPageSize = 50;
-        options.MaxPageSize = 5000;
-        options.RequirePagingBoundaries = false;
-    })
-    .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = builder.Environment.IsDevelopment());
+builder.Services.AddGraphQLServerDefaults(
+    builder.Environment,
+    gql => gql
+        .AddQueryType<Query>()
+        .AddMutationType<Mutation>()
+        .AddSubscriptionType<Subscription>()
+        .AddTypeExtension<AccountType>()
+        .AddTypeExtension<InvoiceType>()
+        .AddTypeExtension<JournalEntryType>()
+        .AddTypeExtension<JournalEntryLineType>()
+        .AddTypeExtension<PaymentRecordType>()
+        .AddTypeExtension<BankAccountType>(),
+    new GraphQlDefaults(
+        MaxFieldCost: 250000,
+        MaxTypeCost: 250000,
+        MaxPageSize: 5000,
+        DefaultPageSize: 50,
+        RequirePagingBoundaries: false));
 
 // Add health checks
-builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+builder.Services.AddPostgresHealthChecks(builder.Configuration);
 
 // Add Controllers
 builder.Services.AddControllers();
@@ -91,15 +63,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add CORS
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+builder.Services.AddDefaultCors();
 
 var app = builder.Build();
 

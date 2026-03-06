@@ -1,13 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Prometheus;
 using Minio;
 using ShopService.Data;
 using ShopService.Services;
 using ShopService.GraphQL;
 using Npgsql;
+using ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 var defaultConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -20,23 +18,7 @@ builder.Services.AddDbContext<ShopDbContext>(options =>
 });
 
 // Authentication
-var jwtKey = builder.Configuration["Jwt:Key"] ?? builder.Configuration["Jwt:Secret"] 
-    ?? throw new InvalidOperationException("JWT Key not configured (set Jwt:Key or Jwt:Secret)");
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-        };
-    });
-
+builder.Services.AddJwtAuthenticationFromConfig(builder.Configuration);
 builder.Services.AddAuthorization();
 
 // Services
@@ -96,37 +78,31 @@ builder.Services.AddHttpClient<NotificationServiceClient>(client =>
 });
 
 // GraphQL
-builder.Services
-    .AddGraphQLServer()
-    .AddApolloFederation()
-    .AddQueryType<Query>()
-    .AddMutationType<Mutation>()
-    .AddSubscriptionType<Subscription>()
-    .AddType<ProductType>()
-    .AddType<OrderDocumentType>()
-    .AddType<OrderType>()
-    .AddType<OrderItemType>()
-    .AddType<CartType>()
-    .AddType<PaymentType>()
-    .AddType<AddressType>()
-    .AddType<UserType>()
-    .AddType<SupplierType>()
-    .AddType<AuditLogType>()
-    .AddFiltering()
-    .AddSorting()
-    .AddProjections()
-    .AddInMemorySubscriptions()
-    .ModifyPagingOptions(opt =>
-    {
-        opt.MaxPageSize = 50;
-        opt.DefaultPageSize = 20;
-        opt.IncludeTotalCount = true;
-    })
-    .AddMaxExecutionDepthRule(15)
-    .ModifyCostOptions(opt =>
-    {
-        opt.MaxFieldCost = 10000;
-    });
+builder.Services.AddGraphQLServerDefaults(
+    builder.Environment,
+    gql => gql
+        .AddQueryType<Query>()
+        .AddMutationType<Mutation>()
+        .AddSubscriptionType<Subscription>()
+        .AddType<ProductType>()
+        .AddType<OrderDocumentType>()
+        .AddType<OrderType>()
+        .AddType<OrderItemType>()
+        .AddType<CartType>()
+        .AddType<PaymentType>()
+        .AddType<AddressType>()
+        .AddType<UserType>()
+        .AddType<SupplierType>()
+        .AddType<AuditLogType>()
+        .ModifyPagingOptions(opt =>
+        {
+            opt.IncludeTotalCount = true;
+        }),
+    new GraphQlDefaults(
+        MaxFieldCost: 10000,
+        MaxExecutionDepth: 15,
+        MaxPageSize: 50,
+        DefaultPageSize: 20));
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -136,22 +112,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
 // Health checks
-var healthChecks = builder.Services.AddHealthChecks();
-if (!string.IsNullOrWhiteSpace(defaultConnectionString))
-{
-    healthChecks.AddNpgSql(defaultConnectionString);
-}
+builder.Services.AddPostgresHealthChecks(builder.Configuration);
 
 // CORS
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+builder.Services.AddDefaultCors();
 
 var app = builder.Build();
 
