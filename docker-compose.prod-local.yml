@@ -37,8 +37,8 @@ services:
   # ==========================================================================
   user-service:
     build:
-      context: ./apps/services/dotnet/UserService
-      dockerfile: Dockerfile
+      context: ./apps/services/dotnet
+      dockerfile: UserService/Dockerfile
     container_name: erp-user-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
@@ -64,8 +64,8 @@ services:
 
   shop-service:
     build:
-      context: ./apps/services/dotnet/ShopService
-      dockerfile: Dockerfile
+      context: ./apps/services/dotnet
+      dockerfile: ShopService/Dockerfile
     container_name: erp-shop-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
@@ -92,8 +92,8 @@ services:
 
   accounting-service:
     build:
-      context: ./apps/services/dotnet/AccountingService
-      dockerfile: Dockerfile
+      context: ./apps/services/dotnet
+      dockerfile: AccountingService/Dockerfile
     container_name: erp-accounting-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
@@ -116,8 +116,8 @@ services:
 
   masterdata-service:
     build:
-      context: ./apps/services/dotnet/MasterdataService
-      dockerfile: Dockerfile
+      context: ./apps/services/dotnet
+      dockerfile: MasterdataService/Dockerfile
     container_name: erp-masterdata-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
@@ -140,8 +140,8 @@ services:
 
   orders-service:
     build:
-      context: ./apps/services/dotnet/OrdersService
-      dockerfile: Dockerfile
+      context: ./apps/services/dotnet
+      dockerfile: OrdersService/Dockerfile
     container_name: erp-orders-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production

@@ -1,15 +1,20 @@
 # Multi-stage build for OrdersService
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS base
 WORKDIR /app
-EXPOSE 5004
+EXPOSE 5000
 # Install curl for health checks
 RUN apk add --no-cache curl
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
-COPY ["OrdersService.csproj", "."]
-RUN dotnet restore "./OrdersService.csproj"
-COPY . .
+# Copy project files and common defaults
+COPY ["OrdersService/OrdersService.csproj", "OrdersService/"]
+COPY ["Common/ServiceDefaults/ServiceDefaultsExtensions.cs", "Common/ServiceDefaults/"]
+RUN dotnet restore "OrdersService/OrdersService.csproj"
+
+# Copy full source
+COPY ["OrdersService/", "OrdersService/"]
+WORKDIR /src/OrdersService
 RUN dotnet build "OrdersService.csproj" -c Release -o /app/build
 
 FROM build AS publish
@@ -18,6 +23,5 @@ RUN dotnet publish "OrdersService.csproj" -c Release -o /app/publish /p:UseAppHo
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENV ASPNETCORE_HTTP_PORTS=5004
+ENV ASPNETCORE_HTTP_PORTS=5000
 ENTRYPOINT ["dotnet", "OrdersService.dll"]
-
