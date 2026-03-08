@@ -1,0 +1,873 @@
+{{- /* Backend services (Dotnet, Java, Node) */ -}}
+
+{{/* Helper to shorten names */}}
+{{- $fullname := include "erp-system.fullname" . -}}
+{{- $labels := include "erp-system.labels" . -}}
+
+{{/* =============================
+     .NET Services
+============================= */}}
+{{- if .Values.services.userService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-user-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: user-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: user-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: user-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: user-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.userService.image.repository }}:{{ .Values.services.userService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.userService.port }}
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: ASPNETCORE_URLS
+              value: "http://*:{{ .Values.services.userService.port }}"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+            - name: ConnectionStrings__DefaultConnection
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.userService.database.name "dbUser" .Values.services.userService.database.user "Release" .Release) }}
+            - name: Database__EnableSeeding
+              value: "true"
+            - name: JWT__Secret
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: jwt-secret
+            - name: JWT__Issuer
+              value: "erp-system"
+            - name: JWT__Audience
+              value: "erp-clients"
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.userService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-user-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: user-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.userService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: user-service
+{{- end }}
+
+{{- if .Values.services.shopService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-shop-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: shop-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: shop-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: shop-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: shop-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.shopService.image.repository }}:{{ .Values.services.shopService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.shopService.port }}
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: ASPNETCORE_URLS
+              value: "http://*:{{ .Values.services.shopService.port }}"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+            - name: ConnectionStrings__DefaultConnection
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.shopService.database.name "dbUser" .Values.services.shopService.database.user "Release" .Release) }}
+            - name: Database__EnableSeeding
+              value: "true"
+            - name: Minio__Endpoint
+              value: "http://{{ $fullname }}-minio:9000"
+            - name: Minio__AccessKey
+              value: {{ .Values.secrets.minioRootUser | quote }}
+            - name: Minio__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: minio-root-password
+            - name: Minio__UseSSL
+              value: "false"
+            - name: Minio__PublicUrl
+              value: {{ printf "https://%s/minio" (.Values.global.baseUrl | trimPrefix "https://" | trimPrefix "http://") | quote }}
+            - name: Services__TemplatesService
+              value: "http://{{ $fullname }}-templates-service:{{ .Values.services.templatesService.port }}"
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.shopService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-shop-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: shop-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.shopService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: shop-service
+{{- end }}
+
+{{- if .Values.services.accountingService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-accounting-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: accounting-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: accounting-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: accounting-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: accounting-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.accountingService.image.repository }}:{{ .Values.services.accountingService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.accountingService.port }}
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+            - name: ConnectionStrings__DefaultConnection
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.accountingService.database.name "dbUser" .Values.services.accountingService.database.user "Release" .Release) }}
+            - name: Database__EnableSeeding
+              value: "true"
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.accountingService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-accounting-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: accounting-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.accountingService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: accounting-service
+{{- end }}
+
+{{- if .Values.services.masterdataService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-masterdata-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: masterdata-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: masterdata-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: masterdata-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: masterdata-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.masterdataService.image.repository }}:{{ .Values.services.masterdataService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.masterdataService.port }}
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+            - name: ConnectionStrings__DefaultConnection
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.masterdataService.database.name "dbUser" .Values.services.masterdataService.database.user "Release" .Release) }}
+            - name: Database__EnableSeeding
+              value: "true"
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.masterdataService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-masterdata-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: masterdata-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.masterdataService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: masterdata-service
+{{- end }}
+
+{{- if .Values.services.ordersService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-orders-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: orders-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: orders-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: orders-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: orders-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.ordersService.image.repository }}:{{ .Values.services.ordersService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.ordersService.port }}
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: ASPNETCORE_URLS
+              value: "http://*:{{ .Values.services.ordersService.port }}"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+            - name: ConnectionStrings__DefaultConnection
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.ordersService.database.name "dbUser" .Values.services.ordersService.database.user "Release" .Release) }}
+            - name: Database__EnableSeeding
+              value: "true"
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.ordersService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-orders-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: orders-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.ordersService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: orders-service
+{{- end }}
+
+{{/* =============================
+     Java Services
+============================= */}}
+{{- if .Values.services.companyService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-company-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: company-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: company-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: company-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: company-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.companyService.image.repository }}:{{ .Values.services.companyService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.companyService.port }}
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ $fullname }}-postgresql:5432/{{ .Values.services.companyService.database.name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.services.companyService.database.user | quote }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+            - name: SPRING_AUTOCONFIGURE_EXCLUDE
+              value: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.companyService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-company-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: company-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.companyService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: company-service
+{{- end }}
+
+{{- if .Values.services.translationService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-translation-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: translation-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: translation-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: translation-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: translation-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.translationService.image.repository }}:{{ .Values.services.translationService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.translationService.port }}
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ $fullname }}-postgresql:5432/{{ .Values.services.translationService.database.name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.services.translationService.database.user | quote }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.translationService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-translation-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: translation-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.translationService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: translation-service
+{{- end }}
+
+{{- if .Values.services.notificationService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-notification-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: notification-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: notification-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: notification-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: notification-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.notificationService.image.repository }}:{{ .Values.services.notificationService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.notificationService.port }}
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ $fullname }}-postgresql:5432/{{ .Values.services.notificationService.database.name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.services.notificationService.database.user | quote }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+            - name: SMTP_HOST
+              value: {{ default "smtp.example.com" .Values.smtp.host | quote }}
+            - name: SMTP_PORT
+              value: {{ default "587" .Values.smtp.port | quote }}
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: smtp-username
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: smtp-password
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.notificationService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-notification-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: notification-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.notificationService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: notification-service
+{{- end }}
+
+{{- if .Values.services.scriptingService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-scripting-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: scripting-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: scripting-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: scripting-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: scripting-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.scriptingService.image.repository }}:{{ .Values.services.scriptingService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.scriptingService.port }}
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ $fullname }}-postgresql:5432/{{ .Values.services.scriptingService.database.name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.services.scriptingService.database.user | quote }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.scriptingService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-scripting-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: scripting-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.scriptingService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: scripting-service
+{{- end }}
+
+{{- if and (.Values.services.edifactService) (.Values.services.edifactService.enabled) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-edifact-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: edifact-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: edifact-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: edifact-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: edifact-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.edifactService.image.repository }}:{{ .Values.services.edifactService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.edifactService.port }}
+              protocol: TCP
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ $fullname }}-postgresql:5432/{{ default "edifactdb" .Values.services.edifactService.database.name }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ default "erp_edifact" .Values.services.edifactService.database.user | quote }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.edifactService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-edifact-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: edifact-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.edifactService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: edifact-service
+{{- end }}
+
+{{/* =============================
+     Node.js Services
+============================= */}}
+{{- if .Values.services.templatesService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-templates-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: templates-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: templates-service
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: templates-service
+    spec:
+      serviceAccountName: {{ include "erp-system.serviceAccountName" . }}
+      containers:
+        - name: templates-service
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.services.templatesService.image.repository }}:{{ .Values.services.templatesService.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.templatesService.port }}
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: {{ default "production" .Values.environment | quote }}
+            - name: PORT
+              value: {{ .Values.services.templatesService.port | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: postgres-password
+            - name: DATABASE_URL
+              value: "postgresql://{{ .Values.services.templatesService.database.user }}:$(POSTGRES_PASSWORD)@{{ $fullname }}-postgresql:5432/{{ .Values.services.templatesService.database.name }}"
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.services.templatesService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-templates-service
+  labels:
+    {{- $labels | nindent 4 }}
+    app.kubernetes.io/component: templates-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.templatesService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: templates-service
+{{- end }}

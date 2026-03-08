@@ -1,0 +1,21 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "erp-system.fullname" . }}-default
+  labels:
+    {{- include "erp-system.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}               # Same-namespace workloads
+        - namespaceSelector:            # Allow traffic from core/ingress controllers (kube-system)
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+  egress:
+    - {}                               # Allow all outbound; tighten per-service if needed
+{{- end }}
