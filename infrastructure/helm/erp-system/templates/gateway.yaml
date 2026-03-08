@@ -45,10 +45,14 @@ spec:
               value: "http://{{ include "erp-system.fullname" . }}-accounting-service:{{ .Values.services.accountingService.port }}/graphql"
             - name: MASTERDATA_SERVICE_URL
               value: "http://{{ include "erp-system.fullname" . }}-masterdata-service:{{ .Values.services.masterdataService.port }}/graphql"
+            - name: ORDERS_SERVICE_URL
+              value: "http://{{ include "erp-system.fullname" . }}-orders-service:{{ .Values.services.ordersService.port }}/graphql"
             - name: COMPANY_SERVICE_URL
               value: "http://{{ include "erp-system.fullname" . }}-company-service:{{ .Values.services.companyService.port }}/graphql"
             - name: TRANSLATION_SERVICE_URL
               value: "http://{{ include "erp-system.fullname" . }}-translation-service:{{ .Values.services.translationService.port }}/graphql"
+            - name: NOTIFICATION_SERVICE_URL
+              value: "http://{{ include "erp-system.fullname" . }}-notification-service:{{ .Values.services.notificationService.port }}/graphql"
           livenessProbe:
             httpGet:
               path: /health
