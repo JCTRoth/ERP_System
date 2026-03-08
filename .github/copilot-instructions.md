@@ -85,4 +85,22 @@ This is a modern, full-stack Enterprise Resource Planning (ERP) system built wit
 - **Infrastructure**: Docker, Kubernetes, Helm
 - **Communication**: GraphQL Federation, REST
 - **Documentation**: AsciiDoc, PDF generation</content>
+
+## Scripts Folder
+
+- Location: `scripts/` and subfolders (e.g., `scripts/deployment`, `scripts/test`, `scripts/deployment`).
+- Purpose: centralize developer and CI helper scripts for building, pushing images, running local integration tests, and environment setup.
+- Usage:
+  - Read the script header comment for usage and options before running.
+  - Run scripts from the repository root to ensure relative paths resolve correctly.
+  - Prefer the `--dry-run` option when available before executing destructive operations.
+- CI / Registry:
+  - Use `scripts/deployment/deploy-to-registry.sh` to build and push images to GHCR; provide credentials via env vars or a config file.
+  - If running on a local k3s cluster, prefer importing images into k3s (`k3s ctr images import`) or use a private registry and set `global.imageRegistry` in Helm values.
+- Safety and testing:
+  - Always run the provided test scripts (e.g., `scripts/test-*`) or `scripts/test-all-services.sh` after deployment to verify health.
+  - Database-changing scripts must include an automated test reproducing the fixed issue (see SQL Changes rule above).
+- Contribute:
+  - When adding or modifying scripts, update this file and add usage examples and a minimal test to `test-logs/` where appropriate.
+
 <parameter name="filePath">/home/jonas/Git/ERP_System/.github/copilot-instructions.md
