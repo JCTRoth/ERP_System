@@ -12,18 +12,9 @@ keywords:
 maintainers:
   - name: ERP Team
 dependencies:
-  - name: postgresql
-    version: "13.2.0"
-    repository: https://charts.bitnami.com/bitnami
-    condition: postgresql.enabled
-  - name: kafka
-    version: "26.4.0"
-    repository: https://charts.bitnami.com/bitnami
-    condition: kafka.enabled
-  - name: minio
-    version: "12.8.0"
-    repository: https://charts.bitnami.com/bitnami
-    condition: minio.enabled
+  # Removed Bitnami dependencies to avoid commercial image breakage.
+  # PostgreSQL, Kafka and MinIO are provided as in-chart resources or
+  # handled by alternative operators / mirrors. Keep Prometheus/Grafana.
   - name: prometheus
     version: "25.0.0"
     repository: https://prometheus-community.github.io/helm-charts
