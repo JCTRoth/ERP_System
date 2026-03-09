@@ -30,7 +30,7 @@ spec:
                 echo "waiting for postgres..."
                 sleep 2
               done
-              PGPASSWORD=$(cat /secrets/postgres-password) psql -h {{ include "erp-system.fullname" $ }}-postgresql -U {{ .Values.postgresql.user }} -d {{ .Values.postgresql.database }} -f /init/init.sql
+              psql -h {{ include "erp-system.fullname" $ }}-postgresql -U {{ .Values.postgresql.user }} -d {{ .Values.postgresql.database }} -f /init/init.sql
           env:
             - name: PGPASSWORD
               valueFrom:
@@ -41,51 +41,6 @@ spec:
             - name: init-sql
               mountPath: /init
               readOnly: true
-      volumes:
-        - name: init-sql
-          configMap:
-            name: {{ include "erp-system.fullname" . }}-postgres-init-sql
-{{- end }}
-{{- if .Values.postgresql.enabled }}
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: {{ include "erp-system.fullname" . }}-postgres-init
-  labels:
-    {{- include "erp-system.labels" . | nindent 4 }}
-spec:
-  backoffLimit: 3
-  template:
-    metadata:
-      labels:
-        {{- include "erp-system.selectorLabels" . | nindent 8 }}
-    spec:
-      restartPolicy: OnFailure
-      containers:
-        - name: psql
-          image: "{{ .Values.postgresql.initImage.repository | default "postgres" }}:{{ .Values.postgresql.initImage.tag | default "16-alpine" }}"
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: PGPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "erp-system.fullname" . }}-secrets
-                  key: postgres-password
-          command:
-            - sh
-            - -c
-            - |
-              # wait for postgres to be ready
-              until pg_isready -h {{ include "erp-system.fullname" $ }}-postgresql -p 5432 -U {{ .Values.postgresql.user | default "postgres" }}; do
-                echo "waiting for postgres..."
-                sleep 2
-              done
-              echo "postgres is ready, running init.sql"
-              psql -h {{ include "erp-system.fullname" $ }}-postgresql -U {{ .Values.postgresql.user | default "postgres" }} -f /tmp/init.sql
-          volumeMounts:
-            - name: init-sql
-              mountPath: /tmp/init.sql
-              subPath: init.sql
       volumes:
         - name: init-sql
           configMap:

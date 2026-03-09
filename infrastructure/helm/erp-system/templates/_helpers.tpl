@@ -73,7 +73,7 @@ Database connection string template
 {{- define "erp-system.databaseUrl" -}}
 {{- $dbName := .dbName -}}
 {{- $dbUser := .dbUser -}}
-Host={{ $.Release.Name }}-postgresql;Database={{ $dbName }};Username={{ $dbUser }};Password=$(POSTGRES_PASSWORD)
+Host={{ include "erp-system.fullname" (dict "Values" (dict) "Release" .Release "Chart" .Chart) }}-postgresql;Database={{ $dbName }};Username={{ $dbUser }};Password=$(POSTGRES_PASSWORD)
 {{- end }}
 
 {{/*

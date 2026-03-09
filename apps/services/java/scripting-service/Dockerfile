@@ -9,7 +9,7 @@ RUN if [ -f gradlew ]; then \
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /app/build/libs/*.jar app.jar
+COPY --from=build /app/build/libs/*.jar ./
 EXPOSE 8083
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java -jar *.jar"]

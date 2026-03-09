@@ -47,7 +47,7 @@ spec:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
             - name: ConnectionStrings__DefaultConnection
-              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.userService.database.name "dbUser" .Values.services.userService.database.user "Release" .Release) }}
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.userService.database.name "dbUser" .Values.services.userService.database.user "Release" .Release "Chart" .Chart) }}
             - name: Database__EnableSeeding
               value: "true"
             - name: JWT__Secret
@@ -132,7 +132,7 @@ spec:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
             - name: ConnectionStrings__DefaultConnection
-              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.shopService.database.name "dbUser" .Values.services.shopService.database.user "Release" .Release) }}
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.shopService.database.name "dbUser" .Values.services.shopService.database.user "Release" .Release "Chart" .Chart) }}
             - name: Database__EnableSeeding
               value: "true"
             - name: Minio__Endpoint
@@ -221,7 +221,7 @@ spec:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
             - name: ConnectionStrings__DefaultConnection
-              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.accountingService.database.name "dbUser" .Values.services.accountingService.database.user "Release" .Release) }}
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.accountingService.database.name "dbUser" .Values.services.accountingService.database.user "Release" .Release "Chart" .Chart) }}
             - name: Database__EnableSeeding
               value: "true"
           livenessProbe:
@@ -295,7 +295,7 @@ spec:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
             - name: ConnectionStrings__DefaultConnection
-              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.masterdataService.database.name "dbUser" .Values.services.masterdataService.database.user "Release" .Release) }}
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.masterdataService.database.name "dbUser" .Values.services.masterdataService.database.user "Release" .Release "Chart" .Chart) }}
             - name: Database__EnableSeeding
               value: "true"
           livenessProbe:
@@ -371,7 +371,7 @@ spec:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
             - name: ConnectionStrings__DefaultConnection
-              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.ordersService.database.name "dbUser" .Values.services.ordersService.database.user "Release" .Release) }}
+              value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.ordersService.database.name "dbUser" .Values.services.ordersService.database.user "Release" .Release "Chart" .Chart) }}
             - name: Database__EnableSeeding
               value: "true"
           livenessProbe:

@@ -1,0 +1,97 @@
+global:
+  imageRegistry: "" # set to 'ghcr.io/<user>/' if pushing to registry
+  storageClass: "local-path"
+  baseUrl: "http://erp.local"
+
+replicaCount: 1
+environment: production
+
+image:
+  pullPolicy: IfNotPresent
+
+services:
+  # override images/tags if you pushed to a registry
+  frontend:
+    image:
+      repository: erp/frontend
+      tag: local
+  gateway:
+    image:
+      repository: erp/gateway
+      tag: local
+  userService:
+    image:
+      repository: erp/user-service
+      tag: local
+  shopService:
+    image:
+      repository: erp/shop-service
+      tag: local
+  accountingService:
+    image:
+      repository: erp/accounting-service
+      tag: local
+  masterdataService:
+    image:
+      repository: erp/masterdata-service
+      tag: local
+  ordersService:
+    image:
+      repository: erp/orders-service
+      tag: local
+  companyService:
+    image:
+      repository: erp/company-service
+      tag: local
+  translationService:
+    image:
+      tag: local
+  notificationService:
+    image:
+      tag: local
+  scriptingService:
+    image:
+      tag: local
+  edifactService:
+    image:
+      tag: local
+  templatesService:
+    image:
+      repository: erp/templates-service
+      tag: local
+
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: 16-alpine
+  initImage:
+    repository: postgres
+    tag: 16-alpine
+
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    - host: erp.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+  tls:
+    - secretName: erp-tls
+      hosts:
+        - erp.local
+
+secrets:
+  postgresPassword: "password"
+  jwtSecret: "REPLACE_WITH_LONG_RANDOM_JWT_SECRET"
+  minioRootPassword: "REPLACE_MINIO_PASSWORD"
+  smtpUsername: ""
+  smtpPassword: ""
+
+prometheus:
+  enabled: false
+
+grafana:
+  enabled: false
