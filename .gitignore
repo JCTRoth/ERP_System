@@ -89,3 +89,5 @@ temp/
 
 TODO.txt
 scripts/deployment/config.json
+tls.key
+tls.crt
