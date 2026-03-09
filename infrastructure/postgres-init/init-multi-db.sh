@@ -47,36 +47,15 @@ EOSQL
 # Create databases - must be outside of DO blocks
 # Database names match what the services expect
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<'EOSQL'
-SELECT 'CREATE DATABASE userdb OWNER erp_user'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'userdb')\gexec
-
-SELECT 'CREATE DATABASE companydb OWNER erp_company'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'companydb')\gexec
-
-SELECT 'CREATE DATABASE translationdb OWNER erp_translation'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'translationdb')\gexec
-
-SELECT 'CREATE DATABASE shopdb OWNER erp_shop'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'shopdb')\gexec
-
-SELECT 'CREATE DATABASE ordersdb OWNER erp_orders'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'ordersdb')\gexec
-
-SELECT 'CREATE DATABASE accountingdb OWNER erp_accounting'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'accountingdb')\gexec
-
-SELECT 'CREATE DATABASE masterdatadb OWNER erp_masterdata'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'masterdatadb')\gexec
-
-SELECT 'CREATE DATABASE notificationdb OWNER erp_notification'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'notificationdb')\gexec
-
-SELECT 'CREATE DATABASE scriptingdb OWNER erp_scripting'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'scriptingdb')\gexec
-
-SELECT 'CREATE DATABASE edifactdb OWNER erp_edifact'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'edifactdb')\gexec
-
-SELECT 'CREATE DATABASE templatesdb OWNER erp_templates'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'templatesdb')\gexec
+CREATE DATABASE userdb OWNER erp_user;
+CREATE DATABASE companydb OWNER erp_company;
+CREATE DATABASE translationdb OWNER erp_translation;
+CREATE DATABASE shopdb OWNER erp_shop;
+CREATE DATABASE ordersdb OWNER erp_orders;
+CREATE DATABASE accountingdb OWNER erp_accounting;
+CREATE DATABASE masterdatadb OWNER erp_masterdata;
+CREATE DATABASE notificationdb OWNER erp_notification;
+CREATE DATABASE scriptingdb OWNER erp_scripting;
+CREATE DATABASE edifactdb OWNER erp_edifact;
+CREATE DATABASE templatesdb OWNER erp_templates;
 EOSQL
