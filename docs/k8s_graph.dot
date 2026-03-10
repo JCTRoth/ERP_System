@@ -1,0 +1,100 @@
+digraph K8s_ERP_Setup {
+  rankdir=TB;
+  node [shape=box, style=filled, fillcolor=lightblue];
+
+  // Subgraph for ERP Namespace
+  subgraph cluster_erp {
+    label = "ERP Namespace";
+    color = blue;
+
+    // Deployments
+    subgraph cluster_deployments {
+      label = "Deployments";
+      color = green;
+      "frontend-deployment" [label="frontend"];
+      "gateway-deployment" [label="gateway"];
+      "user-service-deployment" [label="user-service"];
+      "shop-service-deployment" [label="shop-service"];
+      "accounting-service-deployment" [label="accounting-service"];
+      "masterdata-service-deployment" [label="masterdata-service"];
+      "orders-service-deployment" [label="orders-service"];
+      "company-service-deployment" [label="company-service"];
+      "translation-service-deployment" [label="translation-service"];
+      "notification-service-deployment" [label="notification-service"];
+      "scripting-service-deployment" [label="scripting-service"];
+      "edifact-service-deployment" [label="edifact-service"];
+      "templates-service-deployment" [label="templates-service"];
+    }
+
+    // StatefulSets
+    subgraph cluster_statefulsets {
+      label = "StatefulSets";
+      color = orange;
+      "postgresql-statefulset" [label="postgresql"];
+    }
+
+    // Services
+    subgraph cluster_services {
+      label = "Services";
+      color = red;
+      "frontend-service" [label="frontend-service"];
+      "gateway-service" [label="gateway-service"];
+      "user-service-service" [label="user-service"];
+      "shop-service-service" [label="shop-service"];
+      "accounting-service-service" [label="accounting-service"];
+      "masterdata-service-service" [label="masterdata-service"];
+      "orders-service-service" [label="orders-service"];
+      "company-service-service" [label="company-service"];
+      "translation-service-service" [label="translation-service"];
+      "notification-service-service" [label="notification-service"];
+      "scripting-service-service" [label="scripting-service"];
+      "edifact-service-service" [label="edifact-service"];
+      "templates-service-service" [label="templates-service"];
+      "postgresql-service" [label="postgresql-headless"];
+    }
+
+    // Ingress
+    "ingress" [label="ingress (traefik)", shape=ellipse, fillcolor=yellow];
+
+    // Job
+    "postgres-init-job" [label="postgres-init-job", shape=diamond, fillcolor=pink];
+
+    // Edges: Services to Deployments/StatefulSets
+    "frontend-service" -> "frontend-deployment";
+    "gateway-service" -> "gateway-deployment";
+    "user-service-service" -> "user-service-deployment";
+    "shop-service-service" -> "shop-service-deployment";
+    "accounting-service-service" -> "accounting-service-deployment";
+    "masterdata-service-service" -> "masterdata-service-deployment";
+    "orders-service-service" -> "orders-service-deployment";
+    "company-service-service" -> "company-service-deployment";
+    "translation-service-service" -> "translation-service-deployment";
+    "notification-service-service" -> "notification-service-deployment";
+    "scripting-service-service" -> "scripting-service-deployment";
+    "edifact-service-service" -> "edifact-service-deployment";
+    "templates-service-service" -> "templates-service-deployment";
+    "postgresql-service" -> "postgresql-statefulset";
+
+    // Ingress to Services
+    "ingress" -> "frontend-service" [label="routes to"];
+
+    // Job to StatefulSet
+    "postgres-init-job" -> "postgresql-statefulset" [label="initializes"];
+  }
+
+  // External components (Prometheus, Grafana)
+  subgraph cluster_monitoring {
+    label = "Monitoring";
+    color = purple;
+    "prometheus-server" [label="prometheus-server"];
+    "grafana" [label="grafana"];
+    "alertmanager" [label="alertmanager"];
+    "kube-state-metrics" [label="kube-state-metrics"];
+    "node-exporter" [label="node-exporter"];
+    "pushgateway" [label="pushgateway"];
+  }
+
+  // Edges for monitoring (simplified)
+  "prometheus-server" -> "grafana" [label="data"];
+  "prometheus-server" -> "alertmanager";
+}
