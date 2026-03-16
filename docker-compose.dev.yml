@@ -109,12 +109,13 @@ services:
     build:
       context: ./apps/services/dotnet
       dockerfile: AccountingService/Dockerfile
-      # Uses the final image stage from the Dockerfile
-      target: publish
+      # Uses the final image stage from the Dockerfile (runs the published app)
+      target: final
     ports:
       - "5001:5001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:5001
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=accountingdb;Username=erp_accounting;Password=postgres
       - Jwt__Key=your-super-secret-key-at-least-256-bits-long-for-hs256
       - Jwt__Issuer=ERP_System
