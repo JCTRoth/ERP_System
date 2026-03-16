@@ -107,8 +107,10 @@ services:
 
   accounting-service:
     build:
-      context: ./apps/services/dotnet/AccountingService
-      target: development
+      context: ./apps/services/dotnet
+      dockerfile: AccountingService/Dockerfile
+      # Uses the final image stage from the Dockerfile
+      target: publish
     ports:
       - "5001:5001"
     environment:
