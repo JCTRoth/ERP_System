@@ -43,7 +43,7 @@ The deployment process consists of two main steps:
 ```
 
 The script will prompt for:
-- GitHub username (default: JCTRoth)
+- GitHub username (default: XXXXXX)
 - GitHub Personal Access Token
 - Image version tag (default: latest)
 
@@ -51,7 +51,7 @@ The script will prompt for:
 
 ```bash
 ./scripts/deployment/deploy-to-registry.sh \
-  --username JCTRoth \
+  --username XXXXXX \
   --token ghp_your_token_here \
   --version 1.0.0
 ```
@@ -62,7 +62,7 @@ Create a file named `build-config.json`:
 
 ```json
 {
-  "github_username": "JCTRoth",
+  "github_username": "XXXX",
   "github_token": "ghp_your_token_here",
   "registry_url": "ghcr.io",
   "image_version": "1.0.0",
@@ -81,7 +81,7 @@ Then run:
 To see what would be built without actually building:
 
 ```bash
-./scripts/deployment/deploy-to-registry.sh --dry-run --username JCTRoth --version 1.0.0
+./scripts/deployment/deploy-to-registry.sh --dry-run --username XXXXXX --version 1.0.0
 ```
 
 ### Parallel Builds
@@ -89,7 +89,7 @@ To see what would be built without actually building:
 Control the number of parallel builds:
 
 ```bash
-./scripts/deployment/deploy-to-registry.sh --parallel 4 --username JCTRoth --token ghp_xxx
+./scripts/deployment/deploy-to-registry.sh --parallel 4 --username XXXXXX --token ghp_xxx
 ```
 
 ## Step 3: Deploy to Production
@@ -114,7 +114,7 @@ The script will prompt for:
   --server prod.example.com \
   --domain erp.example.com \
   --email admin@example.com \
-  --registry-user JCTRoth \
+  --registry-user XXXXXX \
   --registry-token ghp_your_token_here \
   --db-password MySecurePassword123
 ```
@@ -130,7 +130,7 @@ Create a file named `deploy-config.json`:
   "deploy_username": "root",
   "deploy_ssh_key": "~/.ssh/id_rsa",
   "registry_url": "ghcr.io",
-  "registry_username": "JCTRoth",
+  "registry_username": "XXXXXX",
   "registry_token": "ghp_your_token_here",
   "image_version": "1.0.0",
   "letsencrypt_email": "admin@example.com",
@@ -260,7 +260,7 @@ jobs:
       - name: Build and Push Images
         run: |
           ./scripts/deployment/deploy-to-registry.sh \
-            --username JCTRoth \
+            --username XXXXXX \
             --token ${{ secrets.GITHUB_TOKEN }} \
             --version ${{ github.ref_name }}
   

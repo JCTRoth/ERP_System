@@ -1,0 +1,61 @@
+digraph ERP_OrderFlow {
+  graph [rankdir=LR, bgcolor="#ffffff", splines=true];
+  node [shape=box, style=filled, fillcolor="#f5f7fa", fontname="Helvetica"];
+  edge [fontname="Helvetica", fontsize=10];
+
+  // Frontend + API layer
+  frontend [label="Frontend (React)"];
+  gateway [label="Apollo Gateway (GraphQL)"];
+
+  // Services
+  shop [label="ShopService (dotnet)\norder state machine"];
+  masterdata [label="MasterdataService (dotnet)\ncustomer/product data"];
+  accounting [label="AccountingService (dotnet)\ninvoice/booking"];
+  templates [label="TemplatesService (nodejs)\ntemplate lookup by assigned_state"];
+  notification [label="Notification Service (java)\nemail/push"];
+
+  // Order states in ShopService
+  subgraph cluster_order {
+    label="OrderStatus";
+    style=rounded;
+    pending [label="Pending"];
+    confirmed [label="Confirmed"];
+    processing [label="Processing"];
+    shipped [label="Shipped"];
+    delivered [label="Delivered"];
+    cancelled [label="Cancelled"];
+    refunded [label="Refunded"];
+    onhold [label="OnHold"];
+  }
+
+  // Transitions
+  pending -> confirmed [label="confirm"];
+  confirmed -> processing [label="process"];
+  processing -> shipped [label="ship"];
+  shipped -> delivered [label="deliver"];
+  confirmed -> cancelled [label="cancel"];
+  processing -> cancelled [label="cancel"];
+  shipped -> cancelled [label="cancel (blocked?)"];
+  cancelled -> refunded [label="refund"];
+
+  // API calls
+  frontend -> gateway [label="GraphQL API"];
+  gateway -> shop;
+  gateway -> masterdata;
+  gateway -> accounting;
+  gateway -> templates;
+  gateway -> notification;
+
+  // Shop actions
+  shop -> masterdata [label="load customer/item"];
+  shop -> accounting [label="enqueue invoice on Confirmed"];
+  shop -> templates [label="get templates by state"];
+  shop -> notification [label="emit order state events"];
+
+  // Document generation path
+  confirmed -> templates [label="assigned_state=confirmed"];
+  shipped -> templates [label="assigned_state=shipped"];
+  delivered -> templates [label="assigned_state=delivered"];
+  cancelled -> templates [label="assigned_state=cancelled"];
+  refunded -> templates [label="assigned_state=refunded"];
+}
