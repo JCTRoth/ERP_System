@@ -11,6 +11,10 @@ The ERP System is built using a microservices architecture with the following co
 |===
 | Service | Technology | Port | Description
 
+image::docs/flowchart.png[ERP System Architecture Flowchart,alt="ERP System architecture flowchart",width=100%]
+
+NOTE: This diagram is generated from `docs/flowchart.xdot`.
+
 | Frontend
 | React + TypeScript
 | 3000
