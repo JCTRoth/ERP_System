@@ -10,6 +10,13 @@ The ERP system consists of:
 
 * **Frontend**: React + TypeScript + Vite + Apollo Client
 * **Gateway**: Apollo Gateway (GraphQL federation)
+
+[source,asciidoc]
+----
+image::flowchart.png[ERP System architecture flowchart,alt="ERP architecture flowchart",width=100%]
+----
+
+NOTE: The depicted flowchart is generated from `flowchart.xdot`.
 * **Backend Services**:
   - UserService (.NET 8 + HotChocolate GraphQL)
   - ShopService (.NET 8)
