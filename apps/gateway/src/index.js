@@ -146,6 +146,8 @@ const server = new ApolloServer({
 
 async function startServer() {
   const app = express();
+  let graphqlReady = false;
+  let graphqlStartupError = null;
 
   // Security middleware
   app.use(helmet({
@@ -159,7 +161,12 @@ async function startServer() {
 
   // Health check
   app.get('/health', (req, res) => {
-    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+    res.json({
+      status: 'healthy',
+      graphqlReady,
+      graphqlStartupError,
+      timestamp: new Date().toISOString(),
+    });
   });
 
   // Lightweight login proxy: handle login mutation directly against user-service
@@ -187,6 +194,14 @@ async function startServer() {
     } catch (err) {
       console.error('Login proxy error:', err);
     }
+    if (!graphqlReady) {
+      return res.status(503).json({
+        errors: [{
+          message: 'Gateway schema is still initializing',
+          code: 'GATEWAY_INITIALIZING',
+        }],
+      });
+    }
     // Not a login mutation - continue to Apollo middleware (registered later)
     return next();
   });
@@ -195,6 +210,14 @@ async function startServer() {
   app.get('/metrics', async (req, res) => {
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
+  });
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Gateway HTTP server listening at http://0.0.0.0:${PORT}`);
+    console.log(`🔐 Login proxy available at http://0.0.0.0:${PORT}/graphql`);
+    console.log(`🛒 Shop service proxy at http://0.0.0.0:${PORT}/shop/graphql`);
+    console.log(`📊 Metrics available at http://0.0.0.0:${PORT}/metrics`);
+    console.log(`❤️  Health check at http://0.0.0.0:${PORT}/health`);
   });
 
   // Add startup delay to allow services to initialize
@@ -243,7 +266,12 @@ async function startServer() {
     }
 
   // Start Apollo Server; IntrospectAndCompose will poll subgraphs.
-  await server.start();
+  try {
+    await server.start();
+  } catch (error) {
+    graphqlStartupError = error.message;
+    throw error;
+  }
 
   // GraphQL middleware
   app.use('/graphql', express.json(), expressMiddleware(server, {
@@ -254,6 +282,9 @@ async function startServer() {
       language: req.headers['accept-language']?.split(',')[0] || 'en',
     }),
   }));
+  graphqlReady = true;
+  graphqlStartupError = null;
+  console.log('Apollo GraphQL middleware mounted');
 
   // Shop service proxy (separate from federated graph due to type conflicts)
   app.use('/shop/graphql', express.json(), async (req, res) => {
@@ -343,12 +374,6 @@ async function startServer() {
     }
   });
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Gateway ready at http://0.0.0.0:${PORT}/graphql`);
-    console.log(`🛒 Shop service proxy at http://0.0.0.0:${PORT}/shop/graphql`);
-    console.log(`📊 Metrics available at http://0.0.0.0:${PORT}/metrics`);
-    console.log(`❤️  Health check at http://0.0.0.0:${PORT}/health`);
-  });
 }
 
 startServer().catch((error) => {

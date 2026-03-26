@@ -13,8 +13,6 @@ The ERP System is built using a microservices architecture with the following co
 
 image::docs/flowchart.png[ERP System Architecture Flowchart,alt="ERP System architecture flowchart",width=100%]
 
-NOTE: This diagram is generated from `docs/flowchart.xdot`.
-
 | Frontend
 | React + TypeScript
 | 3000
@@ -158,6 +156,33 @@ docker-compose up -d
 
 # Access the application
 open http://localhost:3000
+----
+
+=== Local Kubernetes Deployment
+
+For deploying the full microservices stack to a local Kubernetes cluster (k3s, k3d, kind, or minikube):
+
+[source,bash]
+----
+# One-command automated deployment
+bash scripts/k8s-local-deploy.sh full
+
+# This will:
+# - Build all 14 Docker images
+# - Load them into your k3s cluster
+# - Deploy the Helm chart with PostgreSQL
+# - Setup port-forwards
+
+# Access the application
+open http://localhost:3000
+----
+
+For detailed instructions, configuration, and troubleshooting, see link:docs/K8S_DEPLOYMENT.md[Local Kubernetes Deployment Guide].
+
+For quick restarts after PC shutdown:
+[source,bash]
+----
+bash scripts/k8s-local-deploy.sh rebuild
 ----
 
 === Development Setup

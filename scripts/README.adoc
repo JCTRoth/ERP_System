@@ -12,38 +12,86 @@ This directory contains scripts for managing the ERP System development and depl
 === Script Overview
 
 |===
-| Script | Purpose | Status
+| Script | Purpose
+
+| link:k8s-local-deploy.sh[k8s-local-deploy.sh]
+| Automated local Kubernetes deployment with image builds, Helm chart deployment, and port-forwards
+
+| link:k8s-quick-restart.sh[k8s-quick-restart.sh]
+| Quick restart for Kubernetes after PC shutdown (rebuilds and redeploys)
+
+| link:k8s-local-stop.sh[k8s-local-stop.sh]
+| Stop Kubernetes services, port-forwards, and optionally cleanup
 
 | link:start-local.sh[start-local.sh]
-| Start the complete system locally with health checks
-| ✅ Production Ready
+| Docker Swarm: Start the complete system locally with health checks
 
 | link:stop-local.sh[stop-local.sh]
-| Stop all local containers
-| ✅ Production Ready
+| Docker Swarm: Stop all local containers
 
 | link:deploy-to-registry.sh[deploy-to-registry.sh]
 | Build and push containers to GitHub Container Registry
-| ✅ Production Ready
 
 | link:deploy-to-server.sh[deploy-to-server.sh]
-| Deploy the system to a production server
-| ✅ Production Ready
+| Docker Swarm: Deploy the system to a production server
 
 | link:quick-test.sh[quick-test.sh]
 | Quick validation tests for the startup script
-| ✅ Production Ready
 
 | link:ubuntu-dev-install.sh[ubuntu-dev-install.sh]
 | Ubuntu development environment setup
-| ✅ Production Ready
 
 | link:test-startup-script.sh[test-startup-script.sh]
 | Comprehensive startup script testing
-| ✅ Production Ready
 |===
 
 == Local Development Setup
+
+=== Kubernetes Deployment (NEW - Recommended for Full Stack Testing)
+
+For deploying the complete microservices stack to local Kubernetes:
+
+==== Prerequisites
+
+* Kubernetes cluster (k3s, k3d, kind, or minikube) installed and running
+* kubectl configured
+* Helm 3.x installed
+* Docker installed
+* 4GB+ RAM available
+
+==== Quick Start (One Command!)
+
+[source,bash]
+----
+# Automated full deployment: images, Helm chart, databases, port-forwards
+bash scripts/k8s-local-deploy.sh full
+
+# System will be ready in 5-10 minutes
+# Access at: http://localhost:3000 (frontend)
+# GraphQL at: http://localhost:4000/graphql (gateway)
+----
+
+==== After PC Restart
+
+[source,bash]
+----
+# Quick rebuild and redeploy
+bash scripts/k8s-local-deploy.sh rebuild
+
+# Or just restart port-forwards if cluster is still running
+bash scripts/k8s-local-deploy.sh portforward
+----
+
+==== Available Commands
+
+* `bash scripts/k8s-local-deploy.sh full` - Full setup (build, deploy, everything)
+* `bash scripts/k8s-local-deploy.sh rebuild` - Rebuild images and redeploy (recommended after PC restart)
+* `bash scripts/k8s-local-deploy.sh deploy` - Deploy/upgrade Helm chart only
+* `bash scripts/k8s-local-deploy.sh portforward` - Setup port-forwards for existing services
+* `bash scripts/k8s-local-deploy.sh status` - Show cluster status
+* `bash scripts/k8s-local-deploy.sh clean` - Remove all resources
+
+For detailed configuration and troubleshooting, see link:../docs/K8S_DEPLOYMENT.md[K8S_DEPLOYMENT.md].
 
 === Prerequisites
 

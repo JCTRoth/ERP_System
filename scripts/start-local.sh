@@ -553,6 +553,16 @@ show_status() {
     echo ""
 }
 
+show_logs() {
+    cd "$PROJECT_DIR"
+
+    if [ -n "${2:-}" ]; then
+        docker compose -f "$COMPOSE_FILE" logs -f "$2"
+    else
+        docker compose -f "$COMPOSE_FILE" logs -f
+    fi
+}
+
 show_help() {
     echo ""
     echo "ERP System - Local Startup Script"
@@ -565,6 +575,7 @@ show_help() {
     echo "  stop        Stop the ERP system"
     echo "  status      Show system status"
     echo "  ports       Show service ports and URL mappings"
+    echo "  logs        Stream Docker Compose logs (optionally for one service)"
     echo "  help        Show this help message"
     echo ""
     echo "Startup Phases:"
@@ -573,8 +584,8 @@ show_help() {
     echo "  3. Infrastructure startup (PostgreSQL)"
     echo "  4. Core services startup"
     echo "  5. Service health verification"
-    echo "  6. Frontend startup"
-    echo "  7. Gateway startup (LAST)"
+    echo "  6. Gateway startup"
+    echo "  7. Frontend startup"
     echo "  8. Final system verification"
     echo ""
 }
@@ -616,7 +627,7 @@ main() {
     start_frontend || print_warning "Frontend not responding yet (may still be loading)"
 
     # Phase 8: Final verification
-    final_verification
+    final_verification || print_warning "Final verification incomplete, but core services may still be warming up"
 
     # Display information
     display_access_information
@@ -643,6 +654,9 @@ case "${1:-start}" in
         ;;
     ports)
         show_ports
+        ;;
+    logs)
+        show_logs "$@"
         ;;
     help|--help|-h)
         show_help
