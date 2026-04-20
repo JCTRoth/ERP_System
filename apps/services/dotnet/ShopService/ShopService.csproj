@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="HotChocolate.Language" Version="14.3.1" />
     <InternalsVisibleTo Include="ShopService.Tests" />
   </ItemGroup>
 
