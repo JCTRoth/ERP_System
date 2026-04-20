@@ -14,7 +14,7 @@
 # Requirements:
 #   - notification-service running (port 8082)
 #   - Gateway running (port 4000)
-#   - wget and jq installed
+#   - curl and jq installed
 # =============================================================================
 
 set -euo pipefail
@@ -59,8 +59,8 @@ section() {
 }
 
 # Check dependencies
-if ! command -v wget >/dev/null 2>&1; then
-  echo "Error: wget is required but not installed."
+if ! command -v curl >/dev/null 2>&1; then
+  echo "Error: curl is required but not installed."
   exit 1
 fi
 
@@ -73,14 +73,16 @@ fi
 graphql_request() {
   local url="$1"
   local query="$2"
-  wget -q -O - --post-data "$query" --header 'Content-Type: application/json' "$url" 2>/dev/null || echo '{"error":"connection_failed"}'
+  curl -s -X POST "$url" \
+    -H 'Content-Type: application/json' \
+    -d "$query" 2>/dev/null || echo '{"error":"connection_failed"}'
 }
 
 section "1. Service Connectivity Tests"
 
 # Test 1.1: Notification service is reachable
 log "Testing notification-service connectivity..."
-HEALTH_RESP=$(wget -q -O - "http://localhost:8082/actuator/health" 2>/dev/null || echo '{"status":"DOWN"}')
+HEALTH_RESP=$(curl -s "http://localhost:8082/actuator/health" 2>/dev/null || echo '{"status":"DOWN"}')
 if echo "$HEALTH_RESP" | jq -e '.status == "UP"' >/dev/null 2>&1; then
   pass "notification-service is healthy"
 else

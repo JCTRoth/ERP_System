@@ -1,13 +1,19 @@
 {{- if .Values.postgresql.enabled }}
+{{- $fullname := include "erp-system.fullname" . -}}
+{{- $postgresStorageClass := .Values.global.storageClass -}}
+{{- $existingPostgres := lookup "apps/v1" "StatefulSet" .Release.Namespace (printf "%s-postgresql" $fullname) -}}
+{{- if and (not $postgresStorageClass) $existingPostgres (gt (len $existingPostgres.spec.volumeClaimTemplates) 0) -}}
+{{- $postgresStorageClass = (index $existingPostgres.spec.volumeClaimTemplates 0).spec.storageClassName -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "erp-system.fullname" . }}-postgresql
+  name: {{ $fullname }}-postgresql
   labels:
     {{- include "erp-system.labels" . | nindent 4 }}
     app.kubernetes.io/component: postgresql
 spec:
-  serviceName: {{ include "erp-system.fullname" . }}-postgresql
+  serviceName: {{ $fullname }}-postgresql
   replicas: {{ .Values.postgresql.replicaCount | default 1 }}
   selector:
     matchLabels:
@@ -57,7 +63,7 @@ spec:
         resources:
           requests:
             storage: {{ .Values.postgresql.persistence.size | default "10Gi" }}
-        {{- if .Values.global.storageClass }}
-        storageClassName: {{ .Values.global.storageClass }}
+        {{- if $postgresStorageClass }}
+        storageClassName: {{ $postgresStorageClass | quote }}
         {{- end }}
 {{- end }}

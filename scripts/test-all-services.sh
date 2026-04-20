@@ -2,7 +2,7 @@
 # Comprehensive Federation and Service Integration Tests
 # Tests all services individually and through the Apollo Gateway
 
-set -e
+set +e
 
 # Colors
 RED='\033[0;31m'
@@ -69,14 +69,23 @@ test_service_health() {
     
     log "Checking $service..."
     
-    # Try multiple endpoints
-    for endpoint in "/health" "/graphql" ""; do
+    # Try multiple HTTP endpoints first
+    for endpoint in "/health" "/actuator/health" ""; do
         response=$(curl -s -o /dev/null -w "%{http_code}" "$url$endpoint" 2>&1 || echo "000")
         if [[ "$response" =~ ^[2-4][0-9][0-9]$ ]]; then
             print_success "$service is responsive (HTTP $response at $endpoint)"
             return 0
         fi
     done
+
+    # GraphQL services may reject GET /graphql, so probe with a tiny POST.
+    response=$(curl -s -o /dev/null -w "%{http_code}" "$url/graphql" \
+        -H "Content-Type: application/json" \
+        -d '{"query":"{ __typename }"}' 2>&1 || echo "000")
+    if [[ "$response" =~ ^[2-4][0-9][0-9]$ ]]; then
+        print_success "$service is responsive (HTTP $response at /graphql POST)"
+        return 0
+    fi
     
     print_error "$service is not responsive at $url"
     return 1
@@ -96,8 +105,12 @@ test_graphql_query() {
         -d "{\"query\":\"$query\"}" 2>&1 || echo '{"errors":[{"message":"Connection failed"}]}')
     
     # Check for errors
-    if echo "$response" | grep -q '"errors"'; then
-        error_msg=$(echo "$response" | jq -r '.errors[0].message' 2>/dev/null || echo "$response")
+    if echo "$response" | jq -e '.errors != null' >/dev/null 2>&1; then
+        error_msg=$(echo "$response" | jq -r '.errors[0].message // "Unknown GraphQL error"' 2>/dev/null || echo "$response")
+        if echo "$error_msg" | grep -qi "introspection is not allowed"; then
+            print_skip "$service - $description: Introspection disabled in production"
+            return 0
+        fi
         print_error "$service - $description: $error_msg"
         echo "$response" >> "$LOG_FILE"
         return 1
@@ -179,26 +192,26 @@ test_graphql_query "user-service" "${SERVICE_URLS[user-service]}" \
 
 # Shop Service
 test_graphql_query "shop-service" "${SERVICE_URLS[shop-service]}" \
-    "{products(take:5){id name price}}" \
+    "{products(first:5){nodes{id name price}}}" \
     "List products"
 
 test_graphql_query "shop-service" "${SERVICE_URLS[shop-service]}" \
-    "{categories{id name}}" \
+    "{categories(first:5){nodes{id name}}}" \
     "List categories"
 
 # Accounting Service
 test_graphql_query "accounting-service" "${SERVICE_URLS[accounting-service]}" \
-    "{accounts{id name type}}" \
+    "{accounts{nodes{id name type}}}" \
     "List accounts"
 
 # Masterdata Service
 test_graphql_query "masterdata-service" "${SERVICE_URLS[masterdata-service]}" \
-    "{currencies{id code name}}" \
+    "{currencies{nodes{id code name}}}" \
     "List currencies"
 
 # Orders Service
 test_graphql_query "orders-service" "${SERVICE_URLS[orders-service]}" \
-    "{orders{id status}}" \
+    "{orders{nodes{id status}}}" \
     "List orders"
 
 # Phase 4: Federation Tests (via Gateway)
@@ -211,15 +224,15 @@ if curl -s "$GATEWAY_URL/health" &>/dev/null || curl -s "$GATEWAY_URL/graphql" &
         "Federated users query"
     
     test_graphql_query "gateway" "$GATEWAY_URL" \
-        "{products(take:5){id name}}" \
+        "{products(first:5){nodes{id name}}}" \
         "Federated products query"
     
     test_graphql_query "gateway" "$GATEWAY_URL" \
-        "{accounts{id name}}" \
+        "{accounts{nodes{id name}}}" \
         "Federated accounts query"
     
     test_graphql_query "gateway" "$GATEWAY_URL" \
-        "{orders{id status}}" \
+        "{orders{nodes{id status}}}" \
         "Federated orders query"
     
     # Test GetRecentOrders with variables
@@ -239,7 +252,7 @@ if curl -s "$GATEWAY_URL/health" &>/dev/null || curl -s "$GATEWAY_URL/graphql" &
     
     # Test cross-service queries
     test_graphql_query "gateway" "$GATEWAY_URL" \
-        "{users{id email} orders{id status}}" \
+        "{users{id email} orders{nodes{id status}}}" \
         "Cross-service query (users + orders)"
 else
     print_skip "Gateway tests (gateway not available)"

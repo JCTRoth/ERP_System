@@ -4,7 +4,7 @@
 global:
   imageRegistry: ""
   imagePullSecrets: []
-  storageClass: ""
+  storageClass: "local-path"
   baseUrl: "http://localhost"
 
 # =============================================================================
@@ -246,10 +246,7 @@ ingress:
   enabled: true
   className: traefik
   annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-    nginx.ingress.kubernetes.io/limit-rps: "100"
-    nginx.ingress.kubernetes.io/limit-connections: "20"
+    traefik.ingress.kubernetes.io/router.entrypoints: web
   hosts:
     - host: erp.local
       paths:
@@ -289,35 +286,27 @@ postgresql:
     enabled: true
 
 # =============================================================================
-# Kafka (Bitnami)
-# =============================================================================
-kafka:
-  enabled: true
-  replicaCount: 1
-  persistence:
-    enabled: true
-    size: 10Gi
-  zookeeper:
-    enabled: true
-    persistence:
-      enabled: true
-      size: 5Gi
-  metrics:
-    kafka:
-      enabled: true
-    jmx:
-      enabled: true
-
-# =============================================================================
 # MinIO (S3-compatible storage)
 # =============================================================================
 minio:
   enabled: true
   mode: standalone
+  publicUrl: ""
   persistence:
     enabled: true
     size: 10Gi
   defaultBuckets: "company-logos,exports,imports"
+
+# =============================================================================
+# Mailpit (local SMTP sink for non-production environments)
+# =============================================================================
+mailpit:
+  enabled: false
+  image:
+    repository: axllent/mailpit
+    tag: latest
+  smtpPort: 1025
+  httpPort: 8025
 
 # =============================================================================
 # Monitoring
@@ -343,6 +332,12 @@ grafana:
 smtp:
   host: ""
   port: 587
+  auth: true
+  starttls:
+    enabled: true
+    required: true
+  fromAddress: ""
+  fromName: "ERP System"
 
 # =============================================================================
 # Security

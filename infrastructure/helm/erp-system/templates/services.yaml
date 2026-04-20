@@ -39,6 +39,8 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ .Values.environment | quote }}
+            - name: DOTNET_hostBuilder__reloadConfigOnChange
+              value: "false"
             - name: ASPNETCORE_URLS
               value: "http://*:{{ .Values.services.userService.port }}"
             - name: POSTGRES_PASSWORD
@@ -124,6 +126,8 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ .Values.environment | quote }}
+            - name: DOTNET_hostBuilder__reloadConfigOnChange
+              value: "false"
             - name: ASPNETCORE_URLS
               value: "http://*:{{ .Values.services.shopService.port }}"
             - name: POSTGRES_PASSWORD
@@ -136,7 +140,7 @@ spec:
             - name: Database__EnableSeeding
               value: "true"
             - name: Minio__Endpoint
-              value: "http://{{ $fullname }}-minio:9000"
+              value: {{ include "erp-system.minioEndpoint" . | quote }}
             - name: Minio__AccessKey
               value: {{ .Values.secrets.minioRootUser | quote }}
             - name: Minio__SecretKey
@@ -147,9 +151,11 @@ spec:
             - name: Minio__UseSSL
               value: "false"
             - name: Minio__PublicUrl
-              value: {{ printf "https://%s/minio" (.Values.global.baseUrl | trimPrefix "https://" | trimPrefix "http://") | quote }}
+              value: {{ if .Values.minio.publicUrl }}{{ .Values.minio.publicUrl | quote }}{{ else if .Values.ingress.enabled }}{{ printf "https://%s/minio" (.Values.global.baseUrl | trimPrefix "https://" | trimPrefix "http://") | quote }}{{ else }}{{ printf "http://%s" (include "erp-system.minioEndpoint" .) | quote }}{{ end }}
             - name: Services__TemplatesService
               value: "http://{{ $fullname }}-templates-service:{{ .Values.services.templatesService.port }}"
+            - name: Services__Gateway
+              value: "http://{{ $fullname }}-gateway:{{ .Values.services.gateway.port }}"
           livenessProbe:
             tcpSocket:
               port: http
@@ -215,6 +221,10 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ .Values.environment | quote }}
+            - name: DOTNET_hostBuilder__reloadConfigOnChange
+              value: "false"
+            - name: ASPNETCORE_URLS
+              value: "http://*:{{ .Values.services.accountingService.port }}"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -289,6 +299,10 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ .Values.environment | quote }}
+            - name: DOTNET_hostBuilder__reloadConfigOnChange
+              value: "false"
+            - name: ASPNETCORE_URLS
+              value: "http://*:{{ .Values.services.masterdataService.port }}"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -297,6 +311,8 @@ spec:
             - name: ConnectionStrings__DefaultConnection
               value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.masterdataService.database.name "dbUser" .Values.services.masterdataService.database.user "Release" .Release "Chart" .Chart) }}
             - name: Database__EnableSeeding
+              value: "true"
+            - name: Database__RepairLegacyCompanyColumns
               value: "true"
           livenessProbe:
             tcpSocket:
@@ -363,6 +379,8 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ .Values.environment | quote }}
+            - name: DOTNET_hostBuilder__reloadConfigOnChange
+              value: "false"
             - name: ASPNETCORE_URLS
               value: "http://*:{{ .Values.services.ordersService.port }}"
             - name: POSTGRES_PASSWORD
@@ -451,8 +469,20 @@ spec:
                 secretKeyRef:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
-            - name: SPRING_AUTOCONFIGURE_EXCLUDE
-              value: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+            - name: MINIO_ENDPOINT
+              value: "http://{{ include "erp-system.minioEndpoint" . }}"
+            - name: MINIO_ACCESS_KEY
+              value: {{ .Values.secrets.minioRootUser | quote }}
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: minio-root-password
+          startupProbe:
+            tcpSocket:
+              port: http
+            failureThreshold: 45
+            periodSeconds: 10
           livenessProbe:
             tcpSocket:
               port: http
@@ -527,6 +557,11 @@ spec:
                 secretKeyRef:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
+          startupProbe:
+            tcpSocket:
+              port: http
+            failureThreshold: 45
+            periodSeconds: 10
           livenessProbe:
             tcpSocket:
               port: http
@@ -602,9 +637,9 @@ spec:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
             - name: SMTP_HOST
-              value: {{ default "smtp.example.com" .Values.smtp.host | quote }}
+              value: {{ if .Values.mailpit.enabled }}{{ printf "%s-mailpit" $fullname | quote }}{{ else }}{{ default "smtp.example.com" .Values.smtp.host | quote }}{{ end }}
             - name: SMTP_PORT
-              value: {{ default "587" .Values.smtp.port | quote }}
+              value: {{ if .Values.mailpit.enabled }}{{ .Values.mailpit.smtpPort | quote }}{{ else }}{{ default "587" .Values.smtp.port | quote }}{{ end }}
             - name: SMTP_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -615,6 +650,21 @@ spec:
                 secretKeyRef:
                   name: {{ $fullname }}-secrets
                   key: smtp-password
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH
+              value: {{ .Values.smtp.auth | quote }}
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE
+              value: {{ .Values.smtp.starttls.enabled | quote }}
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED
+              value: {{ .Values.smtp.starttls.required | quote }}
+            - name: EMAIL_FROM
+              value: {{ default "noreply@erp-system.local" .Values.smtp.fromAddress | quote }}
+            - name: EMAIL_FROM_NAME
+              value: {{ default "ERP System" .Values.smtp.fromName | quote }}
+          startupProbe:
+            tcpSocket:
+              port: http
+            failureThreshold: 45
+            periodSeconds: 10
           livenessProbe:
             tcpSocket:
               port: http
@@ -689,6 +739,11 @@ spec:
                 secretKeyRef:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
+          startupProbe:
+            tcpSocket:
+              port: http
+            failureThreshold: 45
+            periodSeconds: 10
           livenessProbe:
             tcpSocket:
               port: http
@@ -763,6 +818,20 @@ spec:
                 secretKeyRef:
                   name: {{ $fullname }}-secrets
                   key: postgres-password
+            - name: MINIO_ENDPOINT
+              value: "http://{{ include "erp-system.minioEndpoint" . }}"
+            - name: MINIO_ACCESS_KEY
+              value: {{ .Values.secrets.minioRootUser | quote }}
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: minio-root-password
+          startupProbe:
+            tcpSocket:
+              port: http
+            failureThreshold: 45
+            periodSeconds: 10
           livenessProbe:
             tcpSocket:
               port: http
@@ -840,15 +909,23 @@ spec:
                   key: postgres-password
             - name: DATABASE_URL
               value: "postgresql://{{ .Values.services.templatesService.database.user }}:$(POSTGRES_PASSWORD)@{{ $fullname }}-postgresql:5432/{{ .Values.services.templatesService.database.name }}"
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 45
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health
               port: http
             initialDelaySeconds: 20
             periodSeconds: 15
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health
               port: http
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
           resources:
             {{- toYaml .Values.services.templatesService.resources | nindent 12 }}

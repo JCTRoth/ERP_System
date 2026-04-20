@@ -5,9 +5,6 @@ metadata:
   name: {{ include "erp-system.fullname" . }}-postgres-init
   labels:
     {{- include "erp-system.labels" . | nindent 4 }}
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-delete-policy": hook-succeeded
 spec:
   backoffLimit: 3
   template:

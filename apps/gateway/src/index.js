@@ -78,76 +78,71 @@ const subgraphs = allSubgraphs.filter(subgraph => subgraph.url && subgraph.url.t
 
 console.log('Subgraphs after filtering:', JSON.stringify(subgraphs, null, 2));
 
-// Create gateway
-const gateway = new ApolloGateway({
-  supergraphSdl: new IntrospectAndCompose({
-    subgraphs,
-    pollIntervalInMs: 15000, // Poll every 15 seconds for changes
-    async onFailureToCompose(err) {
-      console.error('Failed to compose supergraph:', err.message);
-      console.log('Gateway will retry composition...');
-      // Don't throw, just log - allow gateway to continue serving
-    },
-    subgraphHealthCheck: true,
-    // Increase timeout for slower startup environments
-    request: {
-      timeout: 30000, // 30 second timeout for introspection requests
-    },
-    // Slightly shorter initial composition delay but rely on per-request timeout
-    initialCompositionDelayMs: 60000, // Wait 60 seconds before first composition attempt
-    // Add simple retry/backoff logging hook
-    async onUpdateSupergraphSdl(prev, next) {
-      if (!prev) console.log('Initial supergraph composed');
-      else console.log('Supergraph updated');
-    }
-  }),
-  buildService({ name, url }) {
-    console.log(`Building service ${name} with URL ${url}`);
-    return new AuthenticatedDataSource({ url });
-  },
-  // Allow the gateway to start even if some services aren't available yet
-  didFailComposingGraph() {
-    console.log('Initial composition failed, gateway will retry...');
-    // Don't exit on composition failure, just continue
-    return;
-  },
-});
-
-// Log when gateway is ready
-gateway.onSchemaLoadOrUpdate(({ apiSchema, coreSupergraphSdl }) => {
-  console.log('Gateway schema loaded/updated');
-  console.log(`API Schema has ${apiSchema.getQueryType()?.getFields() ? Object.keys(apiSchema.getQueryType().getFields()).length : 0} query fields`);
-});
-
-// Create Apollo Server
-const server = new ApolloServer({
-  gateway,
-  plugins: [
-    {
-      async requestDidStart() {
-        const start = Date.now();
-        return {
-          async willSendResponse({ operation }) {
-            const duration = (Date.now() - start) / 1000;
-            const operationName = operation?.name?.value || 'anonymous';
-            graphqlRequestDuration.labels(operationName).observe(duration);
-            graphqlRequestCounter.labels(operationName, 'success').inc();
-          },
-          async didEncounterErrors({ operation }) {
-            const operationName = operation?.name?.value || 'anonymous';
-            graphqlRequestCounter.labels(operationName, 'error').inc();
-          }
-        };
+function createApolloServer() {
+  const gateway = new ApolloGateway({
+    supergraphSdl: new IntrospectAndCompose({
+      subgraphs,
+      pollIntervalInMs: 15000, // Poll every 15 seconds for changes
+      async onFailureToCompose(err) {
+        console.error('Failed to compose supergraph:', err.message);
+        console.log('Gateway will retry composition...');
+      },
+      subgraphHealthCheck: true,
+      request: {
+        timeout: 30000,
+      },
+      initialCompositionDelayMs: 60000,
+      async onUpdateSupergraphSdl(prev, next) {
+        if (!prev) console.log('Initial supergraph composed');
+        else console.log('Supergraph updated');
       }
-    }
-  ],
-  introspection: process.env.NODE_ENV === 'development',
-});
+    }),
+    buildService({ name, url }) {
+      console.log(`Building service ${name} with URL ${url}`);
+      return new AuthenticatedDataSource({ url });
+    },
+    didFailComposingGraph() {
+      console.log('Initial composition failed, gateway will retry...');
+      return;
+    },
+  });
+
+  gateway.onSchemaLoadOrUpdate(({ apiSchema }) => {
+    console.log('Gateway schema loaded/updated');
+    console.log(`API Schema has ${apiSchema.getQueryType()?.getFields() ? Object.keys(apiSchema.getQueryType().getFields()).length : 0} query fields`);
+  });
+
+  return new ApolloServer({
+    gateway,
+    plugins: [
+      {
+        async requestDidStart() {
+          const start = Date.now();
+          return {
+            async willSendResponse({ operation }) {
+              const duration = (Date.now() - start) / 1000;
+              const operationName = operation?.name?.value || 'anonymous';
+              graphqlRequestDuration.labels(operationName).observe(duration);
+              graphqlRequestCounter.labels(operationName, 'success').inc();
+            },
+            async didEncounterErrors({ operation }) {
+              const operationName = operation?.name?.value || 'anonymous';
+              graphqlRequestCounter.labels(operationName, 'error').inc();
+            }
+          };
+        }
+      }
+    ],
+    introspection: process.env.NODE_ENV === 'development',
+  });
+}
 
 async function startServer() {
   const app = express();
   let graphqlReady = false;
   let graphqlStartupError = null;
+  let graphqlStartupInProgress = false;
+  let graphqlMiddlewareMounted = false;
 
   // Security middleware
   app.use(helmet({
@@ -163,6 +158,24 @@ async function startServer() {
   app.get('/health', (req, res) => {
     res.json({
       status: 'healthy',
+      graphqlReady,
+      graphqlStartupError,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  app.get('/ready', (req, res) => {
+    if (!graphqlReady) {
+      return res.status(503).json({
+        status: 'starting',
+        graphqlReady,
+        graphqlStartupError,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return res.json({
+      status: 'ready',
       graphqlReady,
       graphqlStartupError,
       timestamp: new Date().toISOString(),
@@ -218,42 +231,52 @@ async function startServer() {
     console.log(`🛒 Shop service proxy at http://0.0.0.0:${PORT}/shop/graphql`);
     console.log(`📊 Metrics available at http://0.0.0.0:${PORT}/metrics`);
     console.log(`❤️  Health check at http://0.0.0.0:${PORT}/health`);
+    console.log(`✅ Readiness check at http://0.0.0.0:${PORT}/ready`);
   });
 
-  // Add startup delay to allow services to initialize
-  console.log('Waiting for services to initialize before starting Apollo Server...');
-    // Wait for each subgraph URL to be reachable before attempting composition
-    async function waitForService(url, timeoutMs = 10000, intervalMs = 2000) {
-      const start = Date.now();
-      // derive base URL (scheme + host[:port])
-      try {
-        const parsed = new URL(url);
-        const base = `${parsed.protocol}//${parsed.hostname}${parsed.port ? ':' + parsed.port : ''}`;
-        const healthCandidates = [`${base}/health`, `${base}/actuator/health`, url];
+  async function waitForService(url, timeoutMs = 10000, intervalMs = 2000) {
+    const start = Date.now();
 
-        while (Date.now() - start < timeoutMs) {
-          for (const candidate of healthCandidates) {
-            try {
-              if (candidate.endsWith('/health') || candidate.endsWith('/actuator/health')) {
-                const r = await fetch(candidate, { method: 'GET' });
-                if (r && r.ok) return true;
-              } else {
-                // GraphQL endpoint probe
-                const r = await fetch(candidate, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: '{__typename}' }) });
-                if (r && r.ok) return true;
-              }
-            } catch (err) {
-              // ignore individual candidate failures
+    try {
+      const parsed = new URL(url);
+      const base = `${parsed.protocol}//${parsed.hostname}${parsed.port ? ':' + parsed.port : ''}`;
+      const healthCandidates = [`${base}/actuator/health`, `${base}/health`, url];
+
+      while (Date.now() - start < timeoutMs) {
+        for (const candidate of healthCandidates) {
+          try {
+            if (candidate.endsWith('/health') || candidate.endsWith('/actuator/health')) {
+              const r = await fetch(candidate, { method: 'GET' });
+              if (r && r.ok) return true;
+            } else {
+              const r = await fetch(candidate, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: '{__typename}' }),
+              });
+              if (r && r.ok) return true;
             }
+          } catch (err) {
+            // ignore individual candidate failures
           }
-          await new Promise(r => setTimeout(r, intervalMs));
         }
-      } catch (err) {
-        // parsing error or other fatal issue
-        console.warn('Error parsing URL for subgraph probing', url, err.message || err);
+
+        await new Promise(r => setTimeout(r, intervalMs));
       }
-      return false;
+    } catch (err) {
+      console.warn('Error parsing URL for subgraph probing', url, err.message || err);
     }
+
+    return false;
+  }
+
+  async function startGraphqlGateway() {
+    if (graphqlReady || graphqlStartupInProgress) {
+      return;
+    }
+
+    graphqlStartupInProgress = true;
+    console.log('Waiting for services to initialize before starting Apollo Server...');
 
     for (const sg of subgraphs) {
       console.log(`Probing subgraph ${sg.name} at ${sg.url}`);
@@ -265,26 +288,39 @@ async function startServer() {
       }
     }
 
-  // Start Apollo Server; IntrospectAndCompose will poll subgraphs.
-  try {
-    await server.start();
-  } catch (error) {
-    graphqlStartupError = error.message;
-    throw error;
+    try {
+      const apolloServer = createApolloServer();
+
+      await apolloServer.start();
+
+      if (!graphqlMiddlewareMounted) {
+        app.use('/graphql', express.json(), expressMiddleware(apolloServer, {
+          context: async ({ req }) => ({
+            authorization: req.headers.authorization,
+            userId: req.headers['x-user-id'],
+            companyId: req.headers['x-company-id'],
+            language: req.headers['accept-language']?.split(',')[0] || 'en',
+          }),
+        }));
+        graphqlMiddlewareMounted = true;
+      }
+
+      graphqlReady = true;
+      graphqlStartupError = null;
+      console.log('Apollo GraphQL middleware mounted');
+    } catch (error) {
+      graphqlStartupError = error.message;
+      console.error('GraphQL gateway initialization failed:', error.message);
+
+      setTimeout(() => {
+        void startGraphqlGateway();
+      }, 15000);
+    } finally {
+      graphqlStartupInProgress = false;
+    }
   }
 
-  // GraphQL middleware
-  app.use('/graphql', express.json(), expressMiddleware(server, {
-    context: async ({ req }) => ({
-      authorization: req.headers.authorization,
-      userId: req.headers['x-user-id'],
-      companyId: req.headers['x-company-id'],
-      language: req.headers['accept-language']?.split(',')[0] || 'en',
-    }),
-  }));
-  graphqlReady = true;
-  graphqlStartupError = null;
-  console.log('Apollo GraphQL middleware mounted');
+  void startGraphqlGateway();
 
   // Shop service proxy (separate from federated graph due to type conflicts)
   app.use('/shop/graphql', express.json(), async (req, res) => {
@@ -378,6 +414,4 @@ async function startServer() {
 
 startServer().catch((error) => {
   console.error('Failed to start server:', error.message);
-  // Exit so Docker can restart the container
-  process.exit(1);
 });

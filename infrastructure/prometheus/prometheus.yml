@@ -35,11 +35,6 @@ scrape_configs:
       - targets: ['gateway:4000']
     metrics_path: /metrics
 
-  # Kafka
-  - job_name: 'kafka'
-    static_configs:
-      - targets: ['kafka:9092']
-
   # PostgreSQL (via postgres_exporter - optional)
   - job_name: 'postgres'
     static_configs:

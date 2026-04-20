@@ -34,8 +34,14 @@ test_query() {
         --data-raw "{\"query\":\"$query\"}" 2>/dev/null)
     
     # Check for errors
-    if echo "$response" | grep -q '"errors"'; then
-        error_msg=$(echo "$response" | sed 's/.*"message":"\([^"]*\)".*/\1/' | head -1)
+    if echo "$response" | jq -e '.errors != null' >/dev/null 2>&1; then
+        error_msg=$(echo "$response" | jq -r '.errors[0].message // "Unknown GraphQL error"')
+        if echo "$error_msg" | grep -qi "introspection is not allowed"; then
+            echo -e "${YELLOW}WARNING${NC}"
+            echo "      Introspection is disabled in production"
+            WARNINGS=$((WARNINGS + 1))
+            return 0
+        fi
         echo -e "${RED}FAILED${NC}"
         echo "      Error: $error_msg"
         FAIL_COUNT=$((FAIL_COUNT + 1))
@@ -158,7 +164,7 @@ test_query "List departments (connection)" \
     "departments"
 
 test_query "List payment terms" \
-    "query { paymentTerms { id name } }" \
+    "query { paymentTerms { nodes { id name } } }" \
     "paymentTerms"
 
 echo ""

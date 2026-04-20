@@ -13,7 +13,7 @@ maintainers:
   - name: ERP Team
 dependencies:
   # Removed Bitnami dependencies to avoid commercial image breakage.
-  # PostgreSQL, Kafka and MinIO are provided as in-chart resources or
+  # PostgreSQL and MinIO are provided as in-chart resources or
   # handled by alternative operators / mirrors. Keep Prometheus/Grafana.
   - name: prometheus
     version: "25.0.0"

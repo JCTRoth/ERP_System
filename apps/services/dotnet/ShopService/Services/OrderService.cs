@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using ShopService.Data;
 using ShopService.DTOs;
 using ShopService.Models;
@@ -114,125 +115,158 @@ public class OrderService : IOrderService
     {
         // Use provided tax rate or default from configuration
         var taxRate = input.TaxRate ?? _configuration.GetValue<decimal>("Shop:TaxRate", 0.19m);
+        const int maxOrderNumberAttempts = 5;
 
-        // Generate order number
-        var orderNumber = await GenerateOrderNumberAsync();
-
-        var order = new Order
+        for (var attempt = 1; attempt <= maxOrderNumberAttempts; attempt++)
         {
-            Id = Guid.NewGuid(),
-            OrderNumber = orderNumber,
-            CustomerId = input.CustomerId,
-            Status = OrderStatus.Pending,
-            PaymentStatus = PaymentStatus.Pending,
-            Notes = input.Notes,
-            ShippingName = input.ShippingName,
-            ShippingAddress = input.ShippingAddress,
-            ShippingCity = input.ShippingCity,
-            ShippingPostalCode = input.ShippingPostalCode,
-            ShippingCountry = input.ShippingCountry,
-            ShippingPhone = input.ShippingPhone,
-            BillingName = input.BillingName,
-            BillingAddress = input.BillingAddress,
-            BillingCity = input.BillingCity,
-            BillingPostalCode = input.BillingPostalCode,
-            BillingCountry = input.BillingCountry,
-            ShippingMethodId = input.ShippingMethodId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        decimal subtotal = 0;
-
-        // Add order items
-        foreach (var itemInput in input.Items)
-        {
-            var product = await _context.Products.FindAsync(itemInput.ProductId);
-            if (product == null)
-                throw new InvalidOperationException($"Product {itemInput.ProductId} not found");
-
-            var unitPrice = product.Price;
-            var itemTotal = unitPrice * itemInput.Quantity;
-
-            var orderItem = new OrderItem
+            if (attempt > 1)
             {
-                Id = Guid.NewGuid(),
-                OrderId = order.Id,
-                ProductId = itemInput.ProductId,
-                VariantId = itemInput.VariantId,
-                ProductName = product.Name,
-                Sku = product.Sku,
-                Quantity = itemInput.Quantity,
-                UnitPrice = unitPrice,
-                Total = itemTotal,
-                CreatedAt = DateTime.UtcNow
-            };
+                _context.ChangeTracker.Clear();
+            }
 
-            order.Items.Add(orderItem);
-            subtotal += itemTotal;
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            string? orderNumber = null;
 
-            // Reserve inventory
-            await _inventoryService.AdjustAsync(new InventoryAdjustmentInput(
-                itemInput.ProductId,
-                itemInput.VariantId,
-                -itemInput.Quantity,
-                "Sale",
-                $"Order {orderNumber}",
-                orderNumber
-            ));
-        }
-
-        // Calculate shipping
-        decimal shippingAmount = 0;
-        // if (input.ShippingMethodId.HasValue)
-        // {
-        //     var shippingMethod = await _context.ShippingMethods.FindAsync(input.ShippingMethodId);
-        //     if (shippingMethod != null)
-        //     {
-        //         shippingAmount = shippingMethod.Price;
-        //         if (shippingMethod.FreeShippingThreshold.HasValue && subtotal >= shippingMethod.FreeShippingThreshold)
-        //         {
-        //             shippingAmount = 0;
-        //         }
-        //     }
-        // }
-
-        // Apply coupon
-        decimal discountAmount = 0;
-        if (!string.IsNullOrEmpty(input.CouponCode))
-        {
-            var discount = await _couponService.ApplyCouponAsync(input.CouponCode, subtotal, input.CustomerId);
-            if (discount.HasValue)
+            try
             {
-                discountAmount = discount.Value;
+                orderNumber = await GenerateOrderNumberAsync();
+
+                var order = new Order
+                {
+                    Id = Guid.NewGuid(),
+                    OrderNumber = orderNumber,
+                    CustomerId = input.CustomerId,
+                    Status = OrderStatus.Pending,
+                    PaymentStatus = PaymentStatus.Pending,
+                    Notes = input.Notes,
+                    ShippingName = input.ShippingName,
+                    ShippingAddress = input.ShippingAddress,
+                    ShippingCity = input.ShippingCity,
+                    ShippingPostalCode = input.ShippingPostalCode,
+                    ShippingCountry = input.ShippingCountry,
+                    ShippingPhone = input.ShippingPhone,
+                    BillingName = input.BillingName,
+                    BillingAddress = input.BillingAddress,
+                    BillingCity = input.BillingCity,
+                    BillingPostalCode = input.BillingPostalCode,
+                    BillingCountry = input.BillingCountry,
+                    ShippingMethodId = input.ShippingMethodId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                decimal subtotal = 0;
+
+                // Add order items
+                foreach (var itemInput in input.Items)
+                {
+                    var product = await _context.Products.FindAsync(itemInput.ProductId);
+                    if (product == null)
+                        throw new InvalidOperationException($"Product {itemInput.ProductId} not found");
+
+                    var unitPrice = product.Price;
+                    var itemTotal = unitPrice * itemInput.Quantity;
+
+                    var orderItem = new OrderItem
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderId = order.Id,
+                        ProductId = itemInput.ProductId,
+                        VariantId = itemInput.VariantId,
+                        ProductName = product.Name,
+                        Sku = product.Sku,
+                        Quantity = itemInput.Quantity,
+                        UnitPrice = unitPrice,
+                        Total = itemTotal,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    order.Items.Add(orderItem);
+                    subtotal += itemTotal;
+
+                    // Reserve inventory
+                    await _inventoryService.AdjustAsync(new InventoryAdjustmentInput(
+                        itemInput.ProductId,
+                        itemInput.VariantId,
+                        -itemInput.Quantity,
+                        "Sale",
+                        $"Order {orderNumber}",
+                        orderNumber
+                    ));
+                }
+
+                // Calculate shipping
+                decimal shippingAmount = 0;
+                // if (input.ShippingMethodId.HasValue)
+                // {
+                //     var shippingMethod = await _context.ShippingMethods.FindAsync(input.ShippingMethodId);
+                //     if (shippingMethod != null)
+                //     {
+                //         shippingAmount = shippingMethod.Price;
+                //         if (shippingMethod.FreeShippingThreshold.HasValue && subtotal >= shippingMethod.FreeShippingThreshold)
+                //         {
+                //             shippingAmount = 0;
+                //         }
+                //     }
+                // }
+
+                // Apply coupon
+                decimal discountAmount = 0;
+                if (!string.IsNullOrEmpty(input.CouponCode))
+                {
+                    var discount = await _couponService.ApplyCouponAsync(input.CouponCode, subtotal, input.CustomerId);
+                    if (discount.HasValue)
+                    {
+                        discountAmount = discount.Value;
+                    }
+                }
+
+                // Calculate totals
+                order.Subtotal = subtotal;
+                order.TaxAmount = subtotal * taxRate;
+                order.ShippingAmount = shippingAmount;
+                order.DiscountAmount = discountAmount;
+                order.Total = subtotal + order.TaxAmount + shippingAmount - discountAmount;
+
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                _logger.LogInformation("Order created: {OrderNumber} - Total: {Total}", orderNumber, order.Total);
+
+                // Log audit trail
+                await _auditService.LogActionAsync(
+                    order.Id,
+                    "Order",
+                    "Create",
+                    Guid.Parse("00000000-0000-0000-0000-000000000001"), // System user ID (should come from context)
+                    null,
+                    "System",
+                    null,
+                    $"Order created with {order.Items.Count} items, Total: {order.Total}",
+                    $"Order {orderNumber} created"
+                );
+
+                return order;
+            }
+            catch (DbUpdateException ex) when (IsDuplicateOrderNumberViolation(ex) && attempt < maxOrderNumberAttempts)
+            {
+                await transaction.RollbackAsync();
+                _context.ChangeTracker.Clear();
+
+                _logger.LogWarning(
+                    "Generated duplicate order number {OrderNumber} on attempt {Attempt}/{MaxAttempts}, retrying",
+                    orderNumber,
+                    attempt,
+                    maxOrderNumberAttempts);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
             }
         }
 
-        // Calculate totals
-        order.Subtotal = subtotal;
-        order.TaxAmount = subtotal * taxRate;
-        order.ShippingAmount = shippingAmount;
-        order.DiscountAmount = discountAmount;
-        order.Total = subtotal + order.TaxAmount + shippingAmount - discountAmount;
-
-        _context.Orders.Add(order);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Order created: {OrderNumber} - Total: {Total}", orderNumber, order.Total);
-
-        // Log audit trail
-        await _auditService.LogActionAsync(
-            order.Id,
-            "Order",
-            "Create",
-            Guid.Parse("00000000-0000-0000-0000-000000000001"), // System user ID (should come from context)
-            null,
-            "System",
-            null,
-            $"Order created with {order.Items.Count} items, Total: {order.Total}",
-            $"Order {orderNumber} created"
-        );
-
-        return order;
+        throw new InvalidOperationException("Failed to allocate a unique order number after multiple attempts");
     }
 
     public async Task<Order?> UpdateStatusAsync(UpdateOrderStatusInput input)
@@ -444,5 +478,17 @@ public class OrderService : IOrderService
         }
 
         return $"{prefix}-{sequence:D4}";
+    }
+
+    private static bool IsDuplicateOrderNumberViolation(DbUpdateException ex)
+    {
+        if (ex.InnerException is not PostgresException postgresException ||
+            postgresException.SqlState != PostgresErrorCodes.UniqueViolation)
+        {
+            return false;
+        }
+
+        return string.Equals(postgresException.ConstraintName, "IX_orders_order_number", StringComparison.OrdinalIgnoreCase) ||
+               postgresException.Detail?.Contains("order_number", StringComparison.OrdinalIgnoreCase) == true;
     }
 }

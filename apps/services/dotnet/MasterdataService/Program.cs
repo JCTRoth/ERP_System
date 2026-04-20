@@ -69,78 +69,12 @@ var app = builder.Build();
 
 var skipDatabaseInitialization = app.Environment.IsEnvironment("Testing") ||
     builder.Configuration.GetValue<bool>("SkipDatabaseInitialization", false);
+var repairLegacyCompanyColumns = builder.Configuration.GetValue<bool>("Database:RepairLegacyCompanyColumns", false);
 
 // Apply migrations on startup (only for relational databases)
 if (!skipDatabaseInitialization)
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        try
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<MasterdataDbContext>();
-            if (dbContext.Database.IsRelational())
-            {
-                // Apply migrations to ensure schema is up to date
-                dbContext.Database.Migrate();
-
-                SeedMasterdata(dbContext);
-                
-                // Update tax codes to German VAT rates (development only)
-                var taxCodes = dbContext.TaxCodes.ToList();
-                if (taxCodes.Any())
-                {
-                    var stdTax = taxCodes.FirstOrDefault(t => t.Code == "STD");
-                    if (stdTax != null && stdTax.Rate != 19m)
-                    {
-                        stdTax.Rate = 19m;
-                        stdTax.Description = "Standard sales tax (19%)";
-                    }
-                    
-                    var reducedTax = taxCodes.FirstOrDefault(t => t.Code == "REDUCED");
-                    if (reducedTax != null && reducedTax.Rate != 7m)
-                    {
-                        reducedTax.Rate = 7m;
-                        reducedTax.Description = "Reduced sales tax (7%)";
-                    }
-                    
-                    // Add REDUCED2 if it doesn't exist
-                    if (!taxCodes.Any(t => t.Code == "REDUCED2"))
-                    {
-                        dbContext.TaxCodes.Add(new Models.TaxCode 
-                        { 
-                            Id = Guid.Parse("f3c2f2e9-8548-431f-9f03-9186942bb48f"), 
-                            Code = "REDUCED2", 
-                            Name = "Reduced Rate 2", 
-                            Description = "Reduced sales tax (16%)", 
-                            Rate = 16m, 
-                            Type = Models.TaxType.Sales, 
-                            IsActive = true, 
-                            EffectiveFrom = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc), 
-                            CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc), 
-                            UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc) 
-                        });
-                    }
-                    else
-                    {
-                        var reduced2Tax = taxCodes.FirstOrDefault(t => t.Code == "REDUCED2");
-                        if (reduced2Tax != null && reduced2Tax.Rate != 16m)
-                        {
-                            reduced2Tax.Rate = 16m;
-                            reduced2Tax.Description = "Reduced sales tax (16%)";
-                        }
-                    }
-                    
-                    dbContext.SaveChanges();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // Log the error but don't fail startup - database might not be ready yet
-            Console.WriteLine($"Database initialization failed: {ex.Message}");
-            Console.WriteLine("Service will continue without database initialization. Database operations will be retried on first request.");
-        }
-    }
+    InitializeMasterdataDatabase(app, repairLegacyCompanyColumns);
 }
 
 
@@ -175,6 +109,154 @@ app.MapGraphQL();
 app.UseWebSockets();
 
 app.Run();
+
+static void InitializeMasterdataDatabase(WebApplication app, bool repairLegacyCompanyColumns)
+{
+    const int maxAttempts = 12;
+    const int delaySeconds = 5;
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        using var scope = app.Services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("MasterdataStartup");
+
+        try
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<MasterdataDbContext>();
+            if (!dbContext.Database.IsRelational())
+            {
+                return;
+            }
+
+            dbContext.Database.Migrate();
+            if (repairLegacyCompanyColumns)
+            {
+                RepairLegacyCompanyColumns(dbContext);
+            }
+
+            SeedMasterdata(dbContext);
+
+            var taxCodes = dbContext.TaxCodes.ToList();
+            if (taxCodes.Any())
+            {
+                var stdTax = taxCodes.FirstOrDefault(t => t.Code == "STD");
+                if (stdTax != null && stdTax.Rate != 19m)
+                {
+                    stdTax.Rate = 19m;
+                    stdTax.Description = "Standard sales tax (19%)";
+                }
+
+                var reducedTax = taxCodes.FirstOrDefault(t => t.Code == "REDUCED");
+                if (reducedTax != null && reducedTax.Rate != 7m)
+                {
+                    reducedTax.Rate = 7m;
+                    reducedTax.Description = "Reduced sales tax (7%)";
+                }
+
+                if (!taxCodes.Any(t => t.Code == "REDUCED2"))
+                {
+                    dbContext.TaxCodes.Add(new Models.TaxCode
+                    {
+                        Id = Guid.Parse("f3c2f2e9-8548-431f-9f03-9186942bb48f"),
+                        Code = "REDUCED2",
+                        Name = "Reduced Rate 2",
+                        Description = "Reduced sales tax (16%)",
+                        Rate = 16m,
+                        Type = Models.TaxType.Sales,
+                        IsActive = true,
+                        EffectiveFrom = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
+                        CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
+                        UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc)
+                    });
+                }
+                else
+                {
+                    var reduced2Tax = taxCodes.FirstOrDefault(t => t.Code == "REDUCED2");
+                    if (reduced2Tax != null && reduced2Tax.Rate != 16m)
+                    {
+                        reduced2Tax.Rate = 16m;
+                        reduced2Tax.Description = "Reduced sales tax (16%)";
+                    }
+                }
+
+                dbContext.SaveChanges();
+            }
+
+            logger.LogInformation("Masterdata database initialized on attempt {Attempt}", attempt);
+            return;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Masterdata database initialization attempt {Attempt}/{MaxAttempts} failed",
+                attempt,
+                maxAttempts);
+
+            if (attempt == maxAttempts)
+            {
+                throw;
+            }
+
+            Thread.Sleep(TimeSpan.FromSeconds(delaySeconds));
+        }
+    }
+}
+
+static readonly string[] LegacyCompanyColumnRepairTables =
+[
+    "AssetCategories",
+    "Assets",
+    "CostCenters",
+    "Currencies",
+    "Customers",
+    "Departments",
+    "Employees",
+    "Locations",
+    "PaymentTerms",
+    "Suppliers",
+    "TaxCodes",
+    "UnitsOfMeasure"
+];
+
+static string GetValidatedLegacyIdentifier(string table)
+{
+    if (!LegacyCompanyColumnRepairTables.Contains(table, StringComparer.Ordinal))
+    {
+        throw new InvalidOperationException($"Unsupported legacy table name '{table}'.");
+    }
+
+    return $"\"{table}\"";
+}
+
+static string GetValidatedLegacyCompanyIdIndexIdentifier(string table)
+{
+    if (!LegacyCompanyColumnRepairTables.Contains(table, StringComparer.Ordinal))
+    {
+        throw new InvalidOperationException($"Unsupported legacy table name '{table}'.");
+    }
+
+    return $"\"IX_{table}_CompanyId\"";
+}
+
+static void RepairLegacyCompanyColumns(MasterdataDbContext dbContext)
+{
+    // Early Masterdata migrations missed tenant columns. Repair them in-place so
+    // existing Kubernetes PVC data can still be brought up without a reset.
+    var demoCompanyId = MasterdataDbContext.DemoCompanyId;
+
+    foreach (var table in LegacyCompanyColumnRepairTables)
+    {
+        var validatedTableIdentifier = GetValidatedLegacyIdentifier(table);
+        var validatedIndexIdentifier = GetValidatedLegacyCompanyIdIndexIdentifier(table);
+
+        dbContext.Database.ExecuteSqlRaw($@"
+ALTER TABLE IF EXISTS {validatedTableIdentifier} ADD COLUMN IF NOT EXISTS ""CompanyId"" uuid;
+UPDATE {validatedTableIdentifier} SET ""CompanyId"" = {{0}} WHERE ""CompanyId"" IS NULL;
+ALTER TABLE IF EXISTS {validatedTableIdentifier} ALTER COLUMN ""CompanyId"" SET DEFAULT {{0}};
+ALTER TABLE IF EXISTS {validatedTableIdentifier} ALTER COLUMN ""CompanyId"" SET NOT NULL;
+CREATE INDEX IF NOT EXISTS {validatedIndexIdentifier} ON {validatedTableIdentifier} (""CompanyId"");", demoCompanyId);
+    }
+}
 
 static void SeedMasterdata(MasterdataDbContext dbContext)
 {

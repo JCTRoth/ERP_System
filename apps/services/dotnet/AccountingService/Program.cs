@@ -102,14 +102,28 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 // Apply migrations or create database on startup
-using (var scope = app.Services.CreateScope())
+InitializeAccountingDatabase(app);
+
+app.Run();
+
+static void InitializeAccountingDatabase(WebApplication app)
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AccountingDbContext>();
-    if (dbContext.Database.IsRelational())
+    const int maxAttempts = 12;
+    const int delaySeconds = 5;
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt++)
     {
+        using var scope = app.Services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("AccountingStartup");
+
         try
         {
-            // If migrations are defined, apply them; otherwise ensure the schema is created
+            var dbContext = scope.ServiceProvider.GetRequiredService<AccountingDbContext>();
+            if (!dbContext.Database.IsRelational())
+            {
+                return;
+            }
+
             if (dbContext.Database.GetMigrations().Any())
             {
                 dbContext.Database.Migrate();
@@ -118,23 +132,32 @@ using (var scope = app.Services.CreateScope())
             {
                 dbContext.Database.EnsureCreated();
             }
-            
-            // Update invoice customer name (development only)
+
             var invoice = dbContext.Invoices.FirstOrDefault(i => i.InvoiceNumber == "INV-2026-0001");
             if (invoice != null && invoice.CustomerName != "Jonas Roth")
             {
                 invoice.CustomerName = "Jonas Roth";
                 dbContext.SaveChanges();
             }
+
+            logger.LogInformation("Accounting database initialized on attempt {Attempt}", attempt);
+            return;
         }
         catch (Exception ex)
         {
-            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning(ex, "Database initialization failed, database may already exist or connection unavailable");
+            logger.LogWarning(ex,
+                "Accounting database initialization attempt {Attempt}/{MaxAttempts} failed",
+                attempt,
+                maxAttempts);
+
+            if (attempt == maxAttempts)
+            {
+                throw;
+            }
+
+            Thread.Sleep(TimeSpan.FromSeconds(delaySeconds));
         }
     }
 }
-
-app.Run();
 
 public partial class Program { }

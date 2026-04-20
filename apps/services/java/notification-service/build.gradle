@@ -27,9 +27,6 @@ dependencies {
     implementation 'com.netflix.graphql.dgs:graphql-dgs-spring-boot-starter'
     implementation 'com.netflix.graphql.dgs:graphql-dgs-extended-scalars'
     
-    // Kafka
-    implementation 'org.springframework.kafka:spring-kafka'
-    
     // Database
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'

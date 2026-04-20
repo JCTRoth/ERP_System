@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using AccountingService.Data;
 using AccountingService.DTOs;
 using AccountingService.Models;
@@ -97,89 +98,114 @@ public class InvoiceService : IInvoiceService
 
     public async Task<Invoice> CreateAsync(CreateInvoiceInput input)
     {
-        var invoiceNumber = await GenerateInvoiceNumberAsync(input.Type);
+        const int maxInvoiceNumberAttempts = 5;
 
-        var invoice = new Invoice
+        for (var attempt = 1; attempt <= maxInvoiceNumberAttempts; attempt++)
         {
-            Id = Guid.NewGuid(),
-            InvoiceNumber = invoiceNumber,
-            Type = Enum.Parse<InvoiceType>(input.Type),
-            Status = InvoiceStatus.Draft,
-            CustomerId = input.CustomerId,
-            SupplierId = input.SupplierId,
-            OrderId = input.OrderId,
-            OrderNumber = input.OrderNumber,
-            CustomerName = input.CustomerName,
-            SupplierName = input.SupplierName,
-            BillingAddress = input.BillingAddress,
-            BillingCity = input.BillingCity,
-            BillingPostalCode = input.BillingPostalCode,
-            BillingCountry = input.BillingCountry,
-            VatNumber = input.VatNumber,
-            IssueDate = input.InvoiceDate ?? DateTime.UtcNow,
-            DueDate = input.DueDate,
-            TaxRate = input.TaxRate ?? 0.19m,
-            Notes = input.Notes,
-            PaymentTerms = input.PaymentTerms ?? "Net 30",
-            Currency = input.Currency,
-            CreatedAt = DateTime.UtcNow
-        };
+            if (attempt > 1)
+            {
+                _context.ChangeTracker.Clear();
+            }
 
-        decimal subtotal = 0;
-        decimal totalTax = 0;
+            var invoiceNumber = await GenerateInvoiceNumberAsync(input.Type);
 
-        int lineNumber = 1;
-        foreach (var lineInput in input.LineItems)
-        {
-            var lineSubtotal = lineInput.UnitPrice * lineInput.Quantity;
-            var discount = lineSubtotal * (lineInput.DiscountPercent ?? 0);
-            var taxableAmount = lineSubtotal - discount;
-            var tax = taxableAmount * lineInput.TaxRate;
-            var lineTotal = taxableAmount + tax;
-
-            var lineItem = new InvoiceLineItem
+            var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
-                InvoiceId = invoice.Id,
-                LineNumber = lineNumber++,
-                Description = lineInput.Description,
-                Sku = lineInput.Sku,
-                ProductId = lineInput.ProductId,
-                AccountId = lineInput.AccountId,
-                Quantity = lineInput.Quantity,
-                Unit = lineInput.Unit ?? "pcs",
-                UnitPrice = lineInput.UnitPrice,
-                DiscountPercent = lineInput.DiscountPercent ?? 0,
-                DiscountAmount = discount,
-                TaxRate = lineInput.TaxRate,
-                TaxAmount = tax,
-                Total = lineTotal,
+                InvoiceNumber = invoiceNumber,
+                Type = Enum.Parse<InvoiceType>(input.Type),
+                Status = InvoiceStatus.Draft,
+                CustomerId = input.CustomerId,
+                SupplierId = input.SupplierId,
+                OrderId = input.OrderId,
+                OrderNumber = input.OrderNumber,
+                CustomerName = input.CustomerName,
+                SupplierName = input.SupplierName,
+                BillingAddress = input.BillingAddress,
+                BillingCity = input.BillingCity,
+                BillingPostalCode = input.BillingPostalCode,
+                BillingCountry = input.BillingCountry,
+                VatNumber = input.VatNumber,
+                IssueDate = input.InvoiceDate ?? DateTime.UtcNow,
+                DueDate = input.DueDate,
+                TaxRate = input.TaxRate ?? 0.19m,
+                Notes = input.Notes,
+                PaymentTerms = input.PaymentTerms ?? "Net 30",
+                Currency = input.Currency,
                 CreatedAt = DateTime.UtcNow
             };
 
-            invoice.LineItems.Add(lineItem);
-            subtotal += lineSubtotal - discount;
-            totalTax += tax;
+            decimal subtotal = 0;
+            decimal totalTax = 0;
+
+            int lineNumber = 1;
+            foreach (var lineInput in input.LineItems)
+            {
+                var lineSubtotal = lineInput.UnitPrice * lineInput.Quantity;
+                var discount = lineSubtotal * (lineInput.DiscountPercent ?? 0);
+                var taxableAmount = lineSubtotal - discount;
+                var tax = taxableAmount * lineInput.TaxRate;
+                var lineTotal = taxableAmount + tax;
+
+                var lineItem = new InvoiceLineItem
+                {
+                    Id = Guid.NewGuid(),
+                    InvoiceId = invoice.Id,
+                    LineNumber = lineNumber++,
+                    Description = lineInput.Description,
+                    Sku = lineInput.Sku,
+                    ProductId = lineInput.ProductId,
+                    AccountId = lineInput.AccountId,
+                    Quantity = lineInput.Quantity,
+                    Unit = lineInput.Unit ?? "pcs",
+                    UnitPrice = lineInput.UnitPrice,
+                    DiscountPercent = lineInput.DiscountPercent ?? 0,
+                    DiscountAmount = discount,
+                    TaxRate = lineInput.TaxRate,
+                    TaxAmount = tax,
+                    Total = lineTotal,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                invoice.LineItems.Add(lineItem);
+                subtotal += lineSubtotal - discount;
+                totalTax += tax;
+            }
+
+            invoice.Subtotal = subtotal;
+            invoice.TaxAmount = totalTax;
+            invoice.Total = subtotal + totalTax;
+
+            _context.Invoices.Add(invoice);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsDuplicateInvoiceNumberViolation(ex) && attempt < maxInvoiceNumberAttempts)
+            {
+                _logger.LogWarning(
+                    "Generated duplicate invoice number {InvoiceNumber} on attempt {Attempt}/{MaxAttempts}, retrying",
+                    invoiceNumber,
+                    attempt,
+                    maxInvoiceNumberAttempts);
+                continue;
+            }
+
+            _logger.LogInformation("Invoice created: {InvoiceNumber}", invoiceNumber);
+
+            // Automatically create and post the journal entry so that
+            // the chart of accounts reflects the financial impact
+            var journalEntry = await CreateInvoiceJournalEntryAsync(invoice);
+            invoice.JournalEntryId = journalEntry.Id;
+            await _journalService.PostAsync(journalEntry.Id);
+
+            await _context.SaveChangesAsync();
+
+            return invoice;
         }
 
-        invoice.Subtotal = subtotal;
-        invoice.TaxAmount = totalTax;
-        invoice.Total = subtotal + totalTax;
-
-        _context.Invoices.Add(invoice);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Invoice created: {InvoiceNumber}", invoiceNumber);
-
-        // Automatically create and post the journal entry so that
-        // the chart of accounts reflects the financial impact
-        var journalEntry = await CreateInvoiceJournalEntryAsync(invoice);
-        invoice.JournalEntryId = journalEntry.Id;
-        await _journalService.PostAsync(journalEntry.Id);
-
-        await _context.SaveChangesAsync();
-
-        return invoice;
+        throw new InvalidOperationException("Failed to allocate a unique invoice number after multiple attempts");
     }
 
     public async Task<Invoice?> UpdateStatusAsync(UpdateInvoiceStatusInput input)
@@ -398,6 +424,18 @@ public class InvoiceService : IInvoiceService
         }
 
         return $"{yearPrefix}-{sequence:D5}";
+    }
+
+    private static bool IsDuplicateInvoiceNumberViolation(DbUpdateException ex)
+    {
+        if (ex.InnerException is not PostgresException postgresException ||
+            postgresException.SqlState != PostgresErrorCodes.UniqueViolation)
+        {
+            return false;
+        }
+
+        return string.Equals(postgresException.ConstraintName, "IX_invoices_invoice_number", StringComparison.OrdinalIgnoreCase) ||
+               postgresException.Detail?.Contains("invoice_number", StringComparison.OrdinalIgnoreCase) == true;
     }
 
     private async Task<JournalEntry> CreateInvoiceJournalEntryAsync(Invoice invoice)

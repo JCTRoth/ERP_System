@@ -32,9 +32,6 @@ dependencies {
     // GraphQL
     implementation 'com.netflix.graphql.dgs:graphql-dgs-spring-boot-starter:8.2.0'
     
-    // Kafka
-    implementation 'org.springframework.kafka:spring-kafka'
-    
     // Database
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
@@ -63,10 +60,8 @@ dependencies {
     
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.kafka:spring-kafka-test'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
-    testImplementation 'org.testcontainers:kafka'
 }
 
 tasks.named('test') {

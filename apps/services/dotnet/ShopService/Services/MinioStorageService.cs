@@ -88,6 +88,45 @@ public class MinioStorageService
         return _publicUrl;
     }
 
+    private IMinioClient? TryCreatePublicMinioClient(string? publicUrl)
+    {
+        if (string.IsNullOrWhiteSpace(publicUrl))
+        {
+            return null;
+        }
+
+        if (!Uri.TryCreate(publicUrl, UriKind.Absolute, out var uri))
+        {
+            _logger.LogWarning("Ignoring invalid MinIO public URL: {PublicUrl}", publicUrl);
+            return null;
+        }
+
+        if (!string.IsNullOrEmpty(uri.AbsolutePath) && uri.AbsolutePath != "/")
+        {
+            _logger.LogWarning(
+                "Ignoring MinIO public URL with path component for presigned URLs: {PublicUrl}",
+                publicUrl);
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(uri.Host))
+        {
+            _logger.LogWarning("Ignoring MinIO public URL without a host: {PublicUrl}", publicUrl);
+            return null;
+        }
+
+        var endpoint = uri.IsDefaultPort ? uri.Host : $"{uri.Host}:{uri.Port}";
+        _logger.LogInformation("Creating temporary MinIO client with endpoint: {Endpoint}", endpoint);
+
+        return new MinioClient()
+            .WithEndpoint(endpoint)
+            .WithCredentials(
+                _configuration.GetValue<string>("Minio:AccessKey") ?? "minioadmin",
+                _configuration.GetValue<string>("Minio:SecretKey") ?? "minioadmin")
+            .WithSSL(uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            .Build();
+    }
+
     /// <summary>
     /// Upload PDF document to MinIO
     /// </summary>
@@ -126,18 +165,9 @@ public class MinioStorageService
             string presignedUrl;
             var publicUrl = await GetPublicUrlAsync();
 
-            if (!string.IsNullOrEmpty(publicUrl))
+            var tempClient = TryCreatePublicMinioClient(publicUrl);
+            if (tempClient != null)
             {
-                var endpoint = publicUrl.Replace("http://", "").Replace("https://", "");
-                _logger.LogInformation("Creating temporary MinIO client with endpoint: {Endpoint}", endpoint);
-                var tempClient = new MinioClient()
-                    .WithEndpoint(endpoint)
-                    .WithCredentials(
-                        _configuration.GetValue<string>("Minio:AccessKey") ?? "minioadmin",
-                        _configuration.GetValue<string>("Minio:SecretKey") ?? "minioadmin")
-                    .WithSSL(publicUrl.StartsWith("https"))
-                    .Build();
-
                 presignedUrl = await tempClient.PresignedGetObjectAsync(
                     new PresignedGetObjectArgs()
                         .WithBucket(bucketName)
@@ -180,17 +210,9 @@ public class MinioStorageService
             string presignedUrl;
             var publicUrl = await GetPublicUrlAsync();
 
-            if (!string.IsNullOrEmpty(publicUrl))
+            var tempClient = TryCreatePublicMinioClient(publicUrl);
+            if (tempClient != null)
             {
-                var tempClient = new MinioClient()
-                    .WithEndpoint(publicUrl.Replace("http://", "").Replace("https://", ""))
-                    .WithCredentials(
-                        _configuration.GetValue<string>("Minio:AccessKey") ?? "minioadmin",
-                        _configuration.GetValue<string>("Minio:SecretKey") ?? "minioadmin")
-                    .WithSSL(publicUrl.StartsWith("https"))
-                    .WithRegion("us-east-1")
-                    .Build();
-
                 presignedUrl = await tempClient.PresignedGetObjectAsync(
                     new PresignedGetObjectArgs()
                         .WithBucket(bucketName)

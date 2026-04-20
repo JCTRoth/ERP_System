@@ -16,7 +16,9 @@ echo "Testing notification-service sendEmail mutation against: $BASE_URL"
 
 PAYLOAD='{"query":"mutation TestSendEmail($input: SendEmailInput!) { sendEmail(input: $input) { id status } }","variables":{"input":{"toEmail":"dev-null@example.com","subject":"Test notification-service email","bodyText":"This is a test email from test-notification-send-email.sh","language":"en"}}}'
 
-RESPONSE=$(wget -qO- --header='Content-Type: application/json' --post-data="${PAYLOAD}" "${BASE_URL}" 2>&1 || true)
+RESPONSE=$(curl -s -X POST "${BASE_URL}" \
+  -H 'Content-Type: application/json' \
+  -d "${PAYLOAD}" 2>&1 || true)
 
 if echo "$RESPONSE" | grep -q '"errors"'; then
   echo -e "${RED}✗ FAIL${NC} sendEmail returned GraphQL errors"

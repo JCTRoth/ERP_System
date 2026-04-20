@@ -1,7 +1,4 @@
+# Keep GraphQL enabled in production so the service can participate in federation.
 spring:
   graphql:
-    enabled: false
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.graphql.GraphQlAutoConfiguration
-      - org.springframework.boot.autoconfigure.graphql.servlet.GraphQlWebMvcAutoConfiguration
+    enabled: true

@@ -77,15 +77,8 @@ Host={{ include "erp-system.fullname" (dict "Values" (dict) "Release" .Release "
 {{- end }}
 
 {{/*
-Kafka bootstrap servers
-*/}}
-{{- define "erp-system.kafkaBootstrapServers" -}}
-{{ .Release.Name }}-kafka:9092
-{{- end }}
-
-{{/*
 MinIO endpoint
 */}}
 {{- define "erp-system.minioEndpoint" -}}
-{{ .Release.Name }}-minio:9000
+{{ include "erp-system.fullname" . }}-minio:9000
 {{- end }}

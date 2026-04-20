@@ -140,6 +140,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const databaseInitMaxRetries = Number(process.env.DATABASE_INIT_MAX_RETRIES || 12);
+const databaseInitRetryDelayMs = Number(process.env.DATABASE_INIT_RETRY_DELAY_MS || 5000);
+let initializationComplete = false;
+
 // PostgreSQL connection pool
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/templatesdb',
@@ -193,6 +197,7 @@ async function initializeDatabase() {
     console.log('✓ Database schema initialized');
   } catch (err) {
     console.error('Error initializing database:', err);
+    throw err;
   } finally {
     client.release();
   }
@@ -348,16 +353,24 @@ async function loadTemplatesFromFiles() {
 
 // Initialize database and load templates
 async function initialize() {
-  try {
-    await initializeDatabase();
-    await loadTemplatesFromFiles();
-    console.log('✓ Templates service initialized');
-  } catch (err) {
-    console.error('Initialization error:', err);
+  for (let attempt = 1; attempt <= databaseInitMaxRetries; attempt += 1) {
+    try {
+      await initializeDatabase();
+      await loadTemplatesFromFiles();
+      initializationComplete = true;
+      console.log('✓ Templates service initialized');
+      return;
+    } catch (err) {
+      console.error(`Initialization attempt ${attempt}/${databaseInitMaxRetries} failed:`, err);
+
+      if (attempt === databaseInitMaxRetries) {
+        throw err;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, databaseInitRetryDelayMs));
+    }
   }
 }
-
-initialize();
 
 // Helper: normalize our custom template syntax to Mustache-compatible template
 function normalizeTemplateToMustache(src) {
@@ -677,6 +690,15 @@ function runAsciidoctorPdf(adocPath, pdfPath) {
 
 // Health check
 app.get('/actuator/health', async (req, res) => {
+  if (!initializationComplete) {
+    return res.status(503).json({
+      status: 'DOWN',
+      components: {
+        initialization: { status: 'DOWN' },
+      },
+    });
+  }
+
   try {
     await pool.query('SELECT NOW()');
     res.json({ status: 'UP', components: { db: { status: 'UP' } } });
@@ -1101,7 +1123,10 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
       try {
         const puppeteerModule = await import('puppeteer');
         const puppeteer = puppeteerModule.default || puppeteerModule;
-        const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const browser = await puppeteer.launch({
+          executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        });
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
@@ -1132,9 +1157,17 @@ app.post('/api/templates/:id/pdf', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8087;
-app.listen(PORT, () => {
-  console.log(`✓ Templates Service running on port ${PORT}`);
-});
+
+initialize()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`✓ Templates Service running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Templates service failed to start:', err);
+    process.exit(1);
+  });
 
 // PDF generation endpoint
 app.get('/api/templates/:id/pdf', async (req, res) => {
@@ -1239,7 +1272,10 @@ app.get('/api/templates/:id/pdf', async (req, res) => {
       try {
         const puppeteerModule = await import('puppeteer');
         const puppeteer = puppeteerModule.default || puppeteerModule;
-        const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const browser = await puppeteer.launch({
+          executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        });
         const page = await browser.newPage();
         await page.setContent(htmlOutputLocal, { waitUntil: 'networkidle0' });
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });

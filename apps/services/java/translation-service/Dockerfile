@@ -4,8 +4,6 @@ WORKDIR /app
 COPY . .
 RUN if ls build/libs/*.jar 1> /dev/null 2>&1; then \
         echo "JAR already exists, skipping build"; \
-    elif [ -f gradlew ]; then \
-        chmod +x gradlew && ./gradlew bootJar --no-daemon; \
     else \
         gradle bootJar --no-daemon; \
     fi
