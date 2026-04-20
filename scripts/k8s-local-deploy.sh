@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Local Kubernetes deployment script for ERP System
-# Rebuilds images, loads into k3s, deploys Helm chart, and sets up port-forwards
+# Local K3s deployment script for ERP System
+# Builds images with Docker, imports into K3s containerd, deploys via Helm
 # Usage: ./scripts/k8s-local-deploy.sh [action]
 # Actions: full (default), rebuild, deploy, portforward, status, clean
+# Requires: docker, kubectl (~/.kube/config pointing to K3s), helm, k3s (sudo)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-NAMESPACE="erp-dev"
+NAMESPACE="erp"
 RELEASE_NAME="erp-system"
 HELM_CHART="./infrastructure/helm/erp-system"
 HELM_VALUES="./infrastructure/helm/erp-system/values.yaml"
@@ -28,25 +29,41 @@ log_step() { echo -e "\n${GREEN}==>${NC} $*"; }
 # Check prerequisites
 check_requirements() {
     log_step "Checking prerequisites..."
-    
+
     if ! command -v kubectl &> /dev/null; then
-        log_error "kubectl not found. Install kubectl first."
+        log_error "kubectl not found. K3s installs it at /usr/local/bin/kubectl — ensure it is on PATH or run: sudo ln -sf /usr/local/bin/kubectl /usr/bin/kubectl"
         exit 1
     fi
-    
+
     if ! command -v helm &> /dev/null; then
-        log_error "helm not found. Install helm first."
+        log_error "helm not found. Install with: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
         exit 1
     fi
-    
+
     if ! command -v docker &> /dev/null; then
-        log_error "docker not found. Install docker first."
+        log_error "docker not found. Install docker first (needed to build images)."
         exit 1
     fi
-    
-    log_info "✓ kubectl version: $(kubectl version --client -o json | jq -r '.clientVersion.gitVersion')"
-    log_info "✓ helm version: $(helm version --short)"
-    log_info "✓ docker available"
+
+    if ! command -v k3s &> /dev/null; then
+        log_error "k3s not found. Install with: curl -sfL https://get.k3s.io | sh -"
+        exit 1
+    fi
+
+    # Verify KUBECONFIG points to K3s (must be readable by current user)
+    if ! kubectl get nodes &>/dev/null; then
+        log_error "Cannot reach K3s cluster. Ensure ~/.kube/config is set up:"
+        log_error "  sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config && sudo chown \$USER:\$USER ~/.kube/config"
+        exit 1
+    fi
+
+    local k3s_ver
+    k3s_ver=$(k3s --version | head -1)
+    log_info "✓ kubectl: $(kubectl version --client --short 2>/dev/null || kubectl version --client -o json | jq -r '.clientVersion.gitVersion')"
+    log_info "✓ K3s:     ${k3s_ver}"
+    log_info "✓ Helm:    $(helm version --short)"
+    log_info "✓ Docker:  $(docker version --format '{{.Client.Version}}' 2>/dev/null)"
+    log_info "✓ Ingress class: traefik  |  Storage class: local-path"
 }
 
 # Ensure namespace exists
@@ -112,41 +129,34 @@ build_images() {
     log_info "✓ All images built successfully"
 }
 
-# Load images into k3s
+# Load images into K3s containerd via k3s ctr
 load_images() {
-    log_step "Loading images into k3s..."
-    
-    # Detect k3s container name (k3d or local k3s)
-    if command -v k3d &> /dev/null; then
-        log_info "Detected k3d, using k3d image import..."
-        k3d image import erp/frontend:latest -c k3s-default 2>/dev/null || \
-        k3d image import erp/frontend:latest -c erp 2>/dev/null || \
-        log_warn "Could not auto-detect k3d cluster, trying sudo k3s ctr..."
+    log_step "Loading images into K3s containerd..."
+
+    # K3s uses containerd, not the Docker daemon.
+    # We must export from Docker and import into K3s containerd.
+    if ! command -v k3s &> /dev/null; then
+        log_error "k3s not found. Is K3s installed?"
+        exit 1
     fi
-    
-    # Fallback to k3s ctr
-    if command -v k3s &> /dev/null; then
-        log_info "Using k3s ctr for image import..."
-        
-        # Create temp tar files for all images
-        mkdir -p /tmp/erp-images
-        
-        docker save erp/frontend:latest erp/gateway:latest \
-            erp/user-service:latest erp/shop-service:latest \
-            erp/accounting-service:latest erp/accounting-service:1.4 \
-            erp/masterdata-service:latest erp/orders-service:latest \
-            erp/company-service:latest erp/translation-service:latest \
-            erp/notification-service:latest erp/scripting-service:latest \
-            erp/edifact-service:latest erp/templates-service:latest \
-            > /tmp/erp-images/all.tar
-        
-        sudo k3s ctr images import /tmp/erp-images/all.tar
-        rm -rf /tmp/erp-images
-        
-        log_info "✓ All images loaded into k3s"
-    else
-        log_warn "Could not detect k3s installation. Images loaded to Docker daemon only."
-    fi
+
+    log_info "Saving Docker images to tar archive..."
+    mkdir -p /tmp/erp-images
+
+    docker save erp/frontend:latest erp/gateway:latest \
+        erp/user-service:latest erp/shop-service:latest \
+        erp/accounting-service:latest \
+        erp/masterdata-service:latest erp/orders-service:latest \
+        erp/company-service:latest erp/translation-service:latest \
+        erp/notification-service:latest erp/scripting-service:latest \
+        erp/edifact-service:latest erp/templates-service:latest \
+        > /tmp/erp-images/all.tar
+
+    log_info "Importing images into K3s containerd (requires sudo)..."
+    sudo k3s ctr images import /tmp/erp-images/all.tar
+    rm -rf /tmp/erp-images
+
+    log_info "✓ All images imported into K3s containerd"
 }
 
 # Deploy via Helm

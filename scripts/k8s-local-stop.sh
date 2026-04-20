@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Kubernetes deployment stop script for ERP System
+# K3s deployment stop script for ERP System
 # Gracefully stops services, port-forwards, and optionally removes resources
 # Usage: ./scripts/k8s-local-stop.sh [action]
 # Actions: stop (default), pause, clean
@@ -8,7 +8,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-NAMESPACE="erp-dev"
+NAMESPACE="erp"
 RELEASE_NAME="erp-system"
 
 # Colors for output

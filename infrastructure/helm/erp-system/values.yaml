@@ -246,6 +246,7 @@ ingress:
   enabled: true
   className: traefik
   annotations:
+    # Traefik (K3s default ingress controller) annotations
     traefik.ingress.kubernetes.io/router.entrypoints: web
   hosts:
     - host: erp.local

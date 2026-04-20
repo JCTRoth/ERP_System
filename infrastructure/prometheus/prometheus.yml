@@ -41,7 +41,7 @@ scrape_configs:
       - targets:
           - 'postgres-exporter:9187'
 
-  # Nginx
-  - job_name: 'nginx'
+  # Traefik (K3s built-in ingress controller)
+  - job_name: 'traefik'
     static_configs:
-      - targets: ['nginx:9113']
+      - targets: ['traefik.kube-system.svc.cluster.local:9100']

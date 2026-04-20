@@ -72,6 +72,10 @@ postgresql:
 ingress:
   enabled: true
   className: traefik
+  annotations:
+    # K3s Traefik: route via websecure (HTTPS) entrypoint and enable TLS
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
   hosts:
     - host: erp.local
       paths:
