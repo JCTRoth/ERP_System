@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.3.1" />
     <ProjectReference Include="..\AccountingService\AccountingService.csproj" />
   </ItemGroup>
 

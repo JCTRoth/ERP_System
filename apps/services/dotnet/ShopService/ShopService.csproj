@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Npgsql" Version="10.0.2" />
     <InternalsVisibleTo Include="ShopService.Tests" />
   </ItemGroup>
 
