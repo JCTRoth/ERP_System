@@ -166,10 +166,10 @@ services:
     resources:
       limits:
         cpu: 500m
-        memory: 512Mi
+        memory: 768Mi
       requests:
         cpu: 100m
-        memory: 256Mi
+        memory: 384Mi
 
   templatesService:
     enabled: true
@@ -200,10 +200,10 @@ services:
     resources:
       limits:
         cpu: 500m
-        memory: 512Mi
+        memory: 768Mi
       requests:
         cpu: 100m
-        memory: 256Mi
+        memory: 384Mi
 
   scriptingService:
     enabled: true
@@ -234,10 +234,10 @@ services:
     resources:
       limits:
         cpu: 500m
-        memory: 512Mi
+        memory: 768Mi
       requests:
         cpu: 100m
-        memory: 256Mi
+        memory: 384Mi
 
 # =============================================================================
 # Ingress Configuration

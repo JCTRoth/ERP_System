@@ -12,8 +12,6 @@ import com.erp.company.repository.CompanyRepository;
 import com.erp.company.repository.UserCompanyAssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,9 +28,6 @@ public class UserCompanyAssignmentService {
     private final UserCompanyAssignmentRepository assignmentRepository;
         private final CompanyRepository companyRepository;
         private final UserCompanyAssignmentMapper assignmentMapper;
-
-        @Autowired(required = false)
-        private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Transactional(readOnly = true)
     public List<UserCompanyAssignmentDto> getAssignmentsByUserId(UUID userId) {
@@ -80,7 +75,7 @@ public class UserCompanyAssignmentService {
                 request.getUserId(), company.getName(), request.getRole());
 
         // Publish event
-        publishAssignmentEvent(saved, UserAssignmentEvent.EventType.ASSIGNED);
+        logAssignmentEvent(saved, UserAssignmentEvent.EventType.ASSIGNED);
 
         return assignmentMapper.toDto(saved);
     }
@@ -102,7 +97,7 @@ public class UserCompanyAssignmentService {
                 userId, companyId, oldRole, newRole);
 
         // Publish event
-        publishAssignmentEvent(saved, UserAssignmentEvent.EventType.ROLE_CHANGED);
+        logAssignmentEvent(saved, UserAssignmentEvent.EventType.ROLE_CHANGED);
 
         return assignmentMapper.toDto(saved);
     }
@@ -119,7 +114,7 @@ public class UserCompanyAssignmentService {
         log.info("Removed user {} from company {}", userId, companyId);
 
         // Publish event
-        publishAssignmentEvent(assignment, UserAssignmentEvent.EventType.REMOVED);
+        logAssignmentEvent(assignment, UserAssignmentEvent.EventType.REMOVED);
     }
 
     @Transactional(readOnly = true)
@@ -142,26 +137,9 @@ public class UserCompanyAssignmentService {
         };
     }
 
-    private void publishAssignmentEvent(UserCompanyAssignment assignment, 
+private void logAssignmentEvent(UserCompanyAssignment assignment,
                                         UserAssignmentEvent.EventType eventType) {
-                if (kafkaTemplate == null) {
-                        log.debug("Kafka disabled; skipping assignment event for {}", assignment.getUserId());
-                        return;
-                }
-
-                try {
-            UserAssignmentEvent event = UserAssignmentEvent.builder()
-                    .eventType(eventType)
-                    .userId(assignment.getUserId())
-                    .companyId(assignment.getCompany().getId())
-                    .companyName(assignment.getCompany().getName())
-                    .role(assignment.getRole())
-                    .build();
-
-            kafkaTemplate.send(ASSIGNMENT_TOPIC, assignment.getUserId().toString(), event);
-            log.debug("Published assignment event: {}", event);
-        } catch (Exception e) {
-            log.error("Failed to publish assignment event", e);
-        }
+        log.debug("Assignment event (Kafka disabled): type={} userId={}",
+                eventType, assignment.getUserId());
     }
 }

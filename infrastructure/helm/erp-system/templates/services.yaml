@@ -458,6 +458,8 @@ spec:
               containerPort: {{ .Values.services.companyService.port }}
               protocol: TCP
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Xss256k"
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: SPRING_DATASOURCE_URL
@@ -546,6 +548,8 @@ spec:
               containerPort: {{ .Values.services.translationService.port }}
               protocol: TCP
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Xss256k"
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: SPRING_DATASOURCE_URL
@@ -625,6 +629,8 @@ spec:
               containerPort: {{ .Values.services.notificationService.port }}
               protocol: TCP
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Xss256k"
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: SPRING_DATASOURCE_URL
@@ -728,6 +734,8 @@ spec:
               containerPort: {{ .Values.services.scriptingService.port }}
               protocol: TCP
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Xss256k"
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: SPRING_DATASOURCE_URL
@@ -807,6 +815,8 @@ spec:
               containerPort: {{ .Values.services.edifactService.port }}
               protocol: TCP
           env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Xss256k"
             - name: SPRING_PROFILES_ACTIVE
               value: prod
             - name: SPRING_DATASOURCE_URL

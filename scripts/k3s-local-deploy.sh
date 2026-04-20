@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Local K3s deployment script for ERP System
 # Builds images with Docker, imports into K3s containerd, deploys via Helm
-# Usage: ./scripts/k8s-local-deploy.sh [action]
+# Usage: ./scripts/k3s-local-deploy.sh [action]
 # Actions: full (default), rebuild, deploy, portforward, status, clean
 # Requires: docker, kubectl (~/.kube/config pointing to K3s), helm, k3s (sudo)
 

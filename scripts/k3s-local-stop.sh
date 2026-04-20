@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # K3s deployment stop script for ERP System
 # Gracefully stops services, port-forwards, and optionally removes resources
-# Usage: ./scripts/k8s-local-stop.sh [action]
+# Usage: ./scripts/k3s-local-stop.sh [action]
 # Actions: stop (default), pause, clean
 
 set -euo pipefail
@@ -55,7 +55,7 @@ pause_deployment() {
     
     log_info "✓ Deployment paused"
     log_info "  PostgreSQL data: PRESERVED"
-    log_info "  To resume: bash scripts/k8s-local-deploy.sh deploy"
+    log_info "  To resume: bash scripts/k3s-local-deploy.sh deploy"
 }
 
 # Full cleanup: Remove namespace and all data
@@ -80,7 +80,7 @@ full_cleanup() {
         log_info "✓ Full cleanup complete"
         log_info "  All resources deleted"
         log_info "  PostgreSQL data deleted"
-        log_info "  To redeploy: bash scripts/k8s-local-deploy.sh full"
+        log_info "  To redeploy: bash scripts/k3s-local-deploy.sh full"
     else
         log_error "Failed to delete namespace"
         exit 1
@@ -89,7 +89,7 @@ full_cleanup() {
 
 # Show status
 show_status() {
-    log_step "Stopping port-forwards..."
+    log_step "Checking status..."
     
     echo ""
     ACTIVE=$(pgrep -fc "kubectl port-forward" 2>/dev/null || true)
@@ -126,8 +126,8 @@ main() {
             stop_portforwards
             log_info ""
             log_info "Services paused. PostgreSQL data preserved."
-            log_info "To resume: bash scripts/k8s-local-deploy.sh deploy"
-            log_info "Or restart port-forwards: bash scripts/k8s-local-deploy.sh portforward"
+            log_info "To resume: bash scripts/k3s-local-deploy.sh deploy"
+            log_info "Or restart port-forwards: bash scripts/k3s-local-deploy.sh portforward"
             ;;
         pause)
             stop_portforwards
@@ -135,11 +135,12 @@ main() {
             log_info ""
             log_info "All services and port-forwards stopped"
             log_info "PostgreSQL data: PRESERVED"
-            log_info "To resume: bash scripts/k8s-local-deploy.sh deploy"
+            log_info "To resume: bash scripts/k3s-local-deploy.sh deploy"
             ;;
         clean)
-            stop_portforwards
-            full_cleanup
+            if full_cleanup; then
+                stop_portforwards
+            fi
             ;;
         status)
             show_status

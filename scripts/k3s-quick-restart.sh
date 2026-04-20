@@ -6,4 +6,4 @@ cd "$(dirname "$0")/.."
 
 echo "Quick restart: rebuilding images and redeploying..."
 
-bash scripts/k8s-local-deploy.sh rebuild
+bash scripts/k3s-local-deploy.sh rebuild
