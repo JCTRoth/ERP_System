@@ -74,7 +74,7 @@ var repairLegacyCompanyColumns = builder.Configuration.GetValue<bool>("Database:
 // Apply migrations on startup (only for relational databases)
 if (!skipDatabaseInitialization)
 {
-    InitializeMasterdataDatabase(app, repairLegacyCompanyColumns);
+    MasterdataHelper.InitializeMasterdataDatabase(app, repairLegacyCompanyColumns);
 }
 
 
@@ -110,7 +110,9 @@ app.UseWebSockets();
 
 app.Run();
 
-static void InitializeMasterdataDatabase(WebApplication app, bool repairLegacyCompanyColumns)
+file static class MasterdataHelper
+{
+    internal static void InitializeMasterdataDatabase(WebApplication app, bool repairLegacyCompanyColumns)
 {
     const int maxAttempts = 12;
     const int delaySeconds = 5;
@@ -202,7 +204,7 @@ static void InitializeMasterdataDatabase(WebApplication app, bool repairLegacyCo
     }
 }
 
-static readonly string[] LegacyCompanyColumnRepairTables =
+    internal static readonly string[] LegacyCompanyColumnRepairTables =
 [
     "AssetCategories",
     "Assets",
@@ -218,7 +220,7 @@ static readonly string[] LegacyCompanyColumnRepairTables =
     "UnitsOfMeasure"
 ];
 
-static string GetValidatedLegacyIdentifier(string table)
+    internal static string GetValidatedLegacyIdentifier(string table)
 {
     if (!LegacyCompanyColumnRepairTables.Contains(table, StringComparer.Ordinal))
     {
@@ -228,7 +230,7 @@ static string GetValidatedLegacyIdentifier(string table)
     return $"\"{table}\"";
 }
 
-static string GetValidatedLegacyCompanyIdIndexIdentifier(string table)
+    internal static string GetValidatedLegacyCompanyIdIndexIdentifier(string table)
 {
     if (!LegacyCompanyColumnRepairTables.Contains(table, StringComparer.Ordinal))
     {
@@ -238,7 +240,7 @@ static string GetValidatedLegacyCompanyIdIndexIdentifier(string table)
     return $"\"IX_{table}_CompanyId\"";
 }
 
-static void RepairLegacyCompanyColumns(MasterdataDbContext dbContext)
+    internal static void RepairLegacyCompanyColumns(MasterdataDbContext dbContext)
 {
     // Early Masterdata migrations missed tenant columns. Repair them in-place so
     // existing Kubernetes PVC data can still be brought up without a reset.
@@ -258,7 +260,7 @@ CREATE INDEX IF NOT EXISTS {validatedIndexIdentifier} ON {validatedTableIdentifi
     }
 }
 
-static void SeedMasterdata(MasterdataDbContext dbContext)
+    internal static void SeedMasterdata(MasterdataDbContext dbContext)
 {
     var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
@@ -480,6 +482,7 @@ static void SeedMasterdata(MasterdataDbContext dbContext)
     }
 
     dbContext.SaveChanges();
+}
 }
 
 public partial class Program { }
