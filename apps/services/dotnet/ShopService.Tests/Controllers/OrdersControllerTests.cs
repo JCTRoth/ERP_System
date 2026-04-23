@@ -68,6 +68,10 @@ public class OrdersControllerTests : IClassFixture<CustomWebApplicationFactory>
         productResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var createdProduct = await productResponse.Content.ReadFromJsonAsync<ProductDto>();
         createdProduct.Should().NotBeNull();
+        if (createdProduct == null)
+        {
+            throw new InvalidOperationException("Product creation failed");
+        }
 
         // Arrange
         var request = new CreateOrderInput(

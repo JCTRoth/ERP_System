@@ -124,7 +124,10 @@ public class OrderService : IOrderService
                 _context.ChangeTracker.Clear();
             }
 
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            // Only use transactions if the database is relational (not for in-memory in tests)
+            await using var transaction = _context.Database.IsRelational() 
+                ? await _context.Database.BeginTransactionAsync()
+                : null;
             string? orderNumber = null;
 
             try
@@ -229,7 +232,10 @@ public class OrderService : IOrderService
 
                 _context.Orders.Add(order);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (transaction != null)
+                {
+                    await transaction.CommitAsync();
+                }
 
                 _logger.LogInformation("Order created: {OrderNumber} - Total: {Total}", orderNumber, order.Total);
 
@@ -250,7 +256,10 @@ public class OrderService : IOrderService
             }
             catch (DbUpdateException ex) when (IsDuplicateOrderNumberViolation(ex) && attempt < maxOrderNumberAttempts)
             {
-                await transaction.RollbackAsync();
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync();
+                }
                 _context.ChangeTracker.Clear();
 
                 _logger.LogWarning(
@@ -261,7 +270,10 @@ public class OrderService : IOrderService
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync();
+                }
                 throw;
             }
         }
