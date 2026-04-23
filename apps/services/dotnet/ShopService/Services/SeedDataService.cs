@@ -525,11 +525,11 @@ public class SeedDataService : ISeedDataService
             new Customer
             {
                 Id = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f"), // Fixed ID for accounting integration
-                Email = "jonas.roth@mailbase.info",
+                Email = "info@mailbase.info",
                 FirstName = "Jonas",
-                LastName = "Roth",
+                LastName = "R",
                 Phone = "+49-170-555-1234",
-                Company = "Roth Consulting",
+                Company = "Mailbase.info",
                 DefaultShippingAddress = "Hauptstrasse 12",
                 DefaultShippingCity = "Hamburg",
                 DefaultShippingPostalCode = "20354",

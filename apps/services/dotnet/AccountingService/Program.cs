@@ -133,13 +133,6 @@ static void InitializeAccountingDatabase(WebApplication app)
                 dbContext.Database.EnsureCreated();
             }
 
-            var invoice = dbContext.Invoices.FirstOrDefault(i => i.InvoiceNumber == "INV-2026-0001");
-            if (invoice != null && invoice.CustomerName != "Jonas Roth")
-            {
-                invoice.CustomerName = "Jonas Roth";
-                dbContext.SaveChanges();
-            }
-
             logger.LogInformation("Accounting database initialized on attempt {Attempt}", attempt);
             return;
         }

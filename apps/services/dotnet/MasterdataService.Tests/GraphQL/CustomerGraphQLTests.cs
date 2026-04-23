@@ -44,7 +44,7 @@ public class CustomerGraphQLTests : IClassFixture<CustomWebApplicationFactory>
             {
                 name = "Test Customer",
                 type = "Business",
-                contactPerson = "Jonas Roth",
+                contactPerson = "Jonas R",
                 email = "test@example.com",
                 phone = "123-456-7890",
                 website = "https://example.com",

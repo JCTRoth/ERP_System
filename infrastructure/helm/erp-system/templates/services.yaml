@@ -312,8 +312,6 @@ spec:
               value: {{ include "erp-system.databaseUrl" (dict "dbName" .Values.services.masterdataService.database.name "dbUser" .Values.services.masterdataService.database.user "Release" .Release "Chart" .Chart) }}
             - name: Database__EnableSeeding
               value: "true"
-            - name: Database__RepairLegacyCompanyColumns
-              value: "true"
           livenessProbe:
             tcpSocket:
               port: http
