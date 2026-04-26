@@ -9,9 +9,9 @@
     "compose": "rover supergraph compose --config ./supergraph-config.yaml > supergraph.graphql"
   },
   "dependencies": {
-    "@apollo/server": "^4.10.0",
-    "@apollo/gateway": "^2.6.3",
-    "@apollo/composition": "^2.6.3",
+    "@apollo/server": "^5.5.0",
+    "@apollo/gateway": "^2.13.3",
+    "@apollo/composition": "^2.13.3",
     "graphql": "^16.8.1",
     "express": "^4.18.2",
     "cors": "^2.8.5",
