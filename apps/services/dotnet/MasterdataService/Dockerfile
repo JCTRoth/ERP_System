@@ -10,6 +10,7 @@ WORKDIR /src
 # Copy project files and common defaults
 COPY ["MasterdataService/MasterdataService.csproj", "MasterdataService/"]
 COPY ["Common/ServiceDefaults/ServiceDefaultsExtensions.cs", "Common/ServiceDefaults/"]
+COPY ["Common/ServiceDefaults/RequestAuthorization.cs", "Common/ServiceDefaults/"]
 RUN dotnet restore "MasterdataService/MasterdataService.csproj"
 
 # Copy full source

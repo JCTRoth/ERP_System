@@ -10,6 +10,7 @@ WORKDIR /src
 # Copy project files and common defaults
 COPY ["AccountingService/AccountingService.csproj", "AccountingService/"]
 COPY ["Common/ServiceDefaults/ServiceDefaultsExtensions.cs", "Common/ServiceDefaults/"]
+COPY ["Common/ServiceDefaults/RequestAuthorization.cs", "Common/ServiceDefaults/"]
 RUN dotnet restore "AccountingService/AccountingService.csproj"
 
 # Copy full source

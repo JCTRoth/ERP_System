@@ -10,6 +10,7 @@ WORKDIR /src
 # Copy project files and common defaults
 COPY ["ShopService/ShopService.csproj", "ShopService/"]
 COPY ["Common/ServiceDefaults/ServiceDefaultsExtensions.cs", "Common/ServiceDefaults/"]
+COPY ["Common/ServiceDefaults/RequestAuthorization.cs", "Common/ServiceDefaults/"]
 RUN dotnet restore "ShopService/ShopService.csproj"
 
 # Copy full source

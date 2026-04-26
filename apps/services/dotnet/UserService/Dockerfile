@@ -10,6 +10,7 @@ WORKDIR /src
 # Copy project files and common defaults
 COPY ["UserService/UserService.csproj", "UserService/"]
 COPY ["Common/ServiceDefaults/ServiceDefaultsExtensions.cs", "Common/ServiceDefaults/"]
+COPY ["Common/ServiceDefaults/RequestAuthorization.cs", "Common/ServiceDefaults/"]
 RUN dotnet restore "UserService/UserService.csproj"
 
 # Copy full source
