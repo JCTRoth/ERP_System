@@ -1,11 +1,22 @@
 using HotChocolate;
+using HotChocolate.Authorization;
 using UserService.DTOs;
+using UserService.Exceptions;
 using UserService.Services;
 
 namespace UserService.GraphQL;
 
 public class Mutation
 {
+    private static Guid RequireAuthenticatedUserId(Guid? userId)
+    {
+        if (!userId.HasValue)
+        {
+            throw new AuthorizationException("UNAUTHENTICATED", "User is not authenticated");
+        }
+        return userId.Value;
+    }
+
     public async Task<LoginResponse?> Login(
         [Service] IAuthService authService,
         string email,
@@ -16,17 +27,19 @@ public class Mutation
 
     public async Task<LoginResponse?> RefreshToken(
         [Service] IAuthService authService,
-        string refreshToken)
+        string refreshToken,
+        Guid? companyId = null)
     {
-        return await authService.RefreshTokenAsync(refreshToken);
+        return await authService.RefreshTokenAsync(refreshToken, companyId);
     }
 
+    [Authorize]
     public async Task<bool> Logout(
         [Service] IAuthService authService,
-        Guid userId,
+        [GlobalState("CurrentUserId")] Guid? userId,
         string refreshToken)
     {
-        return await authService.LogoutAsync(userId, refreshToken);
+        return await authService.LogoutAsync(RequireAuthenticatedUserId(userId), refreshToken);
     }
 
     public async Task<UserDto?> Register(
@@ -41,6 +54,7 @@ public class Mutation
             email, password, firstName, lastName, preferredLanguage));
     }
 
+    [Authorize]
     public async Task<UserDto?> UpdateUser(
         [Service] IUserService userService,
         Guid id,
@@ -52,16 +66,19 @@ public class Mutation
             firstName, lastName, preferredLanguage));
     }
 
+    [Authorize]
     public async Task<bool> ChangePassword(
         [Service] IUserService userService,
-        Guid id,
+        [GlobalState("CurrentUserId")] Guid? id,
         string currentPassword,
         string newPassword)
     {
-        return await userService.ChangePasswordAsync(id, 
+        return await userService.ChangePasswordAsync(
+            RequireAuthenticatedUserId(id),
             new ChangePasswordRequest(currentPassword, newPassword));
     }
 
+    [Authorize]
     public async Task<bool> DeactivateUser(
         [Service] IUserService userService,
         Guid id)
@@ -69,6 +86,7 @@ public class Mutation
         return await userService.DeactivateAsync(id);
     }
 
+    [Authorize]
     public async Task<bool> ActivateUser(
         [Service] IUserService userService,
         Guid id)
@@ -96,5 +114,14 @@ public class Mutation
         string token)
     {
         return await authService.VerifyEmailAsync(token);
+    }
+
+    [Authorize]
+    public async Task<AuthContextPayload> SwitchCompany(
+        [Service] IAuthService authService,
+        [GlobalState("CurrentUserId")] Guid? userId,
+        Guid companyId)
+    {
+        return await authService.SwitchCompanyAsync(RequireAuthenticatedUserId(userId), companyId);
     }
 }

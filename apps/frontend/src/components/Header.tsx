@@ -11,17 +11,19 @@ import { Fragment } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
 import { useI18n, SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../providers/I18nProvider';
+import { authService } from '../services/authService';
 
 export default function Header() {
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const theme = useUIStore((state) => state.theme);
   const setTheme = useUIStore((state) => state.setTheme);
-  const logout = useAuthStore((state) => state.logout);
   const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  const currentCompanyName = useAuthStore((state) => state.currentCompanyName);
   const companyAssignments = useAuthStore((state) => state.companyAssignments);
   const { language, setLanguage, t } = useI18n();
 
   const currentCompany = companyAssignments.find(a => a.companyId === currentCompanyId);
+  const companyLabel = currentCompany?.companyName || currentCompanyName;
 
   const toggleTheme = () => {
     if (theme === 'light') {
@@ -49,11 +51,11 @@ export default function Header() {
         {/* Right side */}
         <div className="ml-auto flex items-center gap-3">
           {/* Current Company - read-only display (switch only via logout) */}
-          {currentCompany && (
+          {companyLabel && (
             <div className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 dark:border-gray-600">
               <BuildingOffice2Icon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
               <span className="max-w-[160px] truncate text-sm font-medium text-gray-700 dark:text-gray-300">
-                {currentCompany.companyName}
+                {companyLabel}
               </span>
             </div>
           )}
@@ -113,7 +115,7 @@ export default function Header() {
 
           {/* Logout */}
           <button
-            onClick={logout}
+            onClick={() => void authService.logout()}
             className="flex items-center gap-2 rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <ArrowRightOnRectangleIcon className="h-5 w-5" />

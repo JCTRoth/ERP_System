@@ -3,6 +3,8 @@ package com.erp.company.graphql;
 import com.erp.company.dto.AssignUserRequest;
 import com.erp.company.dto.UserCompanyAssignmentDto;
 import com.erp.company.entity.UserCompanyAssignment;
+import com.erp.company.exception.AccessDeniedException;
+import com.erp.company.service.RequestAuthorizationService;
 import com.erp.company.service.UserCompanyAssignmentService;
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsMutation;
@@ -19,31 +21,48 @@ import java.util.UUID;
 public class AssignmentDataFetcher {
 
     private final UserCompanyAssignmentService assignmentService;
+    private final RequestAuthorizationService requestAuthorizationService;
 
     @DgsQuery
     public UserCompanyAssignmentDto assignment(@InputArgument String userId, 
                                                 @InputArgument String companyId) {
+        var targetUserId = UUID.fromString(userId);
+        var targetCompanyId = UUID.fromString(companyId);
+        requestAuthorizationService.requireCompanyAccess(targetCompanyId);
+        requestAuthorizationService.requireSelfOrPermission(targetUserId, "company.assignment.read");
         return assignmentService.getAssignment(
-                UUID.fromString(userId), 
-                UUID.fromString(companyId)
+                targetUserId,
+                targetCompanyId
         );
     }
 
     @DgsQuery
     public List<UserCompanyAssignmentDto> assignmentsByUser(@InputArgument String userId) {
-        return assignmentService.getAssignmentsByUserId(UUID.fromString(userId));
+        var targetUserId = UUID.fromString(userId);
+        var currentUserId = requestAuthorizationService.getCurrentUserId();
+        if (!requestAuthorizationService.isGlobalSuperAdmin() && (currentUserId == null || !currentUserId.equals(targetUserId))) {
+            throw new AccessDeniedException("Only the current user or a global super admin can list assignments by user");
+        }
+        return assignmentService.getAssignmentsByUserId(targetUserId);
     }
 
     @DgsQuery
     public List<UserCompanyAssignmentDto> assignmentsByCompany(@InputArgument String companyId) {
-        return assignmentService.getAssignmentsByCompanyId(UUID.fromString(companyId));
+        var targetCompanyId = UUID.fromString(companyId);
+        requestAuthorizationService.requirePermission("company.assignment.read");
+        requestAuthorizationService.requireCompanyAccess(targetCompanyId);
+        return assignmentService.getAssignmentsByCompanyId(targetCompanyId);
     }
 
     @DgsMutation
     public UserCompanyAssignmentDto assignUserToCompany(@InputArgument Map<String, Object> input) {
+        var companyId = UUID.fromString((String) input.get("companyId"));
+        requestAuthorizationService.requirePermission("company.assignment.manage");
+        requestAuthorizationService.requireCompanyAccess(companyId);
+
         AssignUserRequest request = AssignUserRequest.builder()
                 .userId(UUID.fromString((String) input.get("userId")))
-                .companyId(UUID.fromString((String) input.get("companyId")))
+                .companyId(companyId)
                 .role(UserCompanyAssignment.UserRole.valueOf((String) input.get("role")))
                 .build();
         return assignmentService.assignUser(request);
@@ -53,6 +72,8 @@ public class AssignmentDataFetcher {
     public UserCompanyAssignmentDto updateAssignmentRole(@InputArgument String userId,
                                                           @InputArgument String companyId,
                                                           @InputArgument String role) {
+        requestAuthorizationService.requirePermission("company.assignment.manage");
+        requestAuthorizationService.requireCompanyAccess(UUID.fromString(companyId));
         return assignmentService.updateAssignmentRole(
                 UUID.fromString(userId),
                 UUID.fromString(companyId),
@@ -63,6 +84,8 @@ public class AssignmentDataFetcher {
     @DgsMutation
     public Boolean removeUserFromCompany(@InputArgument String userId, 
                                           @InputArgument String companyId) {
+        requestAuthorizationService.requirePermission("company.assignment.manage");
+        requestAuthorizationService.requireCompanyAccess(UUID.fromString(companyId));
         assignmentService.removeAssignment(
                 UUID.fromString(userId), 
                 UUID.fromString(companyId)

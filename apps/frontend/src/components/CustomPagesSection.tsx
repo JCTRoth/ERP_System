@@ -2,12 +2,15 @@ import { NavLink } from 'react-router-dom';
 import { DocumentIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../providers/I18nProvider';
 import { useUIBuilderStore } from '../stores/uiBuilderStore';
+import { useAuthStore } from '../stores/authStore';
 
 export default function CustomPagesSection() {
   const { t } = useI18n();
   const pages = useUIBuilderStore((state) => state.pages);
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  const hasPermission = useAuthStore((state) => state.hasPermission);
 
-  if (pages.length === 0) {
+  if (pages.length === 0 || !currentCompanyId || !hasPermission('scripting.script.read')) {
     return null;
   }
 

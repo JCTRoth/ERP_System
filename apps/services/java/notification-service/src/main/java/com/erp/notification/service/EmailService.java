@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.lang.NonNull;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -40,15 +41,18 @@ public class EmailService {
     // HTTP client removed; unused field triggered a compile warning in IDE
     
     @Value("${notification.email.from}")
+    @NonNull
     private String fromEmail;
     
     @Value("${notification.email.from-name}")
+    @NonNull
     private String fromName;
     
     @Value("${notification.email.retry-attempts:3}")
     private int maxRetryAttempts;
     
     @Transactional
+    @SuppressWarnings("null")
     public EmailNotification sendEmail(SendEmailRequest request) {
         log.info("Creating email notification to: {}", request.toEmail());
         
@@ -81,11 +85,13 @@ public class EmailService {
     }
     
     @Async
+    @SuppressWarnings("null")
     public void sendEmailAsync(UUID notificationId) {
         notificationRepository.findById(notificationId).ifPresent(this::doSendEmail);
     }
     
     @Transactional
+    @SuppressWarnings("null")
     public void doSendEmail(EmailNotification notification) {
         try {
             notification.setStatus(NotificationStatus.SENDING);

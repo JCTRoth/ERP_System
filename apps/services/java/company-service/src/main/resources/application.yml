@@ -47,6 +47,8 @@ minio:
 
 # Application Configuration
 app:
+  auth:
+    internal-api-key: ${INTERNAL_AUTH_API_KEY:erp-internal-auth-key}
   demo-company:
     name: MediVita
     auto-create: true

@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BuildingOffice2Icon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { useAuthStore } from '../../stores/authStore';
+import { authService } from '../../services/authService';
 
 export default function CompanySelectPage() {
   const { t } = useI18n();
@@ -10,38 +11,62 @@ export default function CompanySelectPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const companyAssignments = useAuthStore((state) => state.companyAssignments);
   const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
-  const logout = useAuthStore((state) => state.logout);
+  const isGlobalSuperAdmin = useAuthStore((state) => state.isGlobalSuperAdmin);
+  const [selectingCompanyId, setSelectingCompanyId] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   // If not authenticated, redirect to login
   useEffect(() => {
+    let cancelled = false;
+
+    const autoSelectSingleCompany = async () => {
+      if (companyAssignments.length !== 1) {
+        return;
+      }
+
+      try {
+        setSelectingCompanyId(companyAssignments[0].companyId);
+        await authService.switchCompany(companyAssignments[0].companyId);
+        if (!cancelled) {
+          navigate('/', { replace: true });
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setError(err.message || t('auth.selectCompanyError', { default: 'Could not switch company.' }));
+          setSelectingCompanyId(null);
+        }
+      }
+    };
+
     if (!isAuthenticated) {
       navigate('/auth/login', { replace: true });
-      return;
-    }
-    // If company already selected, go to dashboard
-    if (currentCompanyId) {
+    } else if (currentCompanyId) {
       navigate('/', { replace: true });
-      return;
-    }
-    // If only one company, auto-select and go to dashboard
-    if (companyAssignments.length === 1) {
-      useAuthStore.getState().setCurrentCompany(companyAssignments[0].companyId);
-      navigate('/', { replace: true });
-      return;
-    }
-    // No assignments (super admin or no companies) — go to dashboard
-    if (companyAssignments.length === 0) {
+    } else if (companyAssignments.length === 1) {
+      void autoSelectSingleCompany();
+    } else if (companyAssignments.length === 0 && isGlobalSuperAdmin) {
       navigate('/', { replace: true });
     }
-  }, [isAuthenticated, currentCompanyId, companyAssignments, navigate]);
 
-  const handleCompanySelect = (companyId: string) => {
-    useAuthStore.getState().setCurrentCompany(companyId);
-    navigate('/');
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, currentCompanyId, companyAssignments, isGlobalSuperAdmin, navigate, t]);
+
+  const handleCompanySelect = async (companyId: string) => {
+    try {
+      setError('');
+      setSelectingCompanyId(companyId);
+      await authService.switchCompany(companyId);
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message || t('auth.selectCompanyError', { default: 'Could not switch company.' }));
+      setSelectingCompanyId(null);
+    }
   };
 
-  const handleBack = () => {
-    logout();
+  const handleBack = async () => {
+    await authService.logout();
     navigate('/auth/login', { replace: true });
   };
 
@@ -75,11 +100,18 @@ export default function CompanySelectPage() {
               </p>
             </div>
 
+            {error ? (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                {error}
+              </div>
+            ) : null}
+
             <div className="max-h-80 overflow-y-auto space-y-3 pr-1">
               {companyAssignments.map((assignment) => (
                 <button
                   key={assignment.companyId}
-                  onClick={() => handleCompanySelect(assignment.companyId)}
+                  onClick={() => void handleCompanySelect(assignment.companyId)}
+                  disabled={Boolean(selectingCompanyId)}
                   className="w-full flex items-center gap-4 rounded-lg border border-gray-300 dark:border-gray-600 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/30">
@@ -93,6 +125,11 @@ export default function CompanySelectPage() {
                       {assignment.role}
                     </span>
                   </div>
+                  {selectingCompanyId === assignment.companyId ? (
+                    <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
+                      {t('common.loading', { default: 'Loading...' })}
+                    </span>
+                  ) : null}
                   <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                   </svg>
@@ -101,7 +138,7 @@ export default function CompanySelectPage() {
             </div>
 
             <button
-              onClick={handleBack}
+              onClick={() => void handleBack()}
               className="w-full text-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               {t('auth.backToLogin', { default: 'Back to Login' })}

@@ -29,6 +29,7 @@ builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
 // Multi-tenancy
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICompanyContext, CompanyContext>();
+builder.Services.AddScoped<IRequestAuthorizationService, RequestAuthorizationService>();
 
 // Configure JWT Authentication
 builder.Services.AddJwtAuthenticationFromConfig(builder.Configuration);

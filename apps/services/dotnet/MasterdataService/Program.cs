@@ -27,6 +27,7 @@ builder.Services.AddScoped<IReferenceDataService, ReferenceDataService>();
 // Multi-tenancy
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICompanyContext, CompanyContext>();
+builder.Services.AddScoped<IRequestAuthorizationService, RequestAuthorizationService>();
 
 // Add Authentication
 builder.Services.AddJwtAuthenticationFromConfig(builder.Configuration);

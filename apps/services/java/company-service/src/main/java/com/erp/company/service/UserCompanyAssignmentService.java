@@ -23,11 +23,10 @@ import java.util.UUID;
 @Slf4j
 public class UserCompanyAssignmentService {
 
-    private static final String ASSIGNMENT_TOPIC = "user-company-assignments";
-
     private final UserCompanyAssignmentRepository assignmentRepository;
-        private final CompanyRepository companyRepository;
-        private final UserCompanyAssignmentMapper assignmentMapper;
+    private final CompanyRepository companyRepository;
+    private final UserCompanyAssignmentMapper assignmentMapper;
+    private final AuthorizationService authorizationService;
 
     @Transactional(readOnly = true)
     public List<UserCompanyAssignmentDto> getAssignmentsByUserId(UUID userId) {
@@ -71,6 +70,7 @@ public class UserCompanyAssignmentService {
                 .build();
 
         UserCompanyAssignment saved = assignmentRepository.save(assignment);
+        authorizationService.syncAssignmentToDefaultGroups(saved);
         log.info("Assigned user {} to company {} with role {}", 
                 request.getUserId(), company.getName(), request.getRole());
 
@@ -93,6 +93,7 @@ public class UserCompanyAssignmentService {
         assignment.setRole(newRole);
         
         UserCompanyAssignment saved = assignmentRepository.save(assignment);
+        authorizationService.syncAssignmentToDefaultGroups(saved);
         log.info("Updated role for user {} in company {} from {} to {}", 
                 userId, companyId, oldRole, newRole);
 
@@ -111,6 +112,7 @@ public class UserCompanyAssignmentService {
                 ));
 
         assignmentRepository.delete(assignment);
+        authorizationService.removeUserGroups(userId, companyId);
         log.info("Removed user {} from company {}", userId, companyId);
 
         // Publish event
@@ -137,8 +139,8 @@ public class UserCompanyAssignmentService {
         };
     }
 
-private void logAssignmentEvent(UserCompanyAssignment assignment,
-                                        UserAssignmentEvent.EventType eventType) {
+    private void logAssignmentEvent(UserCompanyAssignment assignment,
+                                    UserAssignmentEvent.EventType eventType) {
         log.debug("Assignment event (Kafka disabled): type={} userId={}",
                 eventType, assignment.getUserId());
     }

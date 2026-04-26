@@ -6,6 +6,9 @@ type Query {
     companies: [Company!]!
     companiesByUser(userId: ID!): [Company!]!
     totalCompanies: Int!
+    authorizationContext(userId: ID!, companyId: ID!): AuthorizationContext!
+    groupsByCompany(companyId: ID!): [AuthorizationGroup!]!
+    permissionsCatalog: [Permission!]!
     
     assignment(userId: ID!, companyId: ID!): UserCompanyAssignment
     assignmentsByUser(userId: ID!): [UserCompanyAssignment!]!
@@ -25,6 +28,9 @@ type Mutation {
     assignUserToCompany(input: AssignUserInput!): UserCompanyAssignment!
     updateAssignmentRole(userId: ID!, companyId: ID!, role: UserRole!): UserCompanyAssignment!
     removeUserFromCompany(userId: ID!, companyId: ID!): Boolean!
+    assignUserGroups(input: AssignUserGroupsInput!): [AuthorizationGroup!]!
+    upsertGroup(input: UpsertAuthorizationGroupInput!): AuthorizationGroup!
+    deleteGroup(groupId: ID!): Boolean!
     
     createDynamicFieldDefinition(input: CreateDynamicFieldDefinitionInput!): DynamicFieldDefinition!
     updateDynamicFieldDefinition(id: ID!, input: UpdateDynamicFieldDefinitionInput!): DynamicFieldDefinition!
@@ -53,6 +59,43 @@ type UserCompanyAssignment {
     companyName: String!
     role: UserRole!
     assignedAt: DateTime!
+}
+
+type AuthorizationContext {
+    userId: ID!
+    companyId: ID!
+    companyName: String!
+    membershipValid: Boolean!
+    companyRole: String
+    isGlobalSuperAdmin: Boolean!
+    groupCodes: [String!]!
+    permissionCodes: [String!]!
+    scopeGrants: [ScopeGrant!]!
+}
+
+type AuthorizationGroup {
+    id: ID!
+    companyId: ID!
+    code: String!
+    name: String!
+    description: String
+    isSystem: Boolean!
+    createdAt: DateTime
+    permissions: [ScopeGrant!]!
+}
+
+type Permission {
+    id: ID!
+    code: String!
+    resource: String!
+    operation: String!
+    description: String
+}
+
+type ScopeGrant {
+    permissionCode: String!
+    scopeType: String!
+    scopeJson: String
 }
 
 type DynamicFieldDefinition @key(fields: "id") {
@@ -94,6 +137,27 @@ input AssignUserInput {
     userId: ID!
     companyId: ID!
     role: UserRole!
+}
+
+input AssignUserGroupsInput {
+    userId: ID!
+    companyId: ID!
+    groupIds: [ID!]
+}
+
+input ScopeGrantInput {
+    permissionCode: String!
+    scopeType: String!
+    scopeJson: String
+}
+
+input UpsertAuthorizationGroupInput {
+    id: ID
+    companyId: ID!
+    code: String
+    name: String!
+    description: String
+    permissions: [ScopeGrantInput!]
 }
 
 input CreateDynamicFieldDefinitionInput {

@@ -4,6 +4,7 @@ using BCrypt.Net;
 using UserService.Data;
 using UserService.DTOs;
 using UserService.Models;
+using static UserService.Services.PlatformRoleHelper;
 
 namespace UserService.Services;
 
@@ -143,9 +144,11 @@ public class UserServiceImpl : IUserService
         user.FullName,
         user.IsActive,
         user.EmailVerified,
-        user.Role,
+        NormalizePlatformRole(user.Role),
         user.PreferredLanguage,
         user.CreatedAt,
         user.LastLoginAt
     );
+
 }
+

@@ -1,5 +1,7 @@
 namespace OrdersService.Services;
 
+using ServiceDefaults;
+
 public interface ICompanyContext
 {
     Guid? CurrentCompanyId { get; }
@@ -24,10 +26,11 @@ public class CompanyContext : ICompanyContext
             if (!_parsed)
             {
                 _parsed = true;
-                var header = _httpContextAccessor.HttpContext?.Request.Headers["X-Company-Id"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(header) && Guid.TryParse(header, out var companyId) && companyId != Guid.Empty)
+                var user = _httpContextAccessor.HttpContext?.User;
+                var companyId = user?.GetCurrentCompanyId();
+                if (companyId.HasValue && companyId.Value != Guid.Empty)
                 {
-                    _companyId = companyId;
+                    _companyId = companyId.Value;
                 }
             }
             return _companyId;

@@ -5,13 +5,16 @@ using UserService.Data;
 using UserService.DTOs;
 using UserService.Models;
 using UserService.Exceptions;
+using static UserService.Services.PlatformRoleHelper;
 
 namespace UserService.Services;
 
 public interface IAuthService
 {
     Task<LoginResponse?> LoginAsync(LoginRequest request);
-    Task<LoginResponse?> RefreshTokenAsync(string refreshToken);
+    Task<LoginResponse?> RefreshTokenAsync(string refreshToken, Guid? companyId);
+    Task<AuthContextPayload> SwitchCompanyAsync(Guid userId, Guid companyId);
+    Task<AuthorizationContextDto?> GetAuthorizationContextAsync(Guid userId, Guid companyId, bool isGlobalSuperAdmin);
     Task<bool> LogoutAsync(Guid userId, string refreshToken);
     Task<UserDto?> RegisterAsync(RegisterRequest request);
     Task<bool> RequestPasswordResetAsync(RequestPasswordResetRequest request);
@@ -23,13 +26,20 @@ public class AuthService : IAuthService
 {
     private readonly UserDbContext _context;
     private readonly ITokenService _tokenService;
+    private readonly ICompanyAuthorizationClient _companyAuthorizationClient;
     private readonly IEmailService _emailService;
     private readonly ILogger<AuthService> _logger;
 
-    public AuthService(UserDbContext context, ITokenService tokenService, IEmailService emailService, ILogger<AuthService> logger)
+    public AuthService(
+        UserDbContext context,
+        ITokenService tokenService,
+        ICompanyAuthorizationClient companyAuthorizationClient,
+        IEmailService emailService,
+        ILogger<AuthService> logger)
     {
         _context = context;
         _tokenService = tokenService;
+        _companyAuthorizationClient = companyAuthorizationClient;
         _emailService = emailService;
         _logger = logger;
     }
@@ -82,7 +92,7 @@ public class AuthService : IAuthService
         );
     }
 
-    public async Task<LoginResponse?> RefreshTokenAsync(string refreshToken)
+    public async Task<LoginResponse?> RefreshTokenAsync(string refreshToken, Guid? companyId)
     {
         var token = await _context.RefreshTokens
             .Include(t => t.User)
@@ -98,8 +108,14 @@ public class AuthService : IAuthService
         token.IsRevoked = true;
         token.RevokedReason = "Replaced by new token";
 
+        AuthorizationContextDto? authorizationContext = null;
+        if (companyId.HasValue)
+        {
+            authorizationContext = await ResolveAuthorizationContextAsync(token.User, companyId.Value);
+        }
+
         // Generate new tokens
-        var (accessToken, expiresAt) = _tokenService.GenerateAccessToken(token.User);
+        var (accessToken, expiresAt) = _tokenService.GenerateAccessToken(token.User, authorizationContext);
         var newRefreshToken = await _tokenService.GenerateRefreshTokenAsync(token.UserId);
 
         await _context.SaveChangesAsync();
@@ -108,8 +124,39 @@ public class AuthService : IAuthService
             accessToken,
             newRefreshToken.Token,
             expiresAt,
-            ToDto(token.User)
+            ToDto(token.User),
+            authorizationContext
         );
+    }
+
+    public async Task<AuthContextPayload> SwitchCompanyAsync(Guid userId, Guid companyId)
+    {
+        var user = await _context.Users.FindAsync(userId)
+            ?? throw new AuthorizationException("UNAUTHENTICATED", "User not found");
+
+        var authorizationContext = await ResolveAuthorizationContextAsync(user, companyId);
+        var (accessToken, expiresAt) = _tokenService.GenerateAccessToken(user, authorizationContext);
+
+        return new AuthContextPayload(
+            accessToken,
+            expiresAt,
+            ToDto(user),
+            authorizationContext
+        );
+    }
+
+    public async Task<AuthorizationContextDto?> GetAuthorizationContextAsync(Guid userId, Guid companyId, bool isGlobalSuperAdmin)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return null;
+        }
+
+        return await _companyAuthorizationClient.GetAuthorizationContextAsync(
+            userId,
+            companyId,
+            isGlobalSuperAdmin || IsGlobalSuperAdmin(user));
     }
 
     public async Task<bool> LogoutAsync(Guid userId, string refreshToken)
@@ -249,6 +296,21 @@ public class AuthService : IAuthService
         return Convert.ToBase64String(bytes).Replace("/", "").Replace("+", "").Replace("=", "");
     }
 
+    private async Task<AuthorizationContextDto> ResolveAuthorizationContextAsync(User user, Guid companyId)
+    {
+        var authorizationContext = await _companyAuthorizationClient.GetAuthorizationContextAsync(
+            user.Id,
+            companyId,
+            IsGlobalSuperAdmin(user));
+
+        if (!authorizationContext.MembershipValid)
+        {
+            throw new AuthorizationException("COMPANY_ACCESS_DENIED", $"User {user.Id} does not have access to company {companyId}");
+        }
+
+        return authorizationContext;
+    }
+
     private static UserDto ToDto(User user) => new(
         user.Id,
         user.Email,
@@ -257,9 +319,12 @@ public class AuthService : IAuthService
         user.FullName,
         user.IsActive,
         user.EmailVerified,
-        user.Role,
+        NormalizePlatformRole(user.Role),
         user.PreferredLanguage,
         user.CreatedAt,
         user.LastLoginAt
     );
+
+    private static bool IsGlobalSuperAdmin(User user) =>
+        string.Equals(NormalizePlatformRole(user.Role), "SUPER_ADMIN", StringComparison.OrdinalIgnoreCase);
 }

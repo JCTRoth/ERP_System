@@ -61,7 +61,7 @@ public class TranslationExportController {
         
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.parseMediaType(MediaType.APPLICATION_JSON_VALUE))
                 .body(json);
     }
 }

@@ -9,14 +9,12 @@ const httpLink = createHttpLink({
 
 const authLink = setContext((_, { headers }) => {
   const token = useAuthStore.getState().accessToken;
-  const companyId = useAuthStore.getState().currentCompanyId;
   const language = localStorage.getItem('erp-language') || 'en';
 
   return {
     headers: {
       ...headers,
       authorization: token ? `Bearer ${token}` : '',
-      'x-company-id': companyId || '',
       'accept-language': language,
     },
   };

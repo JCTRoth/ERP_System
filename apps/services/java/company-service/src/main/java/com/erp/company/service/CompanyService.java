@@ -32,6 +32,7 @@ public class CompanyService {
     private final DynamicFieldDefinitionRepository fieldDefinitionRepository;
     private final DynamicFieldValueRepository fieldValueRepository;
     private final CompanyMapper companyMapper;
+    private final AuthorizationService authorizationService;
 
     @Value("${app.demo-company.name:Demo_Corporation}")
     private String demoCompanyName;
@@ -76,6 +77,7 @@ public class CompanyService {
                 .build();
 
         Company saved = companyRepository.save(company);
+        authorizationService.ensureSystemGroupsForCompany(saved.getId());
         log.info("Created company: {} ({})", saved.getName(), saved.getId());
         return companyMapper.toDto(saved);
     }
@@ -207,6 +209,7 @@ public class CompanyService {
                             ))
                             .build();
                     Company saved = companyRepository.save(demoCompany);
+                    authorizationService.ensureSystemGroupsForCompany(saved.getId());
                     log.info("Created MediVita demo company: {} ({})", saved.getName(), saved.getId());
                     return companyMapper.toDto(saved);
                 });

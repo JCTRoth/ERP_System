@@ -6,10 +6,11 @@ public record LoginResponse(
     string AccessToken,
     string RefreshToken,
     DateTime ExpiresAt,
-    UserDto User
+    UserDto User,
+    AuthorizationContextDto? Authorization = null
 );
 
-public record RefreshTokenRequest(string RefreshToken);
+public record RefreshTokenRequest(string RefreshToken, Guid? CompanyId = null);
 
 public record RegisterRequest(
     string Email,
@@ -31,6 +32,31 @@ public record UserDto(
     string? PreferredLanguage,
     DateTime CreatedAt,
     DateTime? LastLoginAt
+);
+
+public record ScopeGrantDto(
+    string PermissionCode,
+    string ScopeType,
+    string? ScopeJson
+);
+
+public record AuthorizationContextDto(
+    Guid UserId,
+    Guid CompanyId,
+    string CompanyName,
+    bool MembershipValid,
+    string? CompanyRole,
+    bool IsGlobalSuperAdmin,
+    IReadOnlyList<string> GroupCodes,
+    IReadOnlyList<string> PermissionCodes,
+    IReadOnlyList<ScopeGrantDto> ScopeGrants
+);
+
+public record AuthContextPayload(
+    string AccessToken,
+    DateTime ExpiresAt,
+    UserDto User,
+    AuthorizationContextDto Authorization
 );
 
 public record UpdateUserRequest(

@@ -7,6 +7,7 @@ using System.Security.Claims;
 using Prometheus;
 using BCrypt.Net;
 using System.Linq;
+using System.Net.Http.Headers;
 using Swashbuckle.AspNetCore.Swagger;
 using ServiceDefaults;
 
@@ -19,6 +20,7 @@ builder.Services.AddDbContext<UserDbContext>(options =>
 // Authentication
 builder.Services.AddJwtAuthenticationFromConfig(builder.Configuration);
 builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
 
 // Services
 builder.Services.AddHttpClient();
@@ -27,6 +29,24 @@ builder.Services.AddScoped<IUserService, UserServiceImpl>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISeedDataService, SeedDataService>();
+builder.Services.AddScoped<IRequestAuthorizationService, RequestAuthorizationService>();
+builder.Services.Configure<CompanyAuthorizationClient.CompanyAuthorizationOptions>(options =>
+{
+    options.ServiceUrl = builder.Configuration["Services:Company"] ?? "http://company-service:8080/graphql";
+    options.InternalApiKey = builder.Configuration["InternalAuth:ApiKey"] ?? "erp-internal-auth-key";
+});
+builder.Services.AddHttpClient<ICompanyAuthorizationClient, CompanyAuthorizationClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<CompanyAuthorizationClient.CompanyAuthorizationOptions>>().Value;
+    var serviceUrl = options.ServiceUrl.TrimEnd('/');
+    if (!serviceUrl.EndsWith("/graphql", StringComparison.OrdinalIgnoreCase))
+    {
+        serviceUrl = $"{serviceUrl}/graphql";
+    }
+
+    client.BaseAddress = new Uri(serviceUrl, UriKind.Absolute);
+    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+});
 
 // GraphQL
 builder.Services.AddGraphQLServerDefaults(
@@ -72,11 +92,10 @@ app.UseRouting();
 // Prometheus metrics
 app.UseHttpMetrics();
 
-// Map GraphQL before authentication to allow introspection
-app.MapGraphQL();
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGraphQL();
 
 app.MapHealthChecks("/health");
 app.MapMetrics();

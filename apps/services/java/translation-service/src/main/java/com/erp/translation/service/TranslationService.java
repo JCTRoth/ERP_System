@@ -44,6 +44,7 @@ public class TranslationService {
     }
 
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public TranslationKeyDto getKeyById(UUID id) {
         return keyRepository.findById(id)
                 .map(this::toKeyDto)
@@ -56,6 +57,7 @@ public class TranslationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     // @CacheEvict(value = "translations", allEntries = true)
     public TranslationKeyDto createKey(CreateTranslationKeyRequest request) {
         String namespace = request.getNamespace() != null ? request.getNamespace() : "common";
@@ -76,6 +78,7 @@ public class TranslationService {
     }
 
     @Transactional
+    @SuppressWarnings("null")
     // @CacheEvict(value = "translations", allEntries = true)
     public void deleteKey(UUID id) {
         TranslationKey key = keyRepository.findById(id)
@@ -89,6 +92,7 @@ public class TranslationService {
     // ==================== Translation Values ====================
 
     @Transactional
+    @SuppressWarnings("null")
     // @CacheEvict(value = "translations", allEntries = true)
     public TranslationValueDto setTranslation(SetTranslationRequest request) {
         TranslationKey key = keyRepository.findById(request.getKeyId())

@@ -3,7 +3,6 @@ using OrdersService.Data;
 using OrdersService.Services;
 using OrdersService.GraphQL;
 using Prometheus;
-using OrdersService.Services;
 using Models = OrdersService.Models;
 using ServiceDefaults;
 
@@ -20,6 +19,7 @@ builder.Services.AddScoped<IOrderItemService, OrderItemService>();
 // Multi-tenancy
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICompanyContext, CompanyContext>();
+builder.Services.AddScoped<IRequestAuthorizationService, RequestAuthorizationService>();
 
 // Add Authentication
 builder.Services.AddJwtAuthenticationFromConfig(builder.Configuration);

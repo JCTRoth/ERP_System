@@ -27,16 +27,43 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const accessToken = useAuthStore((state) => state.accessToken);
   const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
   const companyAssignments = useAuthStore((state) => state.companyAssignments);
+  const isGlobalSuperAdmin = useAuthStore((state) => state.isGlobalSuperAdmin);
   
   if (!isAuthenticated || !accessToken) {
     return <Navigate to="/auth/login" replace />;
   }
 
-  // If user has multiple companies but hasn't picked one yet, send to company select
-  if (!currentCompanyId && companyAssignments.length > 1) {
+  if (!currentCompanyId && companyAssignments.length > 0 && !isGlobalSuperAdmin) {
     return <Navigate to="/auth/select-company" replace />;
   }
   
+  return <>{children}</>;
+}
+
+function PermissionRoute({
+  children,
+  permission,
+  requiresCompany = false,
+}: {
+  children: React.ReactNode;
+  permission?: string;
+  requiresCompany?: boolean;
+}) {
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  const companyAssignments = useAuthStore((state) => state.companyAssignments);
+  const hasPermission = useAuthStore((state) => state.hasPermission);
+
+  if (requiresCompany && !currentCompanyId) {
+    if (companyAssignments.length > 0) {
+      return <Navigate to="/auth/select-company" replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
+
+  if (permission && !hasPermission(permission)) {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -93,17 +120,17 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
-        <Route path="companies" element={<CompaniesPage />} />
-        <Route path="users" element={<UsersPage />} />
-        <Route path="products" element={<ProductsPage />} />
-        <Route path="orders" element={<OrdersPage />} />
-        <Route path="accounting" element={<AccountingPage />} />
-        <Route path="masterdata" element={<MasterdataPage />} />
-        <Route path="templates" element={<TemplatesPage />} />
-        <Route path="translations" element={<TranslationsPage />} />
+        <Route path="companies" element={<PermissionRoute permission="company.company.read"><CompaniesPage /></PermissionRoute>} />
+        <Route path="users" element={<PermissionRoute permission="user.user.read"><UsersPage /></PermissionRoute>} />
+        <Route path="products" element={<PermissionRoute permission="shop.product.read" requiresCompany><ProductsPage /></PermissionRoute>} />
+        <Route path="orders" element={<PermissionRoute permission="orders.order.read" requiresCompany><OrdersPage /></PermissionRoute>} />
+        <Route path="accounting" element={<PermissionRoute permission="accounting.record.read" requiresCompany><AccountingPage /></PermissionRoute>} />
+        <Route path="masterdata" element={<PermissionRoute permission="masterdata.record.read" requiresCompany><MasterdataPage /></PermissionRoute>} />
+        <Route path="templates" element={<PermissionRoute permission="template.template.read" requiresCompany><TemplatesPage /></PermissionRoute>} />
+        <Route path="translations" element={<PermissionRoute permission="translation.translation.read" requiresCompany><TranslationsPage /></PermissionRoute>} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="ui-builder" element={<UIBuilderPage />} />
-        <Route path="custom-page/:slug" element={<CustomPageDisplay />} />
+        <Route path="ui-builder" element={<PermissionRoute permission="scripting.script.read" requiresCompany><UIBuilderPage /></PermissionRoute>} />
+        <Route path="custom-page/:slug" element={<PermissionRoute permission="scripting.script.read" requiresCompany><CustomPageDisplay /></PermissionRoute>} />
       </Route>
 
       {/* 404 */}

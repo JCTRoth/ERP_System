@@ -4,6 +4,7 @@ import com.erp.company.dto.CompanyDto;
 import com.erp.company.entity.UserCompanyAssignment;
 import com.erp.company.repository.UserCompanyAssignmentRepository;
 import com.erp.company.repository.CompanyRepository;
+import com.erp.company.service.AuthorizationService;
 import com.erp.company.service.CompanyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,8 @@ public class DataInitializerConfig {
     @Bean
     public CommandLineRunner initializeData(CompanyService companyService,
                                             UserCompanyAssignmentRepository assignmentRepository,
-                                            CompanyRepository companyRepository) {
+                                            CompanyRepository companyRepository,
+                                            AuthorizationService authorizationService) {
         return args -> {
             if (autoCreateDemoCompany) {
                 log.info("Initializing demo company...");
@@ -52,6 +54,8 @@ public class DataInitializerConfig {
                     log.info("Super admin already assigned to demo company");
                 }
             }
+
+            authorizationService.bootstrapAuthorizationModel();
         };
     }
 }

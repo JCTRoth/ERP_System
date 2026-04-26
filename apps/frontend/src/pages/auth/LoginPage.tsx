@@ -27,8 +27,7 @@ export default function LoginPage() {
         const storeAssignments = useAuthStore.getState().companyAssignments;
 
         if (storeAssignments.length === 1) {
-          // Only one company — auto-select and go to dashboard
-          useAuthStore.getState().setCurrentCompany(storeAssignments[0].companyId);
+          await authService.switchCompany(storeAssignments[0].companyId);
           navigate('/');
         } else if (storeAssignments.length > 1) {
           // Multiple companies — navigate to company selection screen

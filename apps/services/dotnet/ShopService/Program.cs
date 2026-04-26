@@ -40,6 +40,7 @@ builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 // Multi-tenancy
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICompanyContext, CompanyContext>();
+builder.Services.AddScoped<IRequestAuthorizationService, RequestAuthorizationService>();
 
 // MinIO S3 client
 builder.Services.AddMinio(configureClient => configureClient

@@ -90,7 +90,12 @@ export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
   const companyAssignments = useAuthStore((state) => state.companyAssignments);
+  const hasPermission = useAuthStore((state) => state.hasPermission);
   const currentAssignment = companyAssignments.find(a => a.companyId === currentCompanyId);
+  const canReadCompanies = hasPermission('company.company.read');
+  const canReadUsers = hasPermission('user.user.read');
+  const canReadCustomers = Boolean(currentCompanyId) && hasPermission('masterdata.record.read');
+  const canReadOrders = Boolean(currentCompanyId) && hasPermission('orders.order.read');
 
   // Local UI state for sorting
   const [customerSort, setCustomerSort] = useState<"name-asc" | "name-desc">(
@@ -105,7 +110,9 @@ export default function DashboardPage() {
     data: companiesData,
     loading: companiesLoading,
     error: companiesError,
-  } = useQuery(GET_TOTAL_COMPANIES);
+  } = useQuery(GET_TOTAL_COMPANIES, {
+    skip: !canReadCompanies,
+  });
 
   useEffect(() => {
     if (companiesData) {
@@ -125,7 +132,7 @@ export default function DashboardPage() {
     loading: companiesListLoading,
     error: companiesListError,
   } = useQuery(GET_COMPANIES_LIST, {
-    skip: !companiesError, // Only run if the count query fails
+    skip: !canReadCompanies || !companiesError,
   });
 
   useEffect(() => {
@@ -144,7 +151,9 @@ export default function DashboardPage() {
     data: usersData,
     loading: usersLoading,
     error: usersError,
-  } = useQuery(GET_TOTAL_USERS);
+  } = useQuery(GET_TOTAL_USERS, {
+    skip: !canReadUsers,
+  });
 
   useEffect(() => {
     if (usersData) {
@@ -166,6 +175,7 @@ export default function DashboardPage() {
   } = useQuery(GET_RECENT_CUSTOMERS, {
     variables: { first: 20 },
     errorPolicy: "all",
+    skip: !canReadCustomers,
   });
 
   // Fetch recent orders
@@ -176,6 +186,7 @@ export default function DashboardPage() {
   } = useQuery(GET_RECENT_ORDERS, {
     variables: { first: 20 },
     errorPolicy: "all",
+    skip: !canReadOrders,
   });
 
   // Fetch current company details
@@ -184,7 +195,7 @@ export default function DashboardPage() {
     loading: companyLoading,
   } = useQuery(GET_CURRENT_COMPANY, {
     variables: { id: currentCompanyId },
-    skip: !currentCompanyId,
+    skip: !currentCompanyId || !canReadCompanies,
     errorPolicy: "all",
   });
 
@@ -202,7 +213,9 @@ export default function DashboardPage() {
   const stats = [
     {
       labelKey: "dashboard.totalCompanies",
-      value: companiesLoading
+      value: !canReadCompanies
+        ? "-"
+        : companiesLoading
         ? "..."
         : companiesError
           ? companiesListLoading
@@ -215,7 +228,9 @@ export default function DashboardPage() {
     },
     {
       labelKey: "dashboard.totalUsers",
-      value: usersLoading
+      value: !canReadUsers
+        ? "-"
+        : usersLoading
         ? "..."
         : usersError
           ? t("dashboard.serviceUnavailable")

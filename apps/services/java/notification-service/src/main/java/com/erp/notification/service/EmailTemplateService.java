@@ -39,6 +39,7 @@ public class EmailTemplateService {
     }
     
     @Transactional
+    @SuppressWarnings("null")
     public EmailTemplate create(CreateTemplateRequest request) {
         log.info("Creating email template: {}", request.name());
         
@@ -57,6 +58,7 @@ public class EmailTemplateService {
     }
     
     @Transactional
+    @SuppressWarnings("null")
     public Optional<EmailTemplate> update(UUID id, UpdateTemplateRequest request) {
         return templateRepository.findById(id).map(template -> {
             if (request.subject() != null) {
@@ -79,6 +81,7 @@ public class EmailTemplateService {
     }
     
     @Transactional
+    @SuppressWarnings("null")
     public boolean delete(UUID id) {
         if (templateRepository.existsById(id)) {
             templateRepository.deleteById(id);

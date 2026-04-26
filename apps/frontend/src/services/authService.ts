@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client';
 import { getApolloClient } from '../lib/apollo';
-import { useAuthStore, CompanyAssignment } from '../stores/authStore';
+import { useAuthStore, CompanyAssignment, AuthorizationContext } from '../stores/authStore';
 import { normalizeUuid } from '../utils/uuid';
 
 // GraphQL Mutations
@@ -13,9 +13,11 @@ const LOGIN_MUTATION = gql`
         firstName
         lastName
         preferredLanguage
+        role
       }
       accessToken
       refreshToken
+      expiresAt
     }
   }
 `;
@@ -32,10 +34,66 @@ const GET_USER_ASSIGNMENTS = gql`
 `;
 
 const REFRESH_TOKEN_MUTATION = gql`
-  mutation RefreshToken($refreshToken: String!) {
-    refreshToken(refreshToken: $refreshToken) {
+  mutation RefreshToken($refreshToken: String!, $companyId: UUID) {
+    refreshToken(refreshToken: $refreshToken, companyId: $companyId) {
       accessToken
       refreshToken
+      expiresAt
+      user {
+        id
+        email
+        firstName
+        lastName
+        preferredLanguage
+        role
+      }
+      authorization {
+        userId
+        companyId
+        companyName
+        membershipValid
+        companyRole
+        isGlobalSuperAdmin
+        groupCodes
+        permissionCodes
+        scopeGrants {
+          permissionCode
+          scopeType
+          scopeJson
+        }
+      }
+    }
+  }
+`;
+
+const SWITCH_COMPANY_MUTATION = gql`
+  mutation SwitchCompany($companyId: UUID!) {
+    switchCompany(companyId: $companyId) {
+      accessToken
+      expiresAt
+      user {
+        id
+        email
+        firstName
+        lastName
+        preferredLanguage
+        role
+      }
+      authorization {
+        userId
+        companyId
+        companyName
+        membershipValid
+        companyRole
+        isGlobalSuperAdmin
+        groupCodes
+        permissionCodes
+        scopeGrants {
+          permissionCode
+          scopeType
+          scopeJson
+        }
+      }
     }
   }
 `;
@@ -73,7 +131,6 @@ const GET_CURRENT_USER = gql`
       lastName
       preferredLanguage
       role
-      permissions
     }
   }
 `;
@@ -91,13 +148,20 @@ export interface LoginResult {
     lastName: string;
     preferredLanguage: string;
     role?: string;
-    permissions?: string[];
   };
   accessToken: string;
   refreshToken: string;
+  expiresAt?: string;
 }
 
 export type PasswordResetResult = boolean;
+
+interface AuthContextResult {
+  accessToken: string;
+  expiresAt: string;
+  user: LoginResult['user'];
+  authorization: AuthorizationContext;
+}
 
 class AuthService {
   private refreshPromise: Promise<boolean> | null = null;
@@ -115,7 +179,8 @@ class AuthService {
     useAuthStore.getState().setAuth(
       result.user,
       result.accessToken,
-      result.refreshToken
+      result.refreshToken,
+      null
     );
 
     // Fetch company assignments for the logged-in user
@@ -184,6 +249,7 @@ class AuthService {
   private async doRefreshToken(): Promise<boolean> {
     const state = useAuthStore.getState();
     const refreshToken = state.refreshToken;
+    const currentCompanyId = state.currentCompanyId;
 
     if (!refreshToken) {
       return false;
@@ -193,16 +259,16 @@ class AuthService {
       const client = getApolloClient();
       const { data } = await client.mutate({
         mutation: REFRESH_TOKEN_MUTATION,
-        variables: { refreshToken },
+        variables: { refreshToken, companyId: currentCompanyId || null },
       });
 
       const result = data.refreshToken;
-      
-      // Update tokens
-      useAuthStore.setState({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-      });
+      useAuthStore.getState().setAuth(
+        result.user ?? state.user!,
+        result.accessToken,
+        result.refreshToken,
+        result.authorization ?? null
+      );
 
       return true;
     } catch (error) {
@@ -252,6 +318,27 @@ class AuthService {
     return data.me;
   }
 
+  async switchCompany(companyId: string): Promise<AuthContextResult> {
+    const client = getApolloClient();
+    const state = useAuthStore.getState();
+    const normalizedCompanyId = normalizeUuid(companyId);
+
+    const { data } = await client.mutate({
+      mutation: SWITCH_COMPANY_MUTATION,
+      variables: { companyId: normalizedCompanyId },
+    });
+
+    const result = data.switchCompany;
+    useAuthStore.getState().setAuth(
+      result.user,
+      result.accessToken,
+      state.refreshToken || '',
+      result.authorization
+    );
+    await client.clearStore();
+    return result;
+  }
+
   isAuthenticated(): boolean {
     return useAuthStore.getState().isAuthenticated;
   }
@@ -261,15 +348,12 @@ class AuthService {
   }
 
   hasPermission(permission: string): boolean {
-    const user = useAuthStore.getState().user;
-    // @ts-ignore - permissions may not be on all users
-    return user?.permissions?.includes(permission) || false;
+    return useAuthStore.getState().hasPermission(permission);
   }
 
   hasRole(role: string): boolean {
-    const user = useAuthStore.getState().user;
-    // @ts-ignore - role may not be on all users
-    return user?.role === role;
+    const state = useAuthStore.getState();
+    return state.companyRole === role || state.user?.role === role;
   }
 }
 

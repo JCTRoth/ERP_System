@@ -18,6 +18,7 @@ describe('authStore', () => {
       firstName: 'Test',
       lastName: 'User',
       preferredLanguage: 'en',
+      role: 'USER',
     };
     
     useAuthStore.getState().setAuth(mockUser, 'access-token', 'refresh-token');
@@ -42,6 +43,7 @@ describe('authStore', () => {
       firstName: 'Test',
       lastName: 'User',
       preferredLanguage: 'en',
+      role: 'USER',
     };
     
     useAuthStore.getState().setAuth(mockUser, 'token', 'refresh');
@@ -58,6 +60,7 @@ describe('authStore', () => {
       firstName: 'Test',
       lastName: 'User',
       preferredLanguage: 'en',
+      role: 'USER',
     };
     
     useAuthStore.getState().setAuth(mockUser, 'token', 'refresh');

@@ -23,6 +23,13 @@ public interface DynamicFieldValueRepository extends JpaRepository<DynamicFieldV
            "WHERE v.entityId = :entityId " +
            "ORDER BY d.displayOrder ASC")
     List<DynamicFieldValue> findByEntityIdWithDefinition(@Param("entityId") UUID entityId);
+
+    @Query("SELECT v FROM DynamicFieldValue v " +
+           "JOIN FETCH v.definition d " +
+           "WHERE v.entityId = :entityId AND d.company.id = :companyId " +
+           "ORDER BY d.displayOrder ASC")
+    List<DynamicFieldValue> findByEntityIdAndCompanyIdWithDefinition(@Param("entityId") UUID entityId,
+                                                                     @Param("companyId") UUID companyId);
     
     @Modifying
     @Query("DELETE FROM DynamicFieldValue v WHERE v.definition.id IN " +

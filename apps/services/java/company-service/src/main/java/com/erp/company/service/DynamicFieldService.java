@@ -124,9 +124,9 @@ public class DynamicFieldService {
     // ==================== Field Values ====================
 
     @Transactional(readOnly = true)
-    public List<DynamicFieldValueDto> getValuesForEntity(UUID entityId) {
+    public List<DynamicFieldValueDto> getValuesForEntity(UUID entityId, UUID companyId) {
         return valueMapper.toDtoList(
-                valueRepository.findByEntityIdWithDefinition(entityId)
+                valueRepository.findByEntityIdAndCompanyIdWithDefinition(entityId, companyId)
         );
     }
 

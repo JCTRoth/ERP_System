@@ -14,6 +14,13 @@ public class ErrorFilter : IErrorFilter
                 .WithMessage(authEx.Message);
         }
 
+        if (error.Exception is AuthorizationException authorizationEx)
+        {
+            return error
+                .WithCode(authorizationEx.ErrorCode)
+                .WithMessage(authorizationEx.Message);
+        }
+
         return error;
     }
 }

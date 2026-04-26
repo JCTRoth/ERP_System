@@ -48,10 +48,6 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
     
-    compileJava {
-        options.compilerArgs += ['-Amapstruct.verbose=true']
-    }
-    
     // Metrics
     implementation 'io.micrometer:micrometer-registry-prometheus'
     
@@ -66,4 +62,8 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+compileJava {
+    options.compilerArgs += ['-Amapstruct.verbose=true']
 }
