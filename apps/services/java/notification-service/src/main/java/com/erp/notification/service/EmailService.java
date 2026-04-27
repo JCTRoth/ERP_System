@@ -41,11 +41,9 @@ public class EmailService {
     // HTTP client removed; unused field triggered a compile warning in IDE
     
     @Value("${notification.email.from}")
-    @NonNull
     private String fromEmail;
     
     @Value("${notification.email.from-name}")
-    @NonNull
     private String fromName;
     
     @Value("${notification.email.retry-attempts:3}")

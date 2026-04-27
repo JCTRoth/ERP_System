@@ -84,6 +84,7 @@ public static class ServiceDefaultsExtensions
     {
         var gql = services
             .AddGraphQLServer()
+            .AddAuthorization()
             .AddApolloFederation()
             .AddFiltering()
             .AddSorting()
