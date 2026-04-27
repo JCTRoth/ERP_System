@@ -16,7 +16,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 NAMESPACE="erp"
 RELEASE_NAME="erp-system"
 HELM_CHART="./infrastructure/helm/erp-system"
@@ -62,7 +62,7 @@ check_requirements() {
 # ── Step 1: Build images ──────────────────────────────────────────────────────
 build_images() {
     log_step "Step 1/5 – Building Docker images..."
-    bash "$SCRIPT_DIR/build-all-containers.sh" $NO_CACHE
+    bash "$PROJECT_ROOT/scripts/build/build-all-containers.sh" $NO_CACHE
 }
 
 # ── Step 2: Import into K3s containerd ───────────────────────────────────────

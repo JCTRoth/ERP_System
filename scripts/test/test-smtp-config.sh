@@ -23,7 +23,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
 NOTIFICATION_URL=${NOTIFICATION_URL:-"http://localhost:8082/graphql"}
 MAILPIT_URL=${MAILPIT_URL:-"http://localhost:8025"}

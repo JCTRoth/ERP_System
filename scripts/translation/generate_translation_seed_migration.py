@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-root = Path(__file__).resolve().parents[1]
+root = Path(__file__).resolve().parents[2]
 locales_dir = root / 'apps/frontend/src/locales'
 langs = ['en', 'de', 'fr', 'ru']
 locales = {l: json.loads((locales_dir / f'{l}.json').read_text()) for l in langs}

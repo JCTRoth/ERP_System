@@ -8,7 +8,7 @@
 #  4. Verify order payment status and documents
 #
 # Requirements:
-#  - Gateway running locally (./scripts/start-local.sh)
+#  - Gateway running locally (./scripts/dev/start-local.sh)
 #  - curl and jq installed
 #  - CUSTOMER_ID environment variable set to a valid customer UUID
 #    (falls back to admin user ID as a best-effort default)

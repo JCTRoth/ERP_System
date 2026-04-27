@@ -15,7 +15,7 @@
 #   9. Email delivery status check
 #
 # Requirements:
-#   - All services running (./scripts/start-local.sh)
+#   - All services running (./scripts/dev/start-local.sh)
 #   - wget and jq installed
 # =============================================================================
 

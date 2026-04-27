@@ -7,7 +7,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 NAMESPACE="erp"
 RELEASE_NAME="erp-system"
 
@@ -55,7 +55,7 @@ pause_deployment() {
     
     log_info "✓ Deployment paused"
     log_info "  PostgreSQL data: PRESERVED"
-    log_info "  To resume: bash scripts/k3s-local-deploy.sh deploy"
+    log_info "  To resume: bash scripts/k3s/k3s-local-deploy.sh deploy"
 }
 
 # Full cleanup: Remove namespace and all data
@@ -80,7 +80,7 @@ full_cleanup() {
         log_info "✓ Full cleanup complete"
         log_info "  All resources deleted"
         log_info "  PostgreSQL data deleted"
-        log_info "  To redeploy: bash scripts/k3s-local-deploy.sh full"
+        log_info "  To redeploy: bash scripts/k3s/k3s-local-deploy.sh full"
     else
         log_error "Failed to delete namespace"
         exit 1
@@ -126,8 +126,8 @@ main() {
             stop_portforwards
             log_info ""
             log_info "Services paused. PostgreSQL data preserved."
-            log_info "To resume: bash scripts/k3s-local-deploy.sh deploy"
-            log_info "Or restart port-forwards: bash scripts/k3s-local-deploy.sh portforward"
+            log_info "To resume: bash scripts/k3s/k3s-local-deploy.sh deploy"
+            log_info "Or restart port-forwards: bash scripts/k3s/k3s-local-deploy.sh portforward"
             ;;
         pause)
             stop_portforwards
@@ -135,7 +135,7 @@ main() {
             log_info ""
             log_info "All services and port-forwards stopped"
             log_info "PostgreSQL data: PRESERVED"
-            log_info "To resume: bash scripts/k3s-local-deploy.sh deploy"
+            log_info "To resume: bash scripts/k3s/k3s-local-deploy.sh deploy"
             ;;
         clean)
             if full_cleanup; then
