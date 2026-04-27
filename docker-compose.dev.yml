@@ -18,7 +18,6 @@ services:
       - ./apps/frontend/tsconfig.json:/app/tsconfig.json
       - ./apps/frontend/tsconfig.node.json:/app/tsconfig.node.json
       - ./apps/frontend/package.json:/app/package.json
-      - ./apps/frontend/package-lock.json:/app/package-lock.json
       - ./apps/frontend/postcss.config.js:/app/postcss.config.js
       - ./apps/frontend/tailwind.config.js:/app/tailwind.config.js
       - ./apps/frontend/vitest.config.ts:/app/vitest.config.ts
