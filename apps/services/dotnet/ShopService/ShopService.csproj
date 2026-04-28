@@ -12,6 +12,7 @@
     <Compile Include="..\Common\ServiceDefaults\ServiceDefaultsExtensions.cs" Link="Common/ServiceDefaultsExtensions.cs" />
     <Compile Include="..\Common\ServiceDefaults\RequestAuthorization.cs" Link="Common/RequestAuthorization.cs" />
     <PackageReference Include="HotChocolate.AspNetCore" Version="14.0.0" />
+    <PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="14.0.0" />
     <PackageReference Include="HotChocolate.Data.EntityFramework" Version="14.0.0" />
     <PackageReference Include="HotChocolate.Types.Scalars" Version="14.0.0" />
     <PackageReference Include="HotChocolate.ApolloFederation" Version="14.0.0" />
