@@ -13,6 +13,7 @@ public class SeedDataService : ISeedDataService
 {
     private readonly ShopDbContext _context;
     private readonly ILogger<SeedDataService> _logger;
+    private static readonly Guid MediVitaCompanyId = Guid.Parse("f364cea4-9a72-4228-806c-4764607b41a6");
     private static readonly Guid ReferenceOrderId = Guid.Parse("50000000-0000-0000-0000-000000000001");
     private static readonly Guid ReferenceCustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f");
     private static readonly Guid[] ReferenceOrderItemIds =
@@ -57,12 +58,31 @@ public class SeedDataService : ISeedDataService
             _logger.LogInformation("Seeding sample orders with payments...");
             await SeedOrdersWithPayments();
 
+            // Stamp all seeded data with MediVita company_id
+            // (StampCompanyId() in SaveChangesAsync requires HTTP context which is absent during startup)
+            _logger.LogInformation("Stamping MediVita company_id on all seeded data...");
+            await StampAllSeedDataCompanyId();
+
             _logger.LogInformation("Database seeding completed successfully");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during database seeding");
             throw;
+        }
+    }
+
+    private async Task StampAllSeedDataCompanyId()
+    {
+        var tables = new[] { "products", "categories", "brands", "suppliers", "customers", "orders", "shipping_methods" };
+        var companyId = MediVitaCompanyId.ToString();
+        foreach (var table in tables)
+        {
+            // table names are from a hardcoded array — safe to interpolate
+            #pragma warning disable EF1002
+            await _context.Database.ExecuteSqlRawAsync(
+                $"UPDATE {table} SET company_id = {{0}} WHERE company_id = '00000000-0000-0000-0000-000000000000'", companyId);
+            #pragma warning restore EF1002
         }
     }
 
@@ -106,11 +126,11 @@ public class SeedDataService : ISeedDataService
     {
         var brands = new[]
         {
-            new Brand { Id = Guid.NewGuid(), Name = "MediVita", Slug = "medivita", Description = "Premium pharmaceutical solutions - Crafting Health for Life" },
-            new Brand { Id = Guid.NewGuid(), Name = "VitaWell", Slug = "vitawell", Description = "Advanced vitamin and supplement formulations" },
-            new Brand { Id = Guid.NewGuid(), Name = "CardioCare", Slug = "cardiocare", Description = "Cardiovascular health and wellness products" },
-            new Brand { Id = Guid.NewGuid(), Name = "ImmuneBoost", Slug = "immuneboost", Description = "Immune support and preventive care solutions" },
-            new Brand { Id = Guid.NewGuid(), Name = "NeuroHealth", Slug = "neurohealth", Description = "Neurological health and cognitive enhancement products" }
+            new Brand { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "MediVita", Slug = "medivita", Description = "Premium pharmaceutical solutions - Crafting Health for Life" },
+            new Brand { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "VitaWell", Slug = "vitawell", Description = "Advanced vitamin and supplement formulations" },
+            new Brand { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "CardioCare", Slug = "cardiocare", Description = "Cardiovascular health and wellness products" },
+            new Brand { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "ImmuneBoost", Slug = "immuneboost", Description = "Immune support and preventive care solutions" },
+            new Brand { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "NeuroHealth", Slug = "neurohealth", Description = "Neurological health and cognitive enhancement products" }
         };
 
         await _context.Brands.AddRangeAsync(brands);
@@ -121,13 +141,13 @@ public class SeedDataService : ISeedDataService
     {
         var categories = new[]
         {
-            new Category { Id = Guid.NewGuid(), Name = "Cardiovascular Health", Slug = "cardiovascular-health", Description = "Heart and circulatory system wellness medications", SortOrder = 1 },
-            new Category { Id = Guid.NewGuid(), Name = "Vitamins & Supplements", Slug = "vitamins-supplements", Description = "Essential nutrients and nutritional supplements", SortOrder = 2 },
-            new Category { Id = Guid.NewGuid(), Name = "Immune Support", Slug = "immune-support", Description = "Immune system strengthening medications and supplements", SortOrder = 3 },
-            new Category { Id = Guid.NewGuid(), Name = "Pain Management", Slug = "pain-management", Description = "Analgesics and pain relief medications", SortOrder = 4 },
-            new Category { Id = Guid.NewGuid(), Name = "Neurological Health", Slug = "neurological-health", Description = "Brain health and neurological medications", SortOrder = 5 },
-            new Category { Id = Guid.NewGuid(), Name = "Respiratory Health", Slug = "respiratory-health", Description = "Lung and respiratory system medications", SortOrder = 6 },
-            new Category { Id = Guid.NewGuid(), Name = "Digestive Health", Slug = "digestive-health", Description = "Gastrointestinal and digestive system medications", SortOrder = 7 }
+            new Category { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "Cardiovascular Health", Slug = "cardiovascular-health", Description = "Heart and circulatory system wellness medications", SortOrder = 1 },
+            new Category { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "Vitamins & Supplements", Slug = "vitamins-supplements", Description = "Essential nutrients and nutritional supplements", SortOrder = 2 },
+            new Category { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "Immune Support", Slug = "immune-support", Description = "Immune system strengthening medications and supplements", SortOrder = 3 },
+            new Category { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "Pain Management", Slug = "pain-management", Description = "Analgesics and pain relief medications", SortOrder = 4 },
+            new Category { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "Neurological Health", Slug = "neurological-health", Description = "Brain health and neurological medications", SortOrder = 5 },
+            new Category { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "Respiratory Health", Slug = "respiratory-health", Description = "Lung and respiratory system medications", SortOrder = 6 },
+            new Category { Id = Guid.NewGuid(), CompanyId = MediVitaCompanyId, Name = "Digestive Health", Slug = "digestive-health", Description = "Gastrointestinal and digestive system medications", SortOrder = 7 }
         };
 
         await _context.Categories.AddRangeAsync(categories);
@@ -141,6 +161,7 @@ public class SeedDataService : ISeedDataService
             new Supplier 
             { 
                 Id = Guid.NewGuid(), 
+                CompanyId = MediVitaCompanyId,
                 Name = "PharmaChem Industries", 
                 Code = "PCI-001",
                 ContactPerson = "Dr. Michael Johnson",
@@ -155,6 +176,7 @@ public class SeedDataService : ISeedDataService
             new Supplier 
             { 
                 Id = Guid.NewGuid(), 
+                CompanyId = MediVitaCompanyId,
                 Name = "EuroPharmaCorp", 
                 Code = "EPC-001",
                 ContactPerson = "Dr. Petra Schmidt",
@@ -169,6 +191,7 @@ public class SeedDataService : ISeedDataService
             new Supplier 
             { 
                 Id = Guid.NewGuid(), 
+                CompanyId = MediVitaCompanyId,
                 Name = "Asia BioWellness Ltd", 
                 Code = "ABW-001",
                 ContactPerson = "Dr. Chen Wei",
@@ -183,6 +206,7 @@ public class SeedDataService : ISeedDataService
             new Supplier 
             { 
                 Id = Guid.NewGuid(), 
+                CompanyId = MediVitaCompanyId,
                 Name = "MediSwiss AG", 
                 Code = "MSA-001",
                 ContactPerson = "Dr. Hans Mueller",
