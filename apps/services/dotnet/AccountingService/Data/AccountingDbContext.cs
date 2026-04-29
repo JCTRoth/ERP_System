@@ -794,5 +794,230 @@ public class AccountingDbContext : DbContext
                 CreatedAt = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc)
             }
         );
+
+        // ---- Journal Entries (bookings) ----
+        // IDs for journal entries
+        var je1Id = Guid.Parse("d0000000-0000-0000-0000-000000000001");
+        var je2Id = Guid.Parse("d0000000-0000-0000-0000-000000000002");
+        var je3Id = Guid.Parse("d0000000-0000-0000-0000-000000000003");
+        var je4Id = Guid.Parse("d0000000-0000-0000-0000-000000000004");
+        var je5Id = Guid.Parse("d0000000-0000-0000-0000-000000000005");
+        var je6Id = Guid.Parse("d0000000-0000-0000-0000-000000000006");
+        var je7Id = Guid.Parse("d0000000-0000-0000-0000-000000000007");
+        var je8Id = Guid.Parse("d0000000-0000-0000-0000-000000000008");
+        var je9Id = Guid.Parse("d0000000-0000-0000-0000-000000000009");
+        var je10Id = Guid.Parse("d0000000-0000-0000-0000-000000000010");
+
+        modelBuilder.Entity<JournalEntry>().HasData(
+            // JE1: Sales invoice INV-2026-0001 (Jonas R - €238.00)
+            new JournalEntry
+            {
+                Id = je1Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0001",
+                EntryDate = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Sales invoice INV-2026-0001 - Jonas R",
+                Reference = "INV-2026-0001",
+                Type = JournalEntryType.Sales,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 238.00m,
+                TotalCredit = 238.00m,
+                Currency = "EUR",
+                InvoiceId = invoiceId, // c0000000-...-0001
+                CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE2: Sales invoice INV-2026-0002 (Sarah Mitchell - €178.50)
+            new JournalEntry
+            {
+                Id = je2Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0002",
+                EntryDate = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Sales invoice INV-2026-0002 - Sarah Mitchell",
+                Reference = "INV-2026-0002",
+                Type = JournalEntryType.Sales,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 178.50m,
+                TotalCredit = 178.50m,
+                Currency = "EUR",
+                InvoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000002"),
+                CreatedAt = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE3: Sales invoice INV-2026-0003 (Robert Johnson - €238.00)
+            new JournalEntry
+            {
+                Id = je3Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0003",
+                EntryDate = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Sales invoice INV-2026-0003 - Robert Johnson",
+                Reference = "INV-2026-0003",
+                Type = JournalEntryType.Sales,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 238.00m,
+                TotalCredit = 238.00m,
+                Currency = "EUR",
+                InvoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000003"),
+                CreatedAt = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE4: Payment PAY-2026-0001 (Jonas R - €100.00 partial)
+            new JournalEntry
+            {
+                Id = je4Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0004",
+                EntryDate = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Payment received PAY-2026-0001 - Jonas R",
+                Reference = "PAY-2026-0001",
+                Type = JournalEntryType.Payment,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 100.00m,
+                TotalCredit = 100.00m,
+                Currency = "EUR",
+                PaymentId = paymentId, // c0000000-...-0021
+                CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE5: Payment PAY-2026-0002 (Sarah Mitchell - €150.00)
+            new JournalEntry
+            {
+                Id = je5Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0005",
+                EntryDate = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Payment received PAY-2026-0002 - Sarah Mitchell",
+                Reference = "PAY-2026-0002",
+                Type = JournalEntryType.Payment,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 150.00m,
+                TotalCredit = 150.00m,
+                Currency = "EUR",
+                PaymentId = Guid.Parse("c0000000-0000-0000-0000-000000000022"),
+                CreatedAt = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE6: Payment PAY-2026-0003 (Robert Johnson - €200.00)
+            new JournalEntry
+            {
+                Id = je6Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0006",
+                EntryDate = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Payment received PAY-2026-0003 - Robert Johnson",
+                Reference = "PAY-2026-0003",
+                Type = JournalEntryType.Payment,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 200.00m,
+                TotalCredit = 200.00m,
+                Currency = "EUR",
+                PaymentId = Guid.Parse("c0000000-0000-0000-0000-000000000023"),
+                CreatedAt = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE7: Adjusting entry - inventory adjustment
+            new JournalEntry
+            {
+                Id = je7Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0007",
+                EntryDate = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Inventory adjustment - expired pharmaceutical stock write-off",
+                Reference = "ADJ-2026-001",
+                Type = JournalEntryType.Adjusting,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 450.00m,
+                TotalCredit = 450.00m,
+                Currency = "EUR",
+                CreatedAt = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE8: Standard entry - office rent
+            new JournalEntry
+            {
+                Id = je8Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0008",
+                EntryDate = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Monthly office rent - January 2026",
+                Reference = "RENT-2026-01",
+                Type = JournalEntryType.Standard,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 2500.00m,
+                TotalCredit = 2500.00m,
+                Currency = "EUR",
+                CreatedAt = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE9: Standard entry - office rent Feb
+            new JournalEntry
+            {
+                Id = je9Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0009",
+                EntryDate = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Monthly office rent - February 2026",
+                Reference = "RENT-2026-02",
+                Type = JournalEntryType.Standard,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 2500.00m,
+                TotalCredit = 2500.00m,
+                Currency = "EUR",
+                CreatedAt = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE10: Recent - supplier payment
+            new JournalEntry
+            {
+                Id = je10Id,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0010",
+                EntryDate = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Supplier payment - PharmaChem Industries quarterly order",
+                Reference = "SUPPAY-2026-Q1",
+                Type = JournalEntryType.Payment,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 5800.00m,
+                TotalCredit = 5800.00m,
+                Currency = "EUR",
+                CreatedAt = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
+
+        // ---- Journal Entry Lines (double-entry bookkeeping) ----
+        modelBuilder.Entity<JournalEntryLine>().HasData(
+            // JE1: INV-2026-0001 → Debit AR, Credit Revenue
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000001"), JournalEntryId = je1Id, LineNumber = 1, AccountId = arId, Description = "Accounts Receivable - INV-2026-0001", DebitAmount = 238.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000002"), JournalEntryId = je1Id, LineNumber = 2, AccountId = revenueId, Description = "Sales Revenue - INV-2026-0001", DebitAmount = 0, CreditAmount = 238.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE2: INV-2026-0002 → Debit AR, Credit Revenue
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000003"), JournalEntryId = je2Id, LineNumber = 1, AccountId = arId, Description = "Accounts Receivable - INV-2026-0002", DebitAmount = 178.50m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000004"), JournalEntryId = je2Id, LineNumber = 2, AccountId = revenueId, Description = "Sales Revenue - INV-2026-0002", DebitAmount = 0, CreditAmount = 178.50m, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE3: INV-2026-0003 → Debit AR, Credit Revenue
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000005"), JournalEntryId = je3Id, LineNumber = 1, AccountId = arId, Description = "Accounts Receivable - INV-2026-0003", DebitAmount = 238.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000006"), JournalEntryId = je3Id, LineNumber = 2, AccountId = revenueId, Description = "Sales Revenue - INV-2026-0003", DebitAmount = 0, CreditAmount = 238.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE4: PAY-2026-0001 → Debit Bank, Credit AR
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000007"), JournalEntryId = je4Id, LineNumber = 1, AccountId = bankId, Description = "Bank deposit - PAY-2026-0001", DebitAmount = 100.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000008"), JournalEntryId = je4Id, LineNumber = 2, AccountId = arId, Description = "Accounts Receivable - PAY-2026-0001", DebitAmount = 0, CreditAmount = 100.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE5: PAY-2026-0002 → Debit Bank, Credit AR
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000009"), JournalEntryId = je5Id, LineNumber = 1, AccountId = bankId, Description = "Bank deposit - PAY-2026-0002", DebitAmount = 150.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000010"), JournalEntryId = je5Id, LineNumber = 2, AccountId = arId, Description = "Accounts Receivable - PAY-2026-0002", DebitAmount = 0, CreditAmount = 150.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE6: PAY-2026-0003 → Debit Bank, Credit AR
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000011"), JournalEntryId = je6Id, LineNumber = 1, AccountId = bankId, Description = "Bank deposit - PAY-2026-0003", DebitAmount = 200.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000012"), JournalEntryId = je6Id, LineNumber = 2, AccountId = arId, Description = "Accounts Receivable - PAY-2026-0003", DebitAmount = 0, CreditAmount = 200.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE7: Inventory adjustment → Debit COGS, Credit Expense (write-off)
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000013"), JournalEntryId = je7Id, LineNumber = 1, AccountId = cogsId, Description = "Expired stock write-off", DebitAmount = 450.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000014"), JournalEntryId = je7Id, LineNumber = 2, AccountId = cashId, Description = "Inventory reduction - expired stock", DebitAmount = 0, CreditAmount = 450.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE8: Office rent Jan → Debit Expense, Credit Bank
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000015"), JournalEntryId = je8Id, LineNumber = 1, AccountId = expenseId, Description = "Office rent - January 2026", DebitAmount = 2500.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000016"), JournalEntryId = je8Id, LineNumber = 2, AccountId = bankId, Description = "Bank payment - office rent Jan", DebitAmount = 0, CreditAmount = 2500.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE9: Office rent Feb → Debit Expense, Credit Bank
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000017"), JournalEntryId = je9Id, LineNumber = 1, AccountId = expenseId, Description = "Office rent - February 2026", DebitAmount = 2500.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000018"), JournalEntryId = je9Id, LineNumber = 2, AccountId = bankId, Description = "Bank payment - office rent Feb", DebitAmount = 0, CreditAmount = 2500.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE10: Supplier payment → Debit AP, Credit Bank
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000019"), JournalEntryId = je10Id, LineNumber = 1, AccountId = apId, Description = "Supplier payment - PharmaChem Industries", DebitAmount = 5800.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000020"), JournalEntryId = je10Id, LineNumber = 2, AccountId = bankId, Description = "Bank payment - PharmaChem Q1 order", DebitAmount = 0, CreditAmount = 5800.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc) }
+        );
     }
 }
