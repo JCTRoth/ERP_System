@@ -1,4 +1,6 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   HomeIcon,
   BuildingOfficeIcon,
@@ -47,7 +49,21 @@ export default function Sidebar() {
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const user = useAuthStore((state) => state.user);
   const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  const currentCompanyName = useAuthStore((state) => state.currentCompanyName);
+  const companyRole = useAuthStore((state) => state.companyRole);
   const hasPermission = useAuthStore((state) => state.hasPermission);
+  const navigate = useNavigate();
+  const [showTooltip, setShowTooltip] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const getTooltipPosition = () => {
+    if (!buttonRef.current) return { bottom: 0, left: 0 };
+    const rect = buttonRef.current.getBoundingClientRect();
+    return {
+      bottom: window.innerHeight - rect.top + 8,
+      left: rect.left,
+    };
+  };
 
   const visibleMenuItems = menuItems.filter((item) => {
     if (item.requiresCompany && !currentCompanyId) {
@@ -62,6 +78,7 @@ export default function Sidebar() {
   });
 
   return (
+    <>
     <aside
       className={`absolute left-0 top-0 z-30 flex h-screen w-64 flex-col overflow-y-hidden bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -102,21 +119,68 @@ export default function Sidebar() {
       {/* Custom Pages */}
       <CustomPagesSection />
 
-      {/* User Info */}
       <div className="mt-auto border-t border-gray-700 px-4 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-white">
+        <button
+          ref={buttonRef}
+          onClick={() => navigate('/settings?tab=account')}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+          className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          aria-label={t('nav.userProfile')}
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-600 text-white">
             {user?.firstName?.[0]}
             {user?.lastName?.[0]}
           </div>
-          <div className="text-sm">
+          <div className="min-w-0 text-sm">
+            <p className="truncate font-medium text-white">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="truncate text-bodydark">{user?.email}</p>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+      {/* Hover Tooltip - portalled to body to avoid sidebar overflow clipping */}
+      {showTooltip && createPortal(
+        <div
+          className="fixed z-[9999] w-72 rounded-lg border border-gray-600 bg-gray-800 p-3 shadow-xl"
+          style={{ bottom: getTooltipPosition().bottom, left: getTooltipPosition().left }}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          <div className="mb-2 border-b border-gray-600 pb-2">
             <p className="font-medium text-white">
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="text-bodydark">{user?.email}</p>
+            <p className="text-xs text-gray-400">{user?.email}</p>
           </div>
-        </div>
-      </div>
-    </aside>
+          {user?.role && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">{t('nav.userTooltipRole')}</span>
+              <span className="rounded bg-primary-600/20 px-1.5 py-0.5 text-primary-400">{user.role}</span>
+            </div>
+          )}
+          {currentCompanyName && (
+            <div className="mt-1 flex items-center justify-between text-xs">
+              <span className="text-gray-400">{t('nav.userTooltipCompany')}</span>
+              <span className="truncate pl-2 text-gray-200">{currentCompanyName}</span>
+            </div>
+          )}
+          {companyRole && (
+            <div className="mt-1 flex items-center justify-between text-xs">
+              <span className="text-gray-400">{t('nav.userTooltipCompanyRole')}</span>
+              <span className="rounded bg-blue-600/20 px-1.5 py-0.5 text-blue-400">{companyRole}</span>
+            </div>
+          )}
+          <div className="mt-2 border-t border-gray-600 pt-2 text-xs text-gray-500">
+            {t('nav.userTooltipClickHint')}
+          </div>
+          <div className="absolute -bottom-1 left-6 h-2 w-2 rotate-45 border-b border-r border-gray-600 bg-gray-800" />
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

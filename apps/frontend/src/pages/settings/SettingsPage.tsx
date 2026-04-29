@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES, useI18n } from '@/providers/I18nProvider';
 import { useAuthStore } from '@/stores/authStore';
 import { useUIStore } from '@/stores/uiStore.ts';
@@ -14,6 +15,8 @@ import { KEYBOARD_SHORTCUTS, SHORTCUT_CATEGORIES } from '@/hooks/keyboardShortcu
 
 type SettingsTab = 'general' | 'developer' | 'interface' | 'monitoring' | 'smtpServer' | 'account' | 'shortcuts';
 
+const VALID_TABS: SettingsTab[] = ['general', 'developer', 'interface', 'monitoring', 'smtpServer', 'account', 'shortcuts'];
+
 export default function SettingsPage() {
   const { t, language, setLanguage } = useI18n();
   const theme = useUIStore((state) => state.theme);
@@ -27,8 +30,18 @@ export default function SettingsPage() {
   // Use current window location to construct dynamic URLs for API interfaces
   // This ensures the links work regardless of the domain (localhost, shopping-now.net, etc.)
   const baseUrl = `${window.location.protocol}//${window.location.hostname}`;
-  
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as SettingsTab | null;
+  const [activeTab, setActiveTab] = useState<SettingsTab>(
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'general'
+  );
+
+  // Sync URL when tab changes
+  const handleTabChange = (tab: SettingsTab) => {
+    setActiveTab(tab);
+    setSearchParams(tab === 'general' ? {} : { tab }, { replace: true });
+  };
   const [smtpConfig, setSmtpConfig] = useState({
     smtpHost: '',
     smtpPort: 587,
@@ -246,7 +259,7 @@ export default function SettingsPage() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? 'border-primary-600 text-primary-600'
