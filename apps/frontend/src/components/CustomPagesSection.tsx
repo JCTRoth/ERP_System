@@ -11,6 +11,7 @@ export default function CustomPagesSection() {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const companyRole = useAuthStore((state) => state.companyRole);
   const permissionCodes = useAuthStore((state) => state.permissionCodes);
+  const groupCodes = useAuthStore((state) => state.groupCodes);
   const isGlobalSuperAdmin = useAuthStore((state) => state.isGlobalSuperAdmin);
 
   if (pages.length === 0 || !currentCompanyId || !hasPermission('scripting.script.read')) {
@@ -30,10 +31,17 @@ export default function CustomPagesSection() {
       !page.access.requiredPermissions?.length ||
       page.access.requiredPermissions.some((p) => permissionCodes.includes(p));
 
-    if (page.access.requiredRoles?.length && page.access.requiredPermissions?.length) {
-      return hasRole || hasPerm;
-    }
-    return hasRole && hasPerm;
+    const hasGroup =
+      !page.access.requiredGroups?.length ||
+      page.access.requiredGroups.some((g) => groupCodes.includes(g));
+
+    const checks: boolean[] = [];
+    if (page.access.requiredRoles?.length) checks.push(hasRole);
+    if (page.access.requiredPermissions?.length) checks.push(hasPerm);
+    if (page.access.requiredGroups?.length) checks.push(hasGroup);
+
+    if (checks.length === 0) return true;
+    return checks.some(Boolean);
   });
 
   if (visiblePages.length === 0) return null;

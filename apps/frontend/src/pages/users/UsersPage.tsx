@@ -81,25 +81,58 @@ export default function UsersPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t('users.title')}</h1>
+          <h1 className="text-2xl font-bold">{t('users.titleUsersGroups')}</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            {t('users.subtitle')}
+            {t('users.subtitleUsersGroups')}
           </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <PlusIcon className="h-5 w-5" />
-          {t('users.addUser')}
-        </button>
+        {activeTab === 'users' && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="btn-primary flex items-center gap-2"
+          >
+            <PlusIcon className="h-5 w-5" />
+            {t('users.addUser')}
+          </button>
+        )}
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+      {/* Tabs */}
+      <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+        <nav className="-mb-px flex gap-4">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
+              activeTab === 'users'
+                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400'
+            }`}
+          >
+            <UsersIcon className="h-5 w-5" />
+            {t('users.tabUsers')}
+          </button>
+          <button
+            onClick={() => setActiveTab('groups')}
+            className={`flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
+              activeTab === 'groups'
+                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400'
+            }`}
+          >
+            <ShieldCheckIcon className="h-5 w-5" />
+            {t('users.tabGroups')}
+          </button>
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'users' ? (
+        <>
+          {/* Users Table */}
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t('users.user')}
@@ -204,6 +237,10 @@ export default function UsersPage() {
           user={editingUser}
           onClose={handleModalClose}
         />
+      )}
+        </>
+      ) : (
+        <GroupsTab />
       )}
     </div>
   );

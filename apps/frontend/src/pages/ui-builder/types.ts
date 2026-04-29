@@ -23,6 +23,8 @@ export interface AccessControl {
   requiredPermissions?: string[];
   /** Role codes required (user needs at least one) */
   requiredRoles?: string[];
+  /** Group codes required (user needs at least one) */
+  requiredGroups?: string[];
   /** If true, element is hidden instead of disabled when user lacks access */
   hideWhenRestricted?: boolean;
 }

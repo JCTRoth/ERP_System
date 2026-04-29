@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useQuery, gql } from '@apollo/client';
 import { UIComponent, UIRow, ComponentType, ComponentStyling, ColumnSpan, AccessControl, AccessMode, getComponentDefinition, getAvailableColumnSpans, getDefaultColumnSpan, getUsedColumnsInRow, getAvailableStartColumns } from '../types';
 import { useI18n } from '../../../providers/I18nProvider';
+import { useAuthStore } from '../../../stores/authStore';
 import { CodeBracketIcon, LanguageIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 interface PropertiesPanelProps {
@@ -640,6 +642,17 @@ const AVAILABLE_PERMISSIONS = [
   { code: 'user.user.update', label: 'Users Update' },
 ];
 
+const GET_COMPANY_GROUPS = gql`
+  query GetGroupsForAccessControl($companyId: ID!) {
+    groupsByCompany(companyId: $companyId) {
+      id
+      code
+      name
+      isSystem
+    }
+  }
+`;
+
 function AccessControlEditor({
   access,
   onChange,
@@ -649,9 +662,18 @@ function AccessControlEditor({
   onChange: (access: AccessControl) => void;
   t: (key: string) => string;
 }) {
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  const { data: groupsData } = useQuery(GET_COMPANY_GROUPS, {
+    variables: { companyId: currentCompanyId },
+    skip: !currentCompanyId,
+  });
+  const availableGroups: { id: string; code: string; name: string; isSystem: boolean }[] =
+    groupsData?.groupsByCompany ?? [];
+
   const mode: AccessMode = access?.mode ?? 'public';
   const requiredRoles = access?.requiredRoles ?? [];
   const requiredPermissions = access?.requiredPermissions ?? [];
+  const requiredGroups = access?.requiredGroups ?? [];
   const hideWhenRestricted = access?.hideWhenRestricted ?? true;
 
   const updateAccess = (updates: Partial<AccessControl>) => {
@@ -659,6 +681,7 @@ function AccessControlEditor({
       mode,
       requiredRoles,
       requiredPermissions,
+      requiredGroups,
       hideWhenRestricted,
       ...access,
       ...updates,
@@ -677,6 +700,13 @@ function AccessControlEditor({
       ? requiredPermissions.filter((p) => p !== code)
       : [...requiredPermissions, code];
     updateAccess({ requiredPermissions: updated });
+  };
+
+  const toggleGroup = (code: string) => {
+    const updated = requiredGroups.includes(code)
+      ? requiredGroups.filter((g) => g !== code)
+      : [...requiredGroups, code];
+    updateAccess({ requiredGroups: updated });
   };
 
   return (
@@ -751,6 +781,30 @@ function AccessControlEditor({
               ))}
             </div>
           </div>
+
+          {/* Required Groups */}
+          {availableGroups.length > 0 && (
+            <div>
+              <label className="label mb-1 text-xs">{t('uiBuilder.accessGroups') || 'Required Groups (any)'}</label>
+              <div className="flex flex-wrap gap-1.5">
+                {availableGroups.map((group) => (
+                  <button
+                    key={group.code}
+                    type="button"
+                    onClick={() => toggleGroup(group.code)}
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
+                      requiredGroups.includes(group.code)
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                    title={group.code}
+                  >
+                    {group.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

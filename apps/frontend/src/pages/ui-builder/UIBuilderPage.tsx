@@ -23,8 +23,10 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import JSZip from 'jszip';
+import { useQuery, gql } from '@apollo/client';
 import { useI18n } from '../../providers/I18nProvider';
 import { useUIBuilderStore, UIPage } from '../../stores/uiBuilderStore';
+import { useAuthStore } from '../../stores/authStore';
 import Canvas from './components/Canvas';
 import PropertiesPanel from './components/PropertiesPanel';
 import PreviewModal from './components/PreviewModal';
@@ -47,9 +49,25 @@ import {
 } from './types';
 import { generateId } from './utils';
 
+const GET_GROUPS_FOR_PAGE_ACCESS = gql`
+  query GetGroupsForPageAccess($companyId: ID!) {
+    groupsByCompany(companyId: $companyId) {
+      id
+      code
+      name
+    }
+  }
+`;
+
 export default function UIBuilderPage() {
   const { t } = useI18n();
   const { getCurrentPage, updatePage, addPage, currentPageId } = useUIBuilderStore();
+  const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
+  const { data: groupsData } = useQuery(GET_GROUPS_FOR_PAGE_ACCESS, {
+    variables: { companyId: currentCompanyId },
+    skip: !currentCompanyId,
+  });
+  const companyGroups: { code: string; name: string }[] = groupsData?.groupsByCompany ?? [];
   
   const [rows, setRows] = useState<UIRow[]>([]);
   const [scripts, setScripts] = useState<Record<string, string>>({});
@@ -954,6 +972,32 @@ export default function UIBuilderPage() {
                     ))}
                   </select>
                 </div>
+                {companyGroups.length > 0 && (
+                  <div>
+                    <label className="label mb-1 text-xs">{t('uiBuilder.accessGroups') || 'Required Groups (any)'}</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {companyGroups.map((group) => (
+                        <button
+                          key={group.code}
+                          type="button"
+                          onClick={() => {
+                            const groups = pageAccess.requiredGroups ?? [];
+                            const updated = groups.includes(group.code) ? groups.filter((g) => g !== group.code) : [...groups, group.code];
+                            setPageAccess({ ...pageAccess, requiredGroups: updated });
+                            setHasUnsavedChanges(true);
+                          }}
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
+                            (pageAccess.requiredGroups ?? []).includes(group.code)
+                              ? 'bg-indigo-500 text-white'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {group.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
