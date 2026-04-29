@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { UIComponent, UIRow } from '../pages/ui-builder/types';
+import { UIComponent, UIRow, AccessControl } from '../pages/ui-builder/types';
 
 export interface UIPage {
   id: string;
@@ -8,6 +8,7 @@ export interface UIPage {
   slug: string;
   description?: string;
   isActive?: boolean;
+  access?: AccessControl; // Page-level access control
   components: UIComponent[]; // Legacy flat list (for backward compatibility)
   rows?: UIRow[]; // New row-based structure
   scripts?: Record<string, string>; // Component ID -> script mapping

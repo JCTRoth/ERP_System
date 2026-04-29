@@ -13,6 +13,20 @@ export type ComponentType =
 
 export type ColumnSpan = 1 | 2 | 3;
 
+/** Access control settings for pages and elements */
+export type AccessMode = 'public' | 'restricted';
+
+export interface AccessControl {
+  /** 'public' = visible to everyone with page access, 'restricted' = limited by roles/permissions */
+  mode: AccessMode;
+  /** Permission codes required (user needs at least one) */
+  requiredPermissions?: string[];
+  /** Role codes required (user needs at least one) */
+  requiredRoles?: string[];
+  /** If true, element is hidden instead of disabled when user lacks access */
+  hideWhenRestricted?: boolean;
+}
+
 export interface UIComponent {
   id: string;
   type: ComponentType;
@@ -22,6 +36,7 @@ export interface UIComponent {
   columnSpan?: ColumnSpan;
   startColumn?: 1 | 2 | 3; // Column position where component starts (1-3)
   script?: string; // Client-side script for buttons
+  access?: AccessControl; // Access control for this element
 }
 
 export interface UIRow {

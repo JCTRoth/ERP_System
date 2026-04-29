@@ -20,6 +20,7 @@ import {
   FolderIcon,
   ArrowUpTrayIcon,
   ArrowDownTrayIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import JSZip from 'jszip';
 import { useI18n } from '../../providers/I18nProvider';
@@ -36,6 +37,8 @@ import {
   UIRow, 
   ComponentType, 
   ColumnSpan,
+  AccessControl,
+  AccessMode,
   getDefaultColumnSpan, 
   canAddToRow,
   getComponentDefinition,
@@ -64,6 +67,8 @@ export default function UIBuilderPage() {
   const [pendingSlotInfo, setPendingSlotInfo] = useState<{ rowId: string; slotIndex: number } | null>(null);
   const [editingScriptComponentId, setEditingScriptComponentId] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pageAccess, setPageAccess] = useState<AccessControl>({ mode: 'public' });
+  const [showPageAccess, setShowPageAccess] = useState(false);
   const dragPositionRef = useRef<{ x: number; y: number } | null>(null);
   const [activeDragType, setActiveDragType] = useState<ComponentType | null>(null);
 
@@ -140,11 +145,13 @@ export default function UIBuilderPage() {
       }
       setScripts(page.scripts || {});
       setPageName(page.name);
+      setPageAccess(page.access || { mode: 'public' });
       setHasUnsavedChanges(false);
     } else {
       setRows([]);
       setScripts({});
       setPageName('');
+      setPageAccess({ mode: 'public' });
     }
   }, [currentPageId, getCurrentPage]);
 
@@ -561,6 +568,7 @@ export default function UIBuilderPage() {
         components: flatComponents,
         rows,
         scripts,
+        access: pageAccess,
       });
       setPageName(newPage.name);
     } else {
@@ -569,7 +577,8 @@ export default function UIBuilderPage() {
         components: flatComponents, 
         rows,
         scripts,
-        name: pageName 
+        name: pageName,
+        access: pageAccess,
       });
     }
     setHasUnsavedChanges(false);
@@ -770,6 +779,17 @@ export default function UIBuilderPage() {
                   ({t('uiBuilder.unsaved')})
                 </span>
               )}
+              <button
+                onClick={() => setShowPageAccess(!showPageAccess)}
+                className={`rounded-md p-1.5 transition-colors ${
+                  pageAccess.mode === 'restricted'
+                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                title={t('uiBuilder.pageAccessControl') || 'Page Access Control'}
+              >
+                <ShieldCheckIcon className="h-5 w-5" />
+              </button>
             </div>
           )}
         </div>
@@ -863,6 +883,82 @@ export default function UIBuilderPage() {
           </button>
         </div>
       </div>
+
+      {/* Page Access Control Panel */}
+      {showPageAccess && currentPageId && (
+        <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <ShieldCheckIcon className="h-4 w-4" />
+            {t('uiBuilder.pageAccessControl') || 'Page Access Control'}
+          </h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+              <label className="label mb-1 text-xs">{t('uiBuilder.accessMode') || 'Access Mode'}</label>
+              <select
+                value={pageAccess.mode}
+                onChange={(e) => {
+                  setPageAccess({ ...pageAccess, mode: e.target.value as AccessMode });
+                  setHasUnsavedChanges(true);
+                }}
+                className="input text-sm w-full"
+              >
+                <option value="public">{t('uiBuilder.accessPublic') || 'Public (all authenticated users)'}</option>
+                <option value="restricted">{t('uiBuilder.accessRestricted') || 'Restricted'}</option>
+              </select>
+            </div>
+            {pageAccess.mode === 'restricted' && (
+              <>
+                <div>
+                  <label className="label mb-1 text-xs">{t('uiBuilder.accessRoles') || 'Required Roles (any)'}</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['SUPER_ADMIN', 'ADMIN', 'USER', 'VIEWER'].map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => {
+                          const roles = pageAccess.requiredRoles ?? [];
+                          const updated = roles.includes(role) ? roles.filter((r) => r !== role) : [...roles, role];
+                          setPageAccess({ ...pageAccess, requiredRoles: updated });
+                          setHasUnsavedChanges(true);
+                        }}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
+                          (pageAccess.requiredRoles ?? []).includes(role)
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {role}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="label mb-1 text-xs">{t('uiBuilder.accessPermissions') || 'Required Permissions (any)'}</label>
+                  <select
+                    multiple
+                    value={pageAccess.requiredPermissions ?? []}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, (o) => o.value);
+                      setPageAccess({ ...pageAccess, requiredPermissions: selected });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="input text-xs w-full h-24"
+                  >
+                    {[
+                      'company.company.read', 'shop.product.read', 'orders.order.read',
+                      'accounting.record.read', 'masterdata.record.read', 'translation.translation.read',
+                      'template.template.read', 'scripting.script.read', 'scripting.script.manage',
+                      'user.user.read',
+                    ].map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <DndContext

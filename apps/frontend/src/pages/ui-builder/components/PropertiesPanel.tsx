@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { UIComponent, UIRow, ComponentType, ComponentStyling, ColumnSpan, getComponentDefinition, getAvailableColumnSpans, getDefaultColumnSpan, getUsedColumnsInRow, getAvailableStartColumns } from '../types';
+import { UIComponent, UIRow, ComponentType, ComponentStyling, ColumnSpan, AccessControl, AccessMode, getComponentDefinition, getAvailableColumnSpans, getDefaultColumnSpan, getUsedColumnsInRow, getAvailableStartColumns } from '../types';
 import { useI18n } from '../../../providers/I18nProvider';
-import { CodeBracketIcon, LanguageIcon } from '@heroicons/react/24/outline';
+import { CodeBracketIcon, LanguageIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 interface PropertiesPanelProps {
   component: UIComponent | null;
@@ -202,6 +202,19 @@ export default function PropertiesPanel({ component, row, rows = [], onUpdate, o
       <div className="border-t border-gray-200 pt-4 mt-4 dark:border-gray-700">
         <h4 className="mb-3 font-medium text-sm">{t('uiBuilder.styling') || 'Styling'}</h4>
         {renderStylingProperties(component.styling || {}, updateStyling)}
+      </div>
+
+      {/* Access Control Section */}
+      <div className="border-t border-gray-200 pt-4 mt-4 dark:border-gray-700">
+        <h4 className="mb-3 font-medium text-sm flex items-center gap-1.5">
+          <ShieldCheckIcon className="h-4 w-4" />
+          {t('uiBuilder.accessControl') || 'Access Control'}
+        </h4>
+        <AccessControlEditor
+          access={component.access}
+          onChange={(access) => onUpdate(component.id, { access })}
+          t={t}
+        />
       </div>
     </div>
   );
@@ -594,6 +607,153 @@ function renderStylingProperties(
         />
       </div>
     </>
+  );
+}
+
+const AVAILABLE_ROLES = [
+  { code: 'SUPER_ADMIN', label: 'Super Admin' },
+  { code: 'ADMIN', label: 'Admin' },
+  { code: 'USER', label: 'User' },
+  { code: 'VIEWER', label: 'Viewer' },
+];
+
+const AVAILABLE_PERMISSIONS = [
+  { code: 'company.company.read', label: 'Company Read' },
+  { code: 'company.company.update', label: 'Company Update' },
+  { code: 'shop.product.read', label: 'Products Read' },
+  { code: 'shop.product.manage', label: 'Products Manage' },
+  { code: 'orders.order.read', label: 'Orders Read' },
+  { code: 'orders.order.manage', label: 'Orders Manage' },
+  { code: 'accounting.record.read', label: 'Accounting Read' },
+  { code: 'accounting.record.manage', label: 'Accounting Manage' },
+  { code: 'accounting.record.approve', label: 'Accounting Approve' },
+  { code: 'masterdata.record.read', label: 'Master Data Read' },
+  { code: 'masterdata.record.manage', label: 'Master Data Manage' },
+  { code: 'translation.translation.read', label: 'Translations Read' },
+  { code: 'translation.translation.manage', label: 'Translations Manage' },
+  { code: 'template.template.read', label: 'Templates Read' },
+  { code: 'template.template.manage', label: 'Templates Manage' },
+  { code: 'scripting.script.read', label: 'Scripting Read' },
+  { code: 'scripting.script.manage', label: 'Scripting Manage' },
+  { code: 'user.user.read', label: 'Users Read' },
+  { code: 'user.user.create', label: 'Users Create' },
+  { code: 'user.user.update', label: 'Users Update' },
+];
+
+function AccessControlEditor({
+  access,
+  onChange,
+  t,
+}: {
+  access?: AccessControl;
+  onChange: (access: AccessControl) => void;
+  t: (key: string) => string;
+}) {
+  const mode: AccessMode = access?.mode ?? 'public';
+  const requiredRoles = access?.requiredRoles ?? [];
+  const requiredPermissions = access?.requiredPermissions ?? [];
+  const hideWhenRestricted = access?.hideWhenRestricted ?? true;
+
+  const updateAccess = (updates: Partial<AccessControl>) => {
+    onChange({
+      mode,
+      requiredRoles,
+      requiredPermissions,
+      hideWhenRestricted,
+      ...access,
+      ...updates,
+    });
+  };
+
+  const toggleRole = (code: string) => {
+    const updated = requiredRoles.includes(code)
+      ? requiredRoles.filter((r) => r !== code)
+      : [...requiredRoles, code];
+    updateAccess({ requiredRoles: updated });
+  };
+
+  const togglePermission = (code: string) => {
+    const updated = requiredPermissions.includes(code)
+      ? requiredPermissions.filter((p) => p !== code)
+      : [...requiredPermissions, code];
+    updateAccess({ requiredPermissions: updated });
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Mode selector */}
+      <div>
+        <label className="label mb-1 text-xs">{t('uiBuilder.accessMode') || 'Access Mode'}</label>
+        <select
+          value={mode}
+          onChange={(e) => updateAccess({ mode: e.target.value as AccessMode })}
+          className="input text-sm w-full"
+        >
+          <option value="public">{t('uiBuilder.accessPublic') || 'Public (visible to all)'}</option>
+          <option value="restricted">{t('uiBuilder.accessRestricted') || 'Restricted'}</option>
+        </select>
+      </div>
+
+      {mode === 'restricted' && (
+        <>
+          {/* Behavior when restricted */}
+          <div>
+            <label className="label mb-1 text-xs">{t('uiBuilder.accessBehavior') || 'When user lacks access'}</label>
+            <select
+              value={hideWhenRestricted ? 'hide' : 'disable'}
+              onChange={(e) => updateAccess({ hideWhenRestricted: e.target.value === 'hide' })}
+              className="input text-sm w-full"
+            >
+              <option value="hide">{t('uiBuilder.accessHide') || 'Hide element'}</option>
+              <option value="disable">{t('uiBuilder.accessDisable') || 'Show disabled'}</option>
+            </select>
+          </div>
+
+          {/* Required Roles */}
+          <div>
+            <label className="label mb-1 text-xs">{t('uiBuilder.accessRoles') || 'Required Roles (any)'}</label>
+            <div className="flex flex-wrap gap-1.5">
+              {AVAILABLE_ROLES.map((role) => (
+                <button
+                  key={role.code}
+                  type="button"
+                  onClick={() => toggleRole(role.code)}
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
+                    requiredRoles.includes(role.code)
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {role.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Required Permissions */}
+          <div>
+            <label className="label mb-1 text-xs">{t('uiBuilder.accessPermissions') || 'Required Permissions (any)'}</label>
+            <div className="max-h-40 overflow-y-auto rounded border border-gray-200 dark:border-gray-700">
+              {AVAILABLE_PERMISSIONS.map((perm) => (
+                <label
+                  key={perm.code}
+                  className="flex cursor-pointer items-center gap-2 px-2 py-1 text-xs hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={requiredPermissions.includes(perm.code)}
+                    onChange={() => togglePermission(perm.code)}
+                    className="rounded"
+                  />
+                  <span className="truncate">{perm.label}</span>
+                  <span className="ml-auto truncate text-gray-400 text-[10px]">{perm.code}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

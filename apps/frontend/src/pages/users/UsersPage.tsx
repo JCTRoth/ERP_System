@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { PlusIcon, PencilIcon, TrashIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, UsersIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import UserModal from './UserModal';
+import GroupsTab from './GroupsTab';
 
 const GET_USERS = gql`
   query GetUsers {
@@ -42,6 +43,7 @@ interface User {
 
 export default function UsersPage() {
   const { t } = useI18n();
+  const [activeTab, setActiveTab] = useState<'users' | 'groups'>('users');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
