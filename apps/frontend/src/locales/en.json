@@ -248,6 +248,8 @@
   "dashboard.serviceUnavailable": "Service unavailable",
   "dashboard.notAuthenticatedHint": "Please log in to access full functionality and data.",
   "dashboard.totalCompanies": "Total Companies",
+  "dashboard.totalOrders": "Total Orders",
+  "dashboard.totalProducts": "Total Products",
   "dashboard.totalUsers": "Total Users",
   "translations.validationErrorNotice": "Translation service schema is not available yet; translation keys are temporarily disabled.",
   "dashboard.welcome": "Welcome back, {name}",

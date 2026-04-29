@@ -240,6 +240,8 @@
   "dashboard.revenue": "Revenus",
   "dashboard.serviceUnavailable": "Service indisponible",
   "dashboard.totalCompanies": "Total Entreprises",
+  "dashboard.totalOrders": "Total Commandes",
+  "dashboard.totalProducts": "Total Produits",
   "dashboard.totalUsers": "Total Utilisateurs",
   "dashboard.welcome": "Bon retour, {name}",
   "errors.pageNotFound": "Page non trouvée",

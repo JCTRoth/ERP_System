@@ -239,6 +239,8 @@
   "dashboard.recentUsers": "Недавние пользователи",
   "dashboard.revenue": "Выручка",
   "dashboard.totalCompanies": "Всего компаний",
+  "dashboard.totalOrders": "Всего заказов",
+  "dashboard.totalProducts": "Всего товаров",
   "dashboard.totalUsers": "Всего пользователей",
   "dashboard.welcome": "С возвращением, {name}",
   "dashboard.serviceUnavailable": "Сервис недоступен",

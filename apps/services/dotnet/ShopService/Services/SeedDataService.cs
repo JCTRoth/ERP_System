@@ -14,6 +14,7 @@ public class SeedDataService : ISeedDataService
     private readonly ShopDbContext _context;
     private readonly ILogger<SeedDataService> _logger;
     private static readonly Guid MediVitaCompanyId = Guid.Parse("f364cea4-9a72-4228-806c-4764607b41a6");
+    private static readonly Guid DemoCompanyId = Guid.Parse("ae161374-7185-4aa5-97f4-bcb35cf0ae19");
     private static readonly Guid ReferenceOrderId = Guid.Parse("50000000-0000-0000-0000-000000000001");
     private static readonly Guid ReferenceCustomerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f");
     private static readonly Guid[] ReferenceOrderItemIds =
@@ -62,6 +63,9 @@ public class SeedDataService : ISeedDataService
             // (StampCompanyId() in SaveChangesAsync requires HTTP context which is absent during startup)
             _logger.LogInformation("Stamping MediVita company_id on all seeded data...");
             await StampAllSeedDataCompanyId();
+
+            _logger.LogInformation("Cloning seed data for Demo_Corporation...");
+            await CloneDataForDemoCompany();
 
             _logger.LogInformation("Database seeding completed successfully");
         }
@@ -888,5 +892,94 @@ public class SeedDataService : ISeedDataService
         order.Total = order.Subtotal + order.TaxAmount + order.ShippingAmount - order.DiscountAmount;
 
         return order;
+    }
+
+    private async Task CloneDataForDemoCompany()
+    {
+        var mediVita = MediVitaCompanyId.ToString();
+        var demo = DemoCompanyId.ToString();
+
+        // Clone brands with '-demo' slug suffix
+        await _context.Database.ExecuteSqlRawAsync($@"
+            INSERT INTO brands (id, company_id, name, slug, description, website, logo_url, is_active, created_at, updated_at)
+            SELECT gen_random_uuid(), {0}, name, slug || '-demo', description, website, logo_url, is_active, NOW(), NULL
+            FROM brands WHERE company_id = {1}
+            ON CONFLICT DO NOTHING", demo, mediVita);
+
+        // Clone categories with '-demo' slug suffix
+        await _context.Database.ExecuteSqlRawAsync($@"
+            INSERT INTO categories (id, company_id, name, slug, description, parent_id, sort_order, is_active, image_url, created_at, updated_at)
+            SELECT gen_random_uuid(), {0}, name, slug || '-demo', description, NULL, sort_order, is_active, image_url, NOW(), NULL
+            FROM categories WHERE company_id = {1}
+            ON CONFLICT DO NOTHING", demo, mediVita);
+
+        // Clone suppliers with '-D' code suffix
+        await _context.Database.ExecuteSqlRawAsync($@"
+            INSERT INTO suppliers (id, company_id, name, code, contact_person, email, phone, country, city, postal_code, address, vat_number, is_active, created_at, updated_at)
+            SELECT gen_random_uuid(), {0}, name, code || '-D', contact_person, 'demo.' || email, phone, country, city, postal_code, address, vat_number, is_active, NOW(), NULL
+            FROM suppliers WHERE company_id = {1}
+            ON CONFLICT DO NOTHING", demo, mediVita);
+
+        // Clone customers with 'demo.' email prefix
+        await _context.Database.ExecuteSqlRawAsync($@"
+            INSERT INTO customers (id, company_id, email, first_name, last_name, phone, company, default_shipping_address, default_shipping_city, default_shipping_postal_code, is_active, created_at, updated_at)
+            SELECT gen_random_uuid(), {0}, 'demo.' || email, first_name, last_name, phone, company, default_shipping_address, default_shipping_city, default_shipping_postal_code, is_active, NOW(), NULL
+            FROM customers WHERE company_id = {1}
+            ON CONFLICT DO NOTHING", demo, mediVita);
+
+        // Clone shipping methods with '-D' code suffix
+        await _context.Database.ExecuteSqlRawAsync($@"
+            INSERT INTO shipping_methods (id, company_id, name, code, description, price, estimated_delivery_days, is_active, created_at, updated_at)
+            SELECT gen_random_uuid(), {0}, name, code || '-D', description, price, estimated_delivery_days, is_active, NOW(), NULL
+            FROM shipping_methods WHERE company_id = {1}
+            ON CONFLICT DO NOTHING", demo, mediVita);
+
+        // Clone products mapping FKs to Demo equivalents by name
+        await _context.Database.ExecuteSqlRawAsync($@"
+            INSERT INTO products (id, company_id, name, description, sku, ean, price, compare_at_price, cost_price,
+                   stock_quantity, low_stock_threshold, track_inventory, allow_backorder, weight, weight_unit,
+                   length, width, height, dimension_unit, category_id, brand_id, supplier_id,
+                   status, is_featured, is_digital, slug, meta_title, meta_description, created_at, updated_at, published_at)
+            SELECT gen_random_uuid(), {0}, p.name, p.description, p.sku || '-D', p.ean, p.price, p.compare_at_price, p.cost_price,
+                   p.stock_quantity, p.low_stock_threshold, p.track_inventory, p.allow_backorder, p.weight, p.weight_unit,
+                   p.length, p.width, p.height, p.dimension_unit,
+                   (SELECT dc.id FROM categories dc JOIN categories mc ON mc.name = dc.name WHERE mc.id = p.category_id AND dc.company_id = {0} LIMIT 1),
+                   (SELECT db.id FROM brands db JOIN brands mb ON mb.name = db.name WHERE mb.id = p.brand_id AND db.company_id = {0} LIMIT 1),
+                   (SELECT ds.id FROM suppliers ds JOIN suppliers ms ON ms.name = ds.name WHERE ms.id = p.supplier_id AND ds.company_id = {0} LIMIT 1),
+                   p.status, p.is_featured, p.is_digital, p.slug || '-demo', p.meta_title, p.meta_description, NOW(), NULL, p.published_at
+            FROM products p WHERE p.company_id = {1}
+            ON CONFLICT DO NOTHING", demo, mediVita);
+
+        // Clone orders mapping customer FKs by first_name
+        await _context.Database.ExecuteSqlRawAsync($@"
+            INSERT INTO orders (id, company_id, order_number, customer_id, status, payment_status,
+                   subtotal, tax_amount, shipping_amount, discount_amount, total, currency, notes, internal_notes,
+                   shipping_name, shipping_address, shipping_city, shipping_postal_code, shipping_country, shipping_phone,
+                   billing_name, billing_address, billing_city, billing_postal_code, billing_country,
+                   shipping_method_id, tracking_number, shipped_at, delivered_at, created_at, updated_at)
+            SELECT gen_random_uuid(), {0}, 'DEMO-' || o.order_number,
+                   COALESCE((SELECT dc.id FROM customers dc WHERE dc.company_id = {0}
+                             AND dc.first_name = (SELECT mc.first_name FROM customers mc WHERE mc.id = o.customer_id) LIMIT 1), o.customer_id),
+                   o.status, o.payment_status, o.subtotal, o.tax_amount, o.shipping_amount, o.discount_amount, o.total, o.currency,
+                   o.notes, o.internal_notes, o.shipping_name, o.shipping_address, o.shipping_city, o.shipping_postal_code,
+                   o.shipping_country, o.shipping_phone, o.billing_name, o.billing_address, o.billing_city, o.billing_postal_code,
+                   o.billing_country, NULL, o.tracking_number, o.shipped_at, o.delivered_at, o.created_at, o.updated_at
+            FROM orders o WHERE o.company_id = {1}
+            ON CONFLICT DO NOTHING", demo, mediVita);
+
+        // Clone order_items mapping to Demo orders and products
+        await _context.Database.ExecuteSqlRawAsync($@"
+            INSERT INTO order_items (id, order_id, product_id, variant_id, product_name, sku, quantity,
+                   unit_price, discount_amount, tax_amount, total, notes, created_at)
+            SELECT gen_random_uuid(), demo_o.id,
+                   COALESCE((SELECT dp.id FROM products dp WHERE dp.company_id = {0}
+                             AND dp.name = (SELECT mp.name FROM products mp WHERE mp.id = oi.product_id) LIMIT 1), oi.product_id),
+                   oi.variant_id, oi.product_name, oi.sku, oi.quantity, oi.unit_price, oi.discount_amount,
+                   oi.tax_amount, oi.total, oi.notes, oi.created_at
+            FROM order_items oi
+            JOIN orders orig_o ON orig_o.id = oi.order_id AND orig_o.company_id = {1}
+            JOIN orders demo_o ON demo_o.order_number = 'DEMO-' || orig_o.order_number AND demo_o.company_id = {0}", demo, mediVita);
+
+        _logger.LogInformation("Demo_Corporation seed data cloned successfully");
     }
 }

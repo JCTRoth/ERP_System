@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useI18n } from "../providers/I18nProvider";
 import { useAuthStore } from "../stores/authStore";
 import { useQuery, gql } from "@apollo/client";
+import { getShopApolloClient } from "../lib/apollo";
 import {
   BuildingOfficeIcon,
   UsersIcon,
-  CurrencyDollarIcon,
-  ChartBarIcon,
+  ShoppingCartIcon,
+  CubeIcon,
   CalendarIcon,
   EnvelopeIcon,
   CheckCircleIcon,
@@ -81,6 +82,15 @@ const GET_RECENT_ORDERS = gql`
       pageInfo {
         hasNextPage
       }
+      totalCount
+    }
+  }
+`;
+
+const GET_PRODUCTS_COUNT = gql`
+  query GetProductsCount {
+    products(first: 0) {
+      totalCount
     }
   }
 `;
@@ -92,10 +102,20 @@ export default function DashboardPage() {
   const companyAssignments = useAuthStore((state) => state.companyAssignments);
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const currentAssignment = companyAssignments.find(a => a.companyId === currentCompanyId);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const canReadCompanies = hasPermission('company.company.read');
   const canReadUsers = hasPermission('user.user.read');
-  const canReadCustomers = Boolean(currentCompanyId) && hasPermission('masterdata.record.read');
-  const canReadOrders = Boolean(currentCompanyId) && hasPermission('orders.order.read');
+  // Don't gate on currentCompanyId — the JWT token carries company claims,
+  // so the server handles authorization.  Skip only when not authenticated.
+  const canReadCustomers = isAuthenticated;
+  const canReadOrders = isAuthenticated;
+  const canReadProducts = isAuthenticated;
+
+  const shopClient = getShopApolloClient();
+
+  useEffect(() => {
+    console.log("Dashboard permissions:", { currentCompanyId, canReadCompanies, canReadUsers, canReadCustomers, canReadOrders, canReadProducts });
+  }, [currentCompanyId, canReadCompanies, canReadUsers, canReadCustomers, canReadOrders, canReadProducts]);
 
   // Local UI state for sorting
   const [customerSort, setCustomerSort] = useState<"name-asc" | "name-desc">(
@@ -178,7 +198,19 @@ export default function DashboardPage() {
     skip: !canReadCustomers,
   });
 
-  // Fetch recent orders
+  useEffect(() => {
+    if (customersData) {
+      console.log("Customers data loaded:", customersData);
+    }
+  }, [customersData]);
+
+  useEffect(() => {
+    if (customersError) {
+      console.error("Error loading customers:", customersError);
+    }
+  }, [customersError]);
+
+  // Fetch recent orders via shop client (same as ProductsPage pattern)
   const {
     data: ordersData,
     loading: ordersLoading,
@@ -187,7 +219,43 @@ export default function DashboardPage() {
     variables: { first: 20 },
     errorPolicy: "all",
     skip: !canReadOrders,
-  });
+    client: shopClient,
+  } as any);
+
+  useEffect(() => {
+    if (ordersData) {
+      console.log("Orders data loaded:", ordersData);
+    }
+  }, [ordersData]);
+
+  useEffect(() => {
+    if (ordersError) {
+      console.error("Error loading orders:", ordersError);
+    }
+  }, [ordersError]);
+
+  // Fetch products count via shop client
+  const {
+    data: productsCountData,
+    loading: productsCountLoading,
+    error: productsCountError,
+  } = useQuery(GET_PRODUCTS_COUNT, {
+    client: shopClient,
+    errorPolicy: "all",
+    skip: !canReadProducts,
+  } as any);
+
+  useEffect(() => {
+    if (productsCountData) {
+      console.log("Products count loaded:", productsCountData);
+    }
+  }, [productsCountData]);
+
+  useEffect(() => {
+    if (productsCountError) {
+      console.error("Error loading products count:", productsCountError);
+    }
+  }, [productsCountError]);
 
   // Fetch current company details
   const {
@@ -205,9 +273,6 @@ export default function DashboardPage() {
   const companyDescription = currentCompany?.description || '';
   const companySlogan = (companySettings as Record<string, unknown>)?.tagline as string || '';
   const companyLogoUrl = currentCompany?.logoUrl;
-
-  // Check if user is authenticated
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   // Prepare stats with real data and better error handling with fallback
   const stats = [
@@ -238,14 +303,22 @@ export default function DashboardPage() {
       icon: UsersIcon,
     },
     {
-      labelKey: "dashboard.revenue",
-      value: "$45,231",
-      icon: CurrencyDollarIcon,
+      labelKey: "dashboard.totalOrders",
+      value: ordersLoading
+        ? "..."
+        : ordersError
+          ? t("dashboard.serviceUnavailable")
+          : ordersData?.shopOrders?.totalCount?.toString() || "0",
+      icon: ShoppingCartIcon,
     },
     {
-      labelKey: "dashboard.growth",
-      value: "+12.5%",
-      icon: ChartBarIcon,
+      labelKey: "dashboard.totalProducts",
+      value: productsCountLoading
+        ? "..."
+        : productsCountError
+          ? t("dashboard.serviceUnavailable")
+          : productsCountData?.products?.totalCount?.toString() || "0",
+      icon: CubeIcon,
     },
   ];
 

@@ -244,6 +244,8 @@
   "dashboard.revenue": "Umsatz",
   "dashboard.serviceUnavailable": "Dienst nicht verfügbar",
   "dashboard.totalCompanies": "Anzahl Firmen",
+  "dashboard.totalOrders": "Anzahl Bestellungen",
+  "dashboard.totalProducts": "Anzahl Produkte",
   "dashboard.totalUsers": "Anzahl Benutzer",
   "dashboard.welcome": "Willkommen zurück, {name}",
   "errors.pageNotFound": "Seite nicht gefunden",

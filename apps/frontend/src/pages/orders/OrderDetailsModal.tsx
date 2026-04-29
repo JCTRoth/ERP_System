@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
-import { apolloClient } from '../../lib/apollo';
+import { getShopApolloClient } from '../../lib/apollo';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+
+const shopClient = getShopApolloClient();
 
 // Helper function to format UUID with dashes
 const formatUUID = (uuid: string): string => {
@@ -171,7 +173,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
 
   const { data, loading, refetch } = useQuery(GET_ORDER_DETAILS, {
     variables: { id: formatUUID(orderId) },
-    client: apolloClient,
+    client: shopClient,
     pollInterval: 5000,
   });
 
@@ -189,11 +191,11 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
   }, [data]);
 
   const [updateStatus] = useMutation(UPDATE_ORDER_STATUS, {
-    client: apolloClient,
+    client: shopClient,
   });
 
   const [updateAddresses] = useMutation(UPDATE_ORDER_ADDRESSES, {
-    client: apolloClient,
+    client: shopClient,
   });
 
   const order = data?.shopOrder;

@@ -10,7 +10,9 @@ import {
 import { useI18n } from '../../providers/I18nProvider';
 import OrderModal from './OrderModal';
 import OrderDetailsModal from './OrderDetailsModal';
-import { apolloClient } from '../../lib/apollo';
+import { getShopApolloClient } from '../../lib/apollo';
+
+const shopClient = getShopApolloClient();
 
 const GET_ORDERS = gql`
   query GetOrders($first: Int, $after: String, $where: OrderFilterInput) {
@@ -91,14 +93,16 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data, loading, refetch } = useQuery(GET_ORDERS, {
+  const { data, loading, error, refetch } = useQuery(GET_ORDERS, {
     variables: {
       first: 20,
       where: statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined,
     },
     errorPolicy: 'all',
-    client: apolloClient,
+    client: shopClient,
   } as any);
+
+  console.log('OrdersPage query state:', { loading, error: error?.message, dataExists: !!data, orderCount: data?.shopOrders?.nodes?.length, totalCount: data?.shopOrders?.totalCount });
 
   const [cancelOrder] = useMutation(CANCEL_ORDER, {
     onCompleted: (data: any) => {
@@ -112,12 +116,12 @@ export default function OrdersPage() {
       console.error('Cancel order error:', error);
       alert(t('orders.cancelError'));
     },
-    client: apolloClient,
+    client: shopClient,
   } as any);
 
   const [deleteOrder] = useMutation(DELETE_ORDER, {
     onCompleted: () => refetch(),
-    client: apolloClient,
+    client: shopClient,
   } as any);
 
   const handleViewDetails = (order: Order) => {
