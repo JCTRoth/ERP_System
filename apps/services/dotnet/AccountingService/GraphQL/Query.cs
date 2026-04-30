@@ -181,82 +181,68 @@ public class Query
     }
 
     // Reporting Queries
-    [GraphQLDescription("Get balance sheet as of a specific date")]
+    [GraphQLDescription("Get balance sheet as of a specific date. Balances are computed from posted journal entries.")]
     public async Task<BalanceSheet> GetBalanceSheet(
         DateTime asOfDate,
         [Service] AccountingDbContext context)
     {
-        // Get accounts with balances
         var accounts = await context.Accounts
             .Where(a => a.IsActive)
             .ToListAsync();
 
+        // Compute balances from posted journal entries (single source of truth)
+        var journalLines = await context.JournalEntryLines
+            .Include(l => l.JournalEntry)
+            .Where(l => l.JournalEntry.Status == JournalEntryStatus.Posted &&
+                        l.JournalEntry.EntryDate <= asOfDate)
+            .ToListAsync();
+
+        var accountBalances = journalLines
+            .GroupBy(l => l.AccountId)
+            .ToDictionary(
+                g => g.Key,
+                g => new { Debit = g.Sum(l => l.DebitAmount), Credit = g.Sum(l => l.CreditAmount) }
+            );
+
+        decimal ComputeBalance(Account a)
+        {
+            if (!accountBalances.TryGetValue(a.Id, out var totals)) return 0;
+            return (a.Type == Models.AccountType.Asset || a.Type == Models.AccountType.Expense)
+                ? totals.Debit - totals.Credit
+                : totals.Credit - totals.Debit;
+        }
+
+        BalanceSheetLine ToLine(Account a) => new()
+        {
+            AccountId = a.Id,
+            AccountNumber = a.AccountNumber,
+            AccountName = a.Name,
+            Category = a.Category.ToString(),
+            IsSystemAccount = a.IsSystemAccount,
+            Balance = ComputeBalance(a)
+        };
+
         var currentAssetCategories = new[] { AccountCategory.Cash, AccountCategory.BankAccount, AccountCategory.AccountsReceivable, AccountCategory.Inventory };
         var currentAssets = accounts
             .Where(a => a.Type == Models.AccountType.Asset && currentAssetCategories.Contains(a.Category))
-            .Select(a => new BalanceSheetLine
-            {
-                AccountId = a.Id,
-                AccountNumber = a.AccountNumber,
-                AccountName = a.Name,
-                Category = a.Category.ToString(),
-                IsSystemAccount = a.IsSystemAccount,
-                Balance = a.Balance
-            })
-            .ToList();
+            .Select(ToLine).ToList();
 
         var nonCurrentAssets = accounts
             .Where(a => a.Type == Models.AccountType.Asset && !currentAssetCategories.Contains(a.Category))
-            .Select(a => new BalanceSheetLine
-            {
-                AccountId = a.Id,
-                AccountNumber = a.AccountNumber,
-                AccountName = a.Name,
-                Category = a.Category.ToString(),
-                IsSystemAccount = a.IsSystemAccount,
-                Balance = a.Balance
-            })
-            .ToList();
+            .Select(ToLine).ToList();
 
         var currentLiabilityCategories = new[] { AccountCategory.AccountsPayable, AccountCategory.ShortTermDebt, AccountCategory.TaxLiabilities };
         var currentLiabilities = accounts
             .Where(a => a.Type == Models.AccountType.Liability && currentLiabilityCategories.Contains(a.Category))
-            .Select(a => new BalanceSheetLine
-            {
-                AccountId = a.Id,
-                AccountNumber = a.AccountNumber,
-                AccountName = a.Name,
-                Category = a.Category.ToString(),
-                IsSystemAccount = a.IsSystemAccount,
-                Balance = a.Balance
-            })
-            .ToList();
+            .Select(ToLine).ToList();
 
         var nonCurrentLiabilities = accounts
             .Where(a => a.Type == Models.AccountType.Liability && !currentLiabilityCategories.Contains(a.Category))
-            .Select(a => new BalanceSheetLine
-            {
-                AccountId = a.Id,
-                AccountNumber = a.AccountNumber,
-                AccountName = a.Name,
-                Category = a.Category.ToString(),
-                IsSystemAccount = a.IsSystemAccount,
-                Balance = a.Balance
-            })
-            .ToList();
+            .Select(ToLine).ToList();
 
         var equityAccounts = accounts
             .Where(a => a.Type == Models.AccountType.Equity)
-            .Select(a => new BalanceSheetLine
-            {
-                AccountId = a.Id,
-                AccountNumber = a.AccountNumber,
-                AccountName = a.Name,
-                Category = a.Category.ToString(),
-                IsSystemAccount = a.IsSystemAccount,
-                Balance = a.Balance
-            })
-            .ToList();
+            .Select(ToLine).ToList();
 
         return new BalanceSheet
         {
@@ -284,6 +270,80 @@ public class Query
                 Total = equityAccounts.Sum(e => e.Balance)
             },
             TotalLiabilitiesAndEquity = currentLiabilities.Sum(l => l.Balance) + nonCurrentLiabilities.Sum(l => l.Balance) + equityAccounts.Sum(e => e.Balance)
+        };
+    }
+
+    [GraphQLDescription("Get account statement with transaction history for a specific account")]
+    public async Task<AccountStatement> GetAccountStatement(
+        Guid accountId,
+        DateTime from,
+        DateTime to,
+        [Service] AccountingDbContext context)
+    {
+        var account = await context.Accounts.FindAsync(accountId);
+        if (account == null)
+        {
+            throw new GraphQLException($"Account with ID {accountId} not found");
+        }
+
+        // Compute opening balance from posted journal entries before the period
+        var openingLines = await context.JournalEntryLines
+            .Include(l => l.JournalEntry)
+            .Where(l => l.AccountId == accountId &&
+                        l.JournalEntry.Status == JournalEntryStatus.Posted &&
+                        l.JournalEntry.EntryDate < from)
+            .ToListAsync();
+
+        var rawOpeningBalance = openingLines.Sum(l => l.DebitAmount - l.CreditAmount);
+        var openingBalance = (account.Type == Models.AccountType.Asset || account.Type == Models.AccountType.Expense)
+            ? rawOpeningBalance
+            : -rawOpeningBalance;
+
+        // Get transactions in period
+        var periodLines = await context.JournalEntryLines
+            .Include(l => l.JournalEntry)
+            .Where(l => l.AccountId == accountId &&
+                        l.JournalEntry.Status == JournalEntryStatus.Posted &&
+                        l.JournalEntry.EntryDate >= from &&
+                        l.JournalEntry.EntryDate <= to)
+            .OrderBy(l => l.JournalEntry.EntryDate)
+            .ThenBy(l => l.JournalEntry.EntryNumber)
+            .ToListAsync();
+
+        var transactions = new List<AccountStatementTransaction>();
+        var runningBalance = openingBalance;
+
+        foreach (var line in periodLines)
+        {
+            var netAmount = line.DebitAmount - line.CreditAmount;
+            runningBalance += (account.Type == Models.AccountType.Asset || account.Type == Models.AccountType.Expense)
+                ? netAmount
+                : -netAmount;
+
+            transactions.Add(new AccountStatementTransaction
+            {
+                Date = line.JournalEntry.EntryDate,
+                EntryNumber = line.JournalEntry.EntryNumber,
+                Description = line.Description ?? line.JournalEntry.Description ?? "",
+                DebitAmount = line.DebitAmount,
+                CreditAmount = line.CreditAmount,
+                RunningBalance = runningBalance
+            });
+        }
+
+        return new AccountStatement
+        {
+            AccountId = accountId,
+            AccountNumber = account.AccountNumber,
+            AccountName = account.Name,
+            AccountType = account.Type.ToString(),
+            FromDate = from,
+            ToDate = to,
+            OpeningBalance = openingBalance,
+            ClosingBalance = runningBalance,
+            TotalDebit = periodLines.Sum(l => l.DebitAmount),
+            TotalCredit = periodLines.Sum(l => l.CreditAmount),
+            Transactions = transactions
         };
     }
 

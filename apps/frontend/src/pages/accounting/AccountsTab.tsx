@@ -10,6 +10,7 @@ import {
 import { useI18n } from '../../providers/I18nProvider';
 import { useCurrency } from '../../hooks/useCurrency';
 import { AccountModal } from './AccountModal';
+import { AccountTransactionsModal } from './AccountTransactionsModal';
 
 const GET_ACCOUNTS = gql`
   query GetAccounts {
@@ -98,6 +99,8 @@ export default function AccountsTab() {
     mode: 'create',
     account: null,
   });
+
+  const [transactionsAccount, setTransactionsAccount] = useState<Account | null>(null);
 
   const { data, loading, error, refetch } = useQuery(GET_ACCOUNTS, {
     fetchPolicy: 'network-only',
@@ -286,7 +289,7 @@ export default function AccountsTab() {
                       <div
                         key={account.id}
                         className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                        onClick={() => handleEditAccount(account)}
+                        onClick={() => setTransactionsAccount(account)}
                       >
                         <div className="flex items-center gap-4">
                           <span className="w-20 font-mono text-sm text-gray-500">
@@ -362,6 +365,18 @@ export default function AccountsTab() {
         account={modalState.account}
         onClose={() => setModalState({ isOpen: false, mode: 'create', account: null })}
         onSave={modalState.mode === 'create' ? handleCreateAccount : handleUpdateAccount}
+      />
+
+      <AccountTransactionsModal
+        isOpen={transactionsAccount !== null}
+        account={transactionsAccount}
+        onClose={() => setTransactionsAccount(null)}
+        onEdit={() => {
+          if (transactionsAccount) {
+            setModalState({ isOpen: true, mode: 'edit', account: transactionsAccount });
+            setTransactionsAccount(null);
+          }
+        }}
       />
     </div>
   );

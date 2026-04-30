@@ -94,7 +94,7 @@ public class AccountService : IAccountService
             IsActive = input.IsActive,
             IsSystemAccount = false,
             Balance = 0,
-            Currency = input.Currency ?? "USD",
+            Currency = input.Currency ?? "EUR",
             CreatedAt = DateTime.UtcNow
         };
 
@@ -144,15 +144,29 @@ public class AccountService : IAccountService
         var account = await _context.Accounts.FindAsync(id);
         if (account == null) return false;
 
-        // Debits increase Asset/Expense accounts, decrease Liability/Equity/Revenue
-        // Credits decrease Asset/Expense accounts, increase Liability/Equity/Revenue
-        if (account.Type == AccountType.Asset || account.Type == AccountType.Expense)
+        // Recalculate balance from journal entries (single source of truth)
+        var totals = await _context.JournalEntryLines
+            .Where(l => l.AccountId == id &&
+                        l.JournalEntry.Status == JournalEntryStatus.Posted)
+            .GroupBy(l => l.AccountId)
+            .Select(g => new
+            {
+                TotalDebit = g.Sum(l => l.DebitAmount),
+                TotalCredit = g.Sum(l => l.CreditAmount)
+            })
+            .FirstOrDefaultAsync();
+
+        if (totals != null)
         {
-            account.Balance += amount;  // amount is debit - credit
+            // Asset & Expense: balance = debit - credit
+            // Liability, Equity & Revenue: balance = credit - debit
+            account.Balance = (account.Type == AccountType.Asset || account.Type == AccountType.Expense)
+                ? totals.TotalDebit - totals.TotalCredit
+                : totals.TotalCredit - totals.TotalDebit;
         }
         else
         {
-            account.Balance -= amount;  // Reverse for liability/equity/revenue
+            account.Balance = 0;
         }
 
         account.UpdatedAt = DateTime.UtcNow;

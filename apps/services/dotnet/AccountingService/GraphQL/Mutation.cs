@@ -339,6 +339,56 @@ public class Mutation
         return @default;
     }
 
+    [GraphQLDescription("Recalculate all account balances from posted journal entries")]
+    public async Task<int> RecalculateBalances(
+        [Service] AccountingDbContext context)
+    {
+        var accounts = context.Accounts.AsQueryable();
+
+        var balances = await context.JournalEntryLines
+            .Where(l => l.JournalEntry != null &&
+                        l.JournalEntry.Status == JournalEntryStatus.Posted)
+            .GroupBy(l => l.AccountId)
+            .Select(g => new
+            {
+                AccountId = g.Key,
+                TotalDebit = g.Sum(l => l.DebitAmount),
+                TotalCredit = g.Sum(l => l.CreditAmount)
+            })
+            .ToDictionaryAsync(x => x.AccountId);
+
+        var updated = 0;
+        foreach (var account in accounts)
+        {
+            decimal newBalance;
+            if (balances.TryGetValue(account.Id, out var b))
+            {
+                newBalance = (account.Type == Models.AccountType.Asset ||
+                              account.Type == Models.AccountType.Expense)
+                    ? b.TotalDebit - b.TotalCredit
+                    : b.TotalCredit - b.TotalDebit;
+            }
+            else
+            {
+                newBalance = 0;
+            }
+
+            if (account.Balance != newBalance)
+            {
+                account.Balance = newBalance;
+                account.UpdatedAt = DateTime.UtcNow;
+                updated++;
+            }
+        }
+
+        if (updated > 0)
+        {
+            await context.SaveChangesAsync();
+        }
+
+        return updated;
+    }
+
     private static async Task<string> GeneratePaymentNumberAsync(AccountingDbContext context)
     {
         var date = DateTime.UtcNow;
