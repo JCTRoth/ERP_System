@@ -81,34 +81,37 @@ public class SmtpConfigurationService {
     }
     
     /**
-     * Save SMTP configuration to database
+     * Save SMTP configuration to database (upsert: update existing or create new)
      */
     @Transactional
     public SmtpConfiguration saveConfiguration(SmtpConfiguration config) {
-        if (config.getId() == null) {
-            log.info("Creating new SMTP configuration");
-        } else {
-            log.info("Updating SMTP configuration with ID: {}", config.getId());
-        }
-        
-        // Ensure only one active configuration per scope (global or specific company)
+        // Look for existing configuration for this company
+        Optional<SmtpConfiguration> existing;
         if (config.getCompanyId() == null) {
-            smtpConfigurationRepository.findGlobalConfiguration().ifPresent(existingConfig -> {
-                if (!existingConfig.getId().equals(config.getId())) {
-                    existingConfig.setIsActive(false);
-                    smtpConfigurationRepository.save(existingConfig);
-                }
-            });
+            existing = smtpConfigurationRepository.findGlobalConfiguration();
         } else {
-            smtpConfigurationRepository.findByCompanyIdAndIsActiveTrue(config.getCompanyId()).ifPresent(existingConfig -> {
-                if (!existingConfig.getId().equals(config.getId())) {
-                    existingConfig.setIsActive(false);
-                    smtpConfigurationRepository.save(existingConfig);
-                }
-            });
+            existing = smtpConfigurationRepository.findByCompanyId(config.getCompanyId());
         }
-        
-        return smtpConfigurationRepository.save(config);
+
+        if (existing.isPresent()) {
+            // Update the existing record instead of inserting a new one
+            SmtpConfiguration existingConfig = existing.get();
+            log.info("Updating existing SMTP configuration with ID: {}", existingConfig.getId());
+            existingConfig.setSmtpHost(config.getSmtpHost());
+            existingConfig.setSmtpPort(config.getSmtpPort());
+            existingConfig.setSmtpUsername(config.getSmtpUsername());
+            existingConfig.setSmtpPassword(config.getSmtpPassword());
+            existingConfig.setEmailFrom(config.getEmailFrom());
+            existingConfig.setEmailFromName(config.getEmailFromName());
+            existingConfig.setUseTls(config.getUseTls());
+            existingConfig.setUseSsl(config.getUseSsl());
+            existingConfig.setIsActive(true);
+            existingConfig.setLastModifiedBy(config.getLastModifiedBy());
+            return smtpConfigurationRepository.save(existingConfig);
+        } else {
+            log.info("Creating new SMTP configuration");
+            return smtpConfigurationRepository.save(config);
+        }
     }
     
     /**

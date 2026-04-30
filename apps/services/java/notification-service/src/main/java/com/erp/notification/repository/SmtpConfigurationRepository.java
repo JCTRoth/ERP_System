@@ -15,6 +15,11 @@ public interface SmtpConfigurationRepository extends JpaRepository<SmtpConfigura
      * Find active SMTP configuration for a specific company
      */
     Optional<SmtpConfiguration> findByCompanyIdAndIsActiveTrue(UUID companyId);
+
+    /**
+     * Find any SMTP configuration for a specific company (regardless of active status)
+     */
+    Optional<SmtpConfiguration> findByCompanyId(UUID companyId);
     
     /**
      * Find global SMTP configuration (where companyId is null)
