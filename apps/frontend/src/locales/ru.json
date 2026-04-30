@@ -115,7 +115,7 @@
   "accounting.product": "Товар",
   "accounting.purchaseInvoice": "Счет на покупку",
   "accounting.qty": "Кол-во",
-  "accounting.reference": "Ссылка",
+  "accounting.reference": "номер платежного поручения",
   "accounting.reportComingSoon": "Отчет скоро будет доступен",
     "accounting.reports.balanceSheet": "Бухгалтерский баланс",
     "accounting.reports.trialBalance": "Оборотно-сальдовая ведомость",
