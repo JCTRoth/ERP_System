@@ -100,7 +100,7 @@ services:
         condition: on-failure
 
   accounting-service:
-    image: ghcr.io/jctroth/erp-accounting-service:${IMAGE_VERSION:-1.4}
+    image: ghcr.io/jctroth/erp-accounting-service:latest
     container_name: erp-accounting-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
@@ -125,7 +125,7 @@ services:
         condition: on-failure
 
   masterdata-service:
-    image: erp-system-masterdata-service:latest
+    image: ghcr.io/jctroth/erp-masterdata-service:latest
     container_name: erp-masterdata-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
@@ -256,8 +256,6 @@ services:
         condition: on-failure
 
   translation-service:
-    build:
-      context: ./apps/services/java/translation-service
     image: ghcr.io/jctroth/erp-translation-service:latest
     container_name: erp-translation-service
     ports:
@@ -266,7 +264,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/translationdb
       SPRING_DATASOURCE_USERNAME: erp_translation
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-RaxhWee5Pei1e}
     depends_on:
       postgres:
         condition: service_healthy
@@ -285,8 +283,6 @@ services:
         condition: on-failure
 
   scripting-service:
-    build:
-      context: ./apps/services/java/scripting-service
     image: ghcr.io/jctroth/erp-scripting-service:latest
     container_name: erp-scripting-service
     profiles:
@@ -317,7 +313,6 @@ services:
   # Node.js Services
   # ==========================================================================
   templates-service:
-    build: ./apps/services/nodejs/templates-service
     image: ghcr.io/jctroth/erp-templates-service:latest
     container_name: erp-templates-service
     ports:
@@ -347,8 +342,7 @@ services:
   # Gateway & Frontend
   # ==========================================================================
   gateway:
-    build: ./apps/gateway
-    image: erp-system-gateway:latest
+    image: ghcr.io/jctroth/erp-gateway:latest
     container_name: erp-gateway
     ports:
       - "4000:4000"
@@ -452,6 +446,8 @@ services:
       - /etc/letsencrypt/live/${DEPLOY_DOMAIN:-shopping-now.net}:/certs:ro
     command: --sslcert /certs/fullchain.pem --sslkey /certs/privkey.pem
     restart: always
+    networks:
+      - erp-network
 
   prometheus:
     image: prom/prometheus:latest
@@ -467,6 +463,8 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--web.config.file=/etc/prometheus/web-config.yml'
     restart: always
+    networks:
+      - erp-network
 
   grafana:
     image: grafana/grafana:latest
@@ -484,6 +482,8 @@ services:
       - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
       - /etc/letsencrypt/live/${DEPLOY_DOMAIN:-shopping-now.net}:/etc/grafana/certs:ro
     restart: always
+    networks:
+      - erp-network
 
   # ==========================================================================
   # Infrastructure

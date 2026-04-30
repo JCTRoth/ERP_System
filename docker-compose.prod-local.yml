@@ -17,7 +17,7 @@ services:
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-securepassword123}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infrastructure/postgres-init:/docker-entrypoint-initdb.d:ro
@@ -43,7 +43,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://*:5000
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=userdb;Username=erp_user;Password=postgres
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=userdb;Username=erp_user;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       JWT__Secret: your-jwt-secret-key-here-make-it-long-and-secure-at-least-32-chars
       JWT__Issuer: erp-system
       JWT__Audience: erp-clients
@@ -70,7 +70,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://*:5003
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=shopdb;Username=erp_shop;Password=postgres
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=shopdb;Username=erp_shop;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
@@ -98,7 +98,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://*:5001
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=accountingdb;Username=erp_accounting;Password=${DB_PASSWORD:-postgres}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=accountingdb;Username=erp_accounting;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
     depends_on:
       postgres:
@@ -122,7 +122,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://*:5002
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=masterdatadb;Username=erp_masterdata;Password=postgres
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=masterdatadb;Username=erp_masterdata;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
     depends_on:
       postgres:
@@ -146,7 +146,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://*:5004
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=ordersdb;Username=erp_orders;Password=postgres
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=ordersdb;Username=erp_orders;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
     depends_on:
       postgres:
@@ -174,7 +174,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/companydb
       SPRING_DATASOURCE_USERNAME: erp_company
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-RaxhWee5Pei1e}
     depends_on:
       postgres:
         condition: service_healthy
@@ -198,7 +198,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/translationdb
       SPRING_DATASOURCE_USERNAME: erp_translation
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-RaxhWee5Pei1e}
     depends_on:
       postgres:
         condition: service_healthy
@@ -222,7 +222,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notificationdb
       SPRING_DATASOURCE_USERNAME: erp_notification
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-RaxhWee5Pei1e}
       SMTP_HOST: smtp.example.com
       SMTP_PORT: 587
       SMTP_USERNAME: no-reply@example.com
