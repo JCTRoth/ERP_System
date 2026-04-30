@@ -5,6 +5,7 @@ import com.erp.company.entity.*;
 import com.erp.company.exception.InvalidRequestException;
 import com.erp.company.exception.ResourceNotFoundException;
 import com.erp.company.repository.*;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class AuthorizationService {
     private final PermissionRepository permissionRepository;
     private final GroupPermissionRepository groupPermissionRepository;
     private final UserGroupAssignmentRepository userGroupAssignmentRepository;
+    private final EntityManager entityManager;
 
     @Transactional
     public void bootstrapAuthorizationModel() {
@@ -169,6 +171,7 @@ public class AuthorizationService {
         request.getGroupIds().forEach(targetGroupIds::add);
 
         userGroupAssignmentRepository.deleteByUserIdAndCompanyId(request.getUserId(), request.getCompanyId());
+        entityManager.flush();
 
         for (UUID groupId : targetGroupIds) {
             AuthorizationGroup group = groupRepository.findById(groupId)

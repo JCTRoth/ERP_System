@@ -2,9 +2,13 @@ package com.erp.scripting.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,64 +32,195 @@ class DataProxyServiceTest {
         ReflectionTestUtils.setField(service, "companyUrl", "http://company:8080");
     }
 
-    @Test
-    void testUnknownServiceThrows() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                service.executeGraphQL("unknown", "{ test }", null, null, null));
-        assertTrue(ex.getMessage().contains("Unknown service"));
-        assertTrue(ex.getMessage().contains("unknown"));
-    }
+    // ── Service name validation ──────────────────────────────────────────
 
-    @Test
-    void testAllowedServiceNames() {
-        // These should NOT throw IllegalArgumentException for service name
-        // They will throw RuntimeException because no real server is listening
-        for (String name : new String[]{"gateway", "masterdata", "shop", "accounting", "user", "company"}) {
+    @Nested
+    class ServiceNameValidation {
+
+        @Test
+        void unknownServiceThrowsIllegalArgument() {
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                    service.executeGraphQL("unknown", "{ test }", null, null, null));
+            assertTrue(ex.getMessage().contains("Unknown service"));
+            assertTrue(ex.getMessage().contains("unknown"));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"gateway", "masterdata", "shop", "accounting", "user", "company"})
+        void allowedServiceNamesPassValidation(String name) {
+            // Should fail at HTTP level, NOT at service-name validation
             RuntimeException ex = assertThrows(RuntimeException.class, () ->
                     service.executeGraphQL(name, "{ test }", null, null, null));
-            // Should fail at HTTP level, not at service validation
-            assertTrue(ex.getMessage().contains("Failed to query"), 
+            assertTrue(ex.getMessage().contains("Failed to query"),
                     "Service '" + name + "' should be allowed but failed with: " + ex.getMessage());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"MasterData", "SHOP", "  accounting  ", "Gateway"})
+        void serviceNameIsCaseAndWhitespaceInsensitive(String name) {
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.executeGraphQL(name, "{ test }", null, null, null));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"", "  ", "evil-service", "scripting", "notification", "../../etc/passwd"})
+        void disallowedServiceNamesThrow(String name) {
+            assertThrows(Exception.class, () ->
+                    service.executeGraphQL(name, "{ test }", null, null, null));
         }
     }
 
-    @Test
-    void testServiceNameCaseInsensitive() {
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                service.executeGraphQL("MasterData", "{ test }", null, null, null));
-        assertTrue(ex.getMessage().contains("Failed to query"));
+    // ── getAvailableServices ─────────────────────────────────────────────
+
+    @Nested
+    class AvailableServices {
+
+        @Test
+        void returnsServicesAndUsage() {
+            Map<String, Object> result = service.getAvailableServices();
+            assertNotNull(result);
+            assertTrue(result.containsKey("services"));
+            assertTrue(result.containsKey("usage"));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        void listsAllSixServices() {
+            Map<String, Object> result = service.getAvailableServices();
+            List<Map<String, String>> services = (List<Map<String, String>>) result.get("services");
+            assertEquals(6, services.size());
+            List<String> names = services.stream().map(m -> m.get("name")).toList();
+            assertTrue(names.containsAll(List.of("gateway", "masterdata", "shop", "accounting", "user", "company")));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        void eachServiceHasDescription() {
+            Map<String, Object> result = service.getAvailableServices();
+            List<Map<String, String>> services = (List<Map<String, String>>) result.get("services");
+            for (Map<String, String> svc : services) {
+                assertNotNull(svc.get("description"), "Service " + svc.get("name") + " missing description");
+                assertFalse(svc.get("description").isBlank());
+            }
+        }
     }
 
-    @Test
-    void testGetAvailableServices() {
-        Map<String, Object> result = service.getAvailableServices();
-        assertNotNull(result);
-        assertTrue(result.containsKey("services"));
-        assertTrue(result.containsKey("usage"));
+    // ── forwardGraphQLMutation ───────────────────────────────────────────
+
+    @Nested
+    class MutationForwarding {
+
+        @Test
+        void rejectsQueryThatIsNotMutation() {
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                    service.forwardGraphQLMutation("masterdata", "{ query }", null, null, null));
+            assertTrue(ex.getMessage().contains("must start with 'mutation'"));
+        }
+
+        @Test
+        void rejectsSubscription() {
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                    service.forwardGraphQLMutation("masterdata", "subscription { test }", null, null, null));
+            assertTrue(ex.getMessage().contains("must start with 'mutation'"));
+        }
+
+        @Test
+        void acceptsMutationKeyword() {
+            // Passes validation, fails at HTTP level
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.forwardGraphQLMutation("masterdata", "mutation { test }", null, null, null));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
+
+        @Test
+        void acceptsMutationWithLeadingWhitespace() {
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.forwardGraphQLMutation("masterdata", "  \n mutation { test }", null, null, null));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
+
+        @Test
+        void acceptsMutationCaseInsensitive() {
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.forwardGraphQLMutation("masterdata", "MUTATION { test }", null, null, null));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
     }
 
-    @Test
-    void testForwardGraphQLMutationValidation() {
-        // Mutation must start with "mutation"
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                service.forwardGraphQLMutation("masterdata", "{ query }", null, null, null));
-        assertTrue(ex.getMessage().contains("must start with 'mutation'"));
+    // ── forwardGraphQLQuery (Bearer token handling) ──────────────────────
+
+    @Nested
+    class QueryForwarding {
+
+        @Test
+        void passesValidationWithToken() {
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.forwardGraphQLQuery("masterdata", "{ test }", null, "my-token", "company-1"));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
+
+        @Test
+        void worksWithNullToken() {
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.forwardGraphQLQuery("masterdata", "{ test }", null, null, null));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
+
+        @Test
+        void doesNotDoubleBearerPrefix() {
+            // If token already has Bearer prefix, it should not be doubled
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.forwardGraphQLQuery("masterdata", "{ test }", null, "Bearer already", null));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
+
+        @Test
+        void worksWithVariables() {
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.forwardGraphQLQuery("masterdata",
+                            "query GetCustomer($id: UUID!) { customer(id: $id) { id } }",
+                            Map.of("id", "test-uuid"), "token", "company-1"));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
+
+        @Test
+        void worksWithEmptyVariables() {
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.forwardGraphQLQuery("masterdata", "{ test }", Map.of(), null, null));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
     }
 
-    @Test
-    void testForwardGraphQLMutationAcceptsMutation() {
-        // Should not throw validation error, but will fail at HTTP level
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                service.forwardGraphQLMutation("masterdata", "mutation { test }", null, null, null));
-        assertTrue(ex.getMessage().contains("Failed to query"));
-    }
+    // ── executeGraphQL edge cases ────────────────────────────────────────
 
-    @Test
-    void testForwardGraphQLQueryAddsBearer() {
-        // Test that the method doesn't throw for valid inputs
-        // Actual HTTP call will fail since no server is running
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                service.forwardGraphQLQuery("masterdata", "{ test }", null, "my-token", "company-1"));
-        assertTrue(ex.getMessage().contains("Failed to query"));
+    @Nested
+    class ExecuteGraphQLEdgeCases {
+
+        @Test
+        void emptyAuthHeaderIsNotForwarded() {
+            // Should not crash with empty/blank auth
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.executeGraphQL("masterdata", "{ test }", null, "", ""));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
+
+        @Test
+        void nullVariablesAreAccepted() {
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.executeGraphQL("masterdata", "{ test }", null, null, null));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
+
+        @Test
+        void complexVariablesAreAccepted() {
+            Map<String, Object> vars = Map.of(
+                    "input", Map.of("name", "Test", "nested", Map.of("key", "value")),
+                    "ids", List.of("a", "b", "c")
+            );
+            RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                    service.executeGraphQL("masterdata", "{ test }", vars, null, null));
+            assertTrue(ex.getMessage().contains("Failed to query"));
+        }
     }
 }

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
-import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, UsersIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, UsersIcon, ShieldCheckIcon, UserGroupIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import UserModal from './UserModal';
 import GroupsTab from './GroupsTab';
+import MembersTab from './MembersTab';
 
 const GET_USERS = gql`
   query GetUsers {
@@ -43,9 +44,10 @@ interface User {
 
 export default function UsersPage() {
   const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState<'users' | 'groups'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'members' | 'groups'>('users');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [search, setSearch] = useState('');
 
   const { data, loading, refetch } = useQuery(GET_USERS);
   const [deleteUser] = useMutation(DELETE_USER, {
@@ -75,6 +77,21 @@ export default function UsersPage() {
     setEditingUser(null);
     refetch();
   };
+
+  const users: User[] = data?.users ?? [];
+  const filteredUsers = useMemo(() => {
+    if (!search) return users;
+    const q = search.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.firstName.toLowerCase().includes(q) ||
+        u.lastName.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q)
+    );
+  }, [users, search]);
+
+  const activeCount = users.filter((u) => u.isActive).length;
+  const inactiveCount = users.length - activeCount;
 
   return (
     <div>
@@ -110,6 +127,22 @@ export default function UsersPage() {
           >
             <UsersIcon className="h-5 w-5" />
             {t('users.tabUsers')}
+            {users.length > 0 && (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-700">
+                {users.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
+              activeTab === 'members'
+                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400'
+            }`}
+          >
+            <UserGroupIcon className="h-5 w-5" />
+            {t('users.tabMembers')}
           </button>
           <button
             onClick={() => setActiveTab('groups')}
@@ -128,6 +161,34 @@ export default function UsersPage() {
       {/* Tab Content */}
       {activeTab === 'users' ? (
         <>
+          {/* Stats Bar */}
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 max-w-sm sm:min-w-[280px]">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('users.searchPlaceholder')}
+                  className="input pl-9 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+                {activeCount} {t('common.active')}
+              </span>
+              {inactiveCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
+                  {inactiveCount} {t('common.inactive')}
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Users Table */}
           <div className="card overflow-hidden">
             <div className="overflow-x-auto">
@@ -158,14 +219,14 @@ export default function UsersPage() {
                     {t('common.loading')}
                   </td>
                 </tr>
-              ) : data?.users?.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                    {t('users.noUsers')}
+                    {search ? t('users.noResults') : t('users.noUsers')}
                   </td>
                 </tr>
               ) : (
-                data?.users?.map((user: User) => (
+                filteredUsers.map((user: User) => (
                   <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -239,6 +300,8 @@ export default function UsersPage() {
         />
       )}
         </>
+      ) : activeTab === 'members' ? (
+        <MembersTab />
       ) : (
         <GroupsTab />
       )}

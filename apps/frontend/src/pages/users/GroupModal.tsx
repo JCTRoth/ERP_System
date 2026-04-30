@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import type { AuthGroup } from './GroupsTab';
@@ -59,6 +59,7 @@ export default function GroupModal({ group, companyId, onClose }: GroupModalProp
     new Set(group?.permissions.map((p) => p.permissionCode) ?? [])
   );
   const [error, setError] = useState<string | null>(null);
+  const [permSearch, setPermSearch] = useState('');
 
   const { data: permData } = useQuery(GET_PERMISSIONS_CATALOG);
   const [upsertGroup, { loading: saving }] = useMutation(UPSERT_GROUP);
@@ -75,11 +76,31 @@ export default function GroupModal({ group, companyId, onClose }: GroupModalProp
   }, [name, isEditing]);
 
   // Group permissions by resource
-  const permissionsByResource = permissions.reduce<Record<string, Permission[]>>((acc, perm) => {
-    if (!acc[perm.resource]) acc[perm.resource] = [];
-    acc[perm.resource].push(perm);
-    return acc;
-  }, {});
+  const permissionsByResource = useMemo(() => {
+    return permissions.reduce<Record<string, Permission[]>>((acc, perm) => {
+      if (!acc[perm.resource]) acc[perm.resource] = [];
+      acc[perm.resource].push(perm);
+      return acc;
+    }, {});
+  }, [permissions]);
+
+  // Filter resources by search
+  const filteredResources = useMemo(() => {
+    if (!permSearch) return Object.entries(permissionsByResource);
+    const q = permSearch.toLowerCase();
+    return Object.entries(permissionsByResource)
+      .map(([resource, perms]) => {
+        const filtered = perms.filter(
+          (p) =>
+            p.code.toLowerCase().includes(q) ||
+            p.resource.toLowerCase().includes(q) ||
+            p.operation.toLowerCase().includes(q) ||
+            (p.description ?? '').toLowerCase().includes(q)
+        );
+        return [resource, filtered] as [string, Permission[]];
+      })
+      .filter(([, perms]) => perms.length > 0);
+  }, [permissionsByResource, permSearch]);
 
   const togglePermission = (code: string) => {
     setSelectedPermissions((prev) => {
@@ -247,10 +268,26 @@ export default function GroupModal({ group, companyId, onClose }: GroupModalProp
               </div>
             </div>
 
+            {/* Permission Search */}
+            <div className="relative mb-3">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={permSearch}
+                onChange={(e) => setPermSearch(e.target.value)}
+                placeholder={t('groups.searchPermissions')}
+                className="input pl-9 text-sm"
+              />
+            </div>
+
             <div className="space-y-3">
-              {Object.entries(permissionsByResource).map(([resource, perms]) => {
-                const allSelected = perms.every((p) => selectedPermissions.has(p.code));
-                const someSelected = perms.some((p) => selectedPermissions.has(p.code));
+              {filteredResources.length === 0 ? (
+                <p className="py-4 text-center text-sm text-gray-500">{t('groups.noPermissionsMatch')}</p>
+              ) : (
+                filteredResources.map(([resource, perms]) => {
+                const allPermsForResource = permissionsByResource[resource] ?? [];
+                const allSelected = allPermsForResource.every((p) => selectedPermissions.has(p.code));
+                const someSelected = allPermsForResource.some((p) => selectedPermissions.has(p.code));
 
                 return (
                   <div key={resource} className="rounded-lg border border-gray-200 dark:border-gray-700">
@@ -268,7 +305,7 @@ export default function GroupModal({ group, companyId, onClose }: GroupModalProp
                         {resourceLabels[resource] || resource}
                       </span>
                       <span className="ml-auto text-xs text-gray-400">
-                        {perms.filter((p) => selectedPermissions.has(p.code)).length}/{perms.length}
+                        {allPermsForResource.filter((p) => selectedPermissions.has(p.code)).length}/{allPermsForResource.length}
                       </span>
                     </div>
                     <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -292,7 +329,8 @@ export default function GroupModal({ group, companyId, onClose }: GroupModalProp
                     </div>
                   </div>
                 );
-              })}
+              })
+              )}
             </div>
           </div>
         </div>
