@@ -85,8 +85,10 @@ Financial accounting and reporting.
 | Features a|
 - Chart of accounts (double-entry bookkeeping)
 - Invoice management (AR/AP)
-- Journal entries
-- Payment records
+- Journal entries with automatic posting
+- Payment records (incoming customer payments & outgoing supplier payments)
+- Automatic journal entry creation for payments (Debit/Credit Cash, AR, AP)
+- Account transaction history with running balances
 - Bank account reconciliation
 - Tax rate management
 - Fiscal period tracking

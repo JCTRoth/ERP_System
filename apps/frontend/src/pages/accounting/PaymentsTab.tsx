@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useQuery, useMutation, gql } from "@apollo/client";
-import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, PencilIcon, TrashIcon, ArrowDownTrayIcon, ArrowUpTrayIcon } from "@heroicons/react/24/outline";
 import { useI18n } from "../../providers/I18nProvider";
 import { useCurrency } from '../../hooks/useCurrency';
 
@@ -17,6 +17,7 @@ const GET_PAYMENT_RECORDS = gql`
     paymentRecords(first: $first, where: $where, order: { paymentDate: DESC }) {
       nodes {
         id
+        type
         paymentDate
         amount
         currency
@@ -26,6 +27,8 @@ const GET_PAYMENT_RECORDS = gql`
         invoiceId
         accountId
         bankAccountId
+        payerName
+        payeeName
         invoice {
           id
           invoiceNumber
@@ -73,6 +76,7 @@ const CREATE_PAYMENT_RECORD = gql`
   mutation CreatePaymentRecord($input: CreatePaymentRecordInput!) {
     createPaymentRecord(input: $input) {
       id
+      type
       paymentDate
       amount
       currency
@@ -80,6 +84,8 @@ const CREATE_PAYMENT_RECORD = gql`
       reference
       notes
       invoiceId
+      payerName
+      payeeName
       invoice {
         id
         invoiceNumber
@@ -101,6 +107,8 @@ const UPDATE_PAYMENT_RECORD = gql`
       notes
       invoiceId
       accountId
+      payerName
+      payeeName
       invoice {
         id
         invoiceNumber
@@ -112,6 +120,7 @@ const UPDATE_PAYMENT_RECORD = gql`
 
 interface PaymentRecord {
   id: string;
+  type: string;
   paymentDate: string;
   amount: number;
   currency: string;
@@ -121,6 +130,8 @@ interface PaymentRecord {
   invoiceId: string | null;
   accountId: string | null;
   bankAccountId: string | null;
+  payerName: string | null;
+  payeeName: string | null;
   invoice: { id: string; invoiceNumber: string } | null;
   createdAt: string;
 }
@@ -140,6 +151,7 @@ export default function PaymentsTab() {
     null,
   );
   const [formState, setFormState] = useState({
+    type: "CustomerPayment",
     amount: "",
     currency: "EUR",
     paymentDate: new Date().toISOString().split("T")[0],
@@ -148,6 +160,8 @@ export default function PaymentsTab() {
     notes: "",
     invoiceId: "",
     accountId: "",
+    payeeName: "",
+    payerName: "",
   });
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -206,6 +220,7 @@ export default function PaymentsTab() {
   const handleAddClick = () => {
     setEditingPayment(null);
     setFormState({
+      type: "CustomerPayment",
       amount: "",
       currency: "EUR",
       paymentDate: new Date().toISOString().split("T")[0],
@@ -214,6 +229,8 @@ export default function PaymentsTab() {
       notes: "",
       invoiceId: "",
       accountId: "",
+      payeeName: "",
+      payerName: "",
     });
     setShowModal(true);
   };
@@ -221,6 +238,7 @@ export default function PaymentsTab() {
   const handleEditClick = (payment: PaymentRecord) => {
     setEditingPayment(payment);
     setFormState({
+      type: payment.type || "CustomerPayment",
       amount: String(payment.amount),
       currency: payment.currency || "EUR",
       paymentDate: payment.paymentDate.split("T")[0],
@@ -229,6 +247,8 @@ export default function PaymentsTab() {
       notes: payment.notes || "",
       invoiceId: payment.invoiceId || "",
       accountId: payment.accountId || payment.bankAccountId || "",
+      payeeName: payment.payeeName || "",
+      payerName: payment.payerName || "",
     });
     setShowModal(true);
   };
@@ -279,12 +299,15 @@ export default function PaymentsTab() {
       // Update existing payment
       const input: any = {
         id: editingPayment.id,
+        type: formState.type,
         amount: amountNumber,
         currency: formState.currency || currencyCode,
         method: formState.method,
         paymentDate: isoDate,
         reference: formState.reference || null,
         notes: formState.notes || null,
+        payerName: formState.payerName || null,
+        payeeName: formState.payeeName || null,
       };
 
       if (formState.invoiceId) {
@@ -299,13 +322,15 @@ export default function PaymentsTab() {
     } else {
       // Create new payment
       const input: any = {
-        type: "CustomerPayment",
+        type: formState.type,
         amount: amountNumber,
         currency: formState.currency || currencyCode,
         method: formState.method,
         paymentDate: isoDate,
         reference: formState.reference || null,
         notes: formState.notes || null,
+        payerName: formState.payerName || null,
+        payeeName: formState.payeeName || null,
       };
 
       if (formState.invoiceId) {
@@ -377,7 +402,13 @@ export default function PaymentsTab() {
                   {t("accounting.paymentDate")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                  {t("accounting.type")}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t("accounting.amount")}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                  {t("accounting.counterparty") || "Counterparty"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
                   {t("accounting.paymentMethod")}
@@ -396,21 +427,23 @@ export default function PaymentsTab() {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center">
+                  <td colSpan={8} className="px-6 py-4 text-center">
                     {t("common.loading")}
                   </td>
                 </tr>
               ) : payments.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="px-6 py-4 text-center text-gray-500"
                   >
                     {t("accounting.noPayments") || "No payment records found"}
                   </td>
                 </tr>
               ) : (
-                payments.map((payment: PaymentRecord) => (
+                payments.map((payment: PaymentRecord) => {
+                  const isOutgoing = payment.type === "SUPPLIER_PAYMENT" || payment.type === "SupplierPayment";
+                  return (
                   <tr
                     key={payment.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
@@ -418,8 +451,26 @@ export default function PaymentsTab() {
                     <td className="whitespace-nowrap px-6 py-4">
                       {formatDate(payment.paymentDate)}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 font-medium">
-                      {formatCurrency(payment.amount, payment.currency)}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        isOutgoing
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      }`}>
+                        {isOutgoing
+                          ? <><ArrowUpTrayIcon className="h-3 w-3" />{t("accounting.outgoing") || "Outgoing"}</>
+                          : <><ArrowDownTrayIcon className="h-3 w-3" />{t("accounting.incoming") || "Incoming"}</>
+                        }
+                      </span>
+                    </td>
+                    <td className={`whitespace-nowrap px-6 py-4 font-medium ${isOutgoing ? 'text-red-600 dark:text-red-400' : ''}`}>
+                      {isOutgoing ? '- ' : ''}{formatCurrency(payment.amount, payment.currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm">
+                      {isOutgoing
+                        ? payment.payeeName || '-'
+                        : payment.payerName || '-'
+                      }
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       {t(
@@ -457,7 +508,8 @@ export default function PaymentsTab() {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -474,6 +526,61 @@ export default function PaymentsTab() {
                 : t("accounting.addPayment") || "Add Payment"}
             </h3>
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              {/* Payment Direction */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t("accounting.paymentDirection") || "Payment Direction"}
+                </label>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormState(prev => ({ ...prev, type: "CustomerPayment" }))}
+                    className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                      formState.type === "CustomerPayment"
+                        ? "border-green-500 bg-green-50 text-green-700 dark:border-green-400 dark:bg-green-900/30 dark:text-green-400"
+                        : "border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    <ArrowDownTrayIcon className="h-4 w-4" />
+                    {t("accounting.incoming") || "Incoming"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormState(prev => ({ ...prev, type: "SupplierPayment" }))}
+                    className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                      formState.type === "SupplierPayment"
+                        ? "border-red-500 bg-red-50 text-red-700 dark:border-red-400 dark:bg-red-900/30 dark:text-red-400"
+                        : "border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    <ArrowUpTrayIcon className="h-4 w-4" />
+                    {t("accounting.outgoing") || "Outgoing"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Payer / Payee Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {formState.type === "SupplierPayment"
+                    ? (t("accounting.payeeName") || "Payee / Supplier Name")
+                    : (t("accounting.payerName") || "Payer / Customer Name")
+                  }
+                </label>
+                <input
+                  type="text"
+                  name={formState.type === "SupplierPayment" ? "payeeName" : "payerName"}
+                  value={formState.type === "SupplierPayment" ? formState.payeeName : formState.payerName}
+                  onChange={handleInputChange}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                  placeholder={
+                    formState.type === "SupplierPayment"
+                      ? (t("accounting.payeeNamePlaceholder") || "Supplier or vendor name")
+                      : (t("accounting.payerNamePlaceholder") || "Customer name")
+                  }
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">

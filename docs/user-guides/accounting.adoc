@@ -28,12 +28,34 @@ This guide explains how the Accounting workspace at `/accounting` works. It is o
   - **Delete**: Available in the modal when editing a draft; asks for confirmation.
 
 == Payments Tab
-- **Purpose**: Record incoming payments and link them to invoices and accounts.
-- **List**: Shows Payment Date, Amount (with currency), Method, Reference, Invoice #, and Actions.
-- **Actions**:
-  - **Add Payment**: Opens a modal with amount, currency, payment date, method, reference, optional invoice link, optional account, and notes.
-  - **Edit Payment**: Loads the selected payment into the modal.
+- **Purpose**: Record incoming and outgoing payments and link them to invoices and accounts.
+
+=== Payment Direction
+Every payment has a direction:
+
+- **Incoming (Customer Payment)**: Money received from a customer. Debits the Cash/Bank account and credits Accounts Receivable.
+- **Outgoing (Supplier Payment)**: Money paid to a vendor or supplier. Debits Accounts Payable and credits the Cash/Bank account.
+
+The direction is selected via the **Incoming / Outgoing** toggle at the top of the payment modal. Incoming is the default.
+
+=== Payment List
+- **Columns**: Payment Date, Type (badge with direction icon), Amount (red for outgoing), Counterparty, Method, Reference, Invoice #, and Actions.
+- **Type badges**: A green "Incoming" badge with a down-arrow icon indicates customer payments. A red "Outgoing" badge with an up-arrow icon indicates supplier payments.
+- **Counterparty**: Shows the payer name for incoming payments and the payee name for outgoing payments.
+
+=== Actions
+  - **Add Payment**: Opens a modal. First choose the payment direction (Incoming or Outgoing). Then fill in the counterparty name (customer or supplier), amount, currency, date, method, reference, optional invoice link, optional account, and notes.
+  - **Edit Payment**: Loads the selected payment into the modal; the direction toggle reflects the existing type.
   - **Delete Payment**: Confirmation dialog is shown before removal.
+
+=== Journal Entry Integration
+When a payment is saved, a corresponding double-entry journal entry is automatically created and posted:
+
+- **Incoming**: Debit Cash/Bank (1000), Credit Accounts Receivable (1200)
+- **Outgoing**: Debit Accounts Payable (2000), Credit Cash/Bank (1000)
+
+This ensures account balances update in real time and the balance sheet stays accurate.
+
 - **Validation & defaults**: Amount must be positive; payment date defaults to today; currency defaults to EUR; method defaults to BankTransfer. Linking an invoice is optional.
 
 == Chart of Accounts Tab

@@ -36,7 +36,7 @@ image::docs/flowchart.png[ERP System Architecture Flowchart,alt="ERP System arch
 | AccountingService
 | .NET 8
 | 5001
-| Financial accounting
+| Financial accounting (incoming & outgoing payments, journal entries, reports)
 
 | MasterdataService
 | .NET 8
@@ -308,6 +308,24 @@ mutation {
     id
     orderNumber
     status
+  }
+}
+
+# Create an outgoing (supplier) payment
+mutation {
+  createPaymentRecord(input: {
+    type: "SUPPLIER_PAYMENT"
+    amount: 1250.00
+    currency: "EUR"
+    method: "BANK_TRANSFER"
+    payeeName: "Office Supplies GmbH"
+    reference: "VENDOR-INV-2025-001"
+  }) {
+    id
+    type
+    amount
+    paymentMethod
+    payeeName
   }
 }
 ----

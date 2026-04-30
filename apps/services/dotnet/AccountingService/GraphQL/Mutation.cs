@@ -320,10 +320,14 @@ public class Mutation
 
     private static PaymentMethod TryParsePaymentMethod(string? method)
     {
-        if (!string.IsNullOrWhiteSpace(method) &&
-            Enum.TryParse<PaymentMethod>(method, true, out var parsed))
+        if (!string.IsNullOrWhiteSpace(method))
         {
-            return parsed;
+            // Try original value first, then try without underscores (BANK_TRANSFER → BankTransfer)
+            if (Enum.TryParse<PaymentMethod>(method, true, out var parsed))
+                return parsed;
+            var normalized = method.Replace("_", "");
+            if (Enum.TryParse<PaymentMethod>(normalized, true, out parsed))
+                return parsed;
         }
 
         return PaymentMethod.Other;
@@ -331,9 +335,13 @@ public class Mutation
 
     private static TEnum TryParseEnum<TEnum>(string? value, TEnum @default) where TEnum : struct, Enum
     {
-        if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse<TEnum>(value, true, out var parsed))
+        if (!string.IsNullOrWhiteSpace(value))
         {
-            return parsed;
+            if (Enum.TryParse<TEnum>(value, true, out var parsed))
+                return parsed;
+            var normalized = value.Replace("_", "");
+            if (Enum.TryParse<TEnum>(normalized, true, out parsed))
+                return parsed;
         }
 
         return @default;

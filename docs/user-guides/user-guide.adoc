@@ -21,7 +21,7 @@
 - **Dashboard**: Landing area after login.
 - **Products**: Manage product catalog (names, SKUs, pricing). Appears under `/products`.
 - **Orders**: View and manage shop orders at `/orders`.
-- **Accounting**: Financial workspace (invoices, payments, chart of accounts, journal, reports) at `/accounting`.
+- **Accounting**: Financial workspace (invoices, incoming & outgoing payments, chart of accounts, journal, transaction history, reports) at `/accounting`.
 - **Master Data**: Shared reference data at `/masterdata`.
 - **Templates**: Document templates (AsciiDoc/PDF) at `/templates`.
 - **Translations**: Manage UI translations at `/translations`.
