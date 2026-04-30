@@ -185,6 +185,11 @@ The visual UI builder allows creating custom pages:
 * Properties panel for customization
 * Code export (React/JSON)
 * Page management
+* **Script Editor** — attach JavaScript to buttons with Monaco editor
+* **Database Access** — scripts can read/write data from any ERP service via `ERP.query()` / `ERP.mutate()`
+* **Access Control** — per-page and per-component visibility rules (roles, permissions, groups)
+
+See link:scripting-guide.adoc[Scripting Guide] for detailed documentation on writing scripts with database access.
 
 == Testing
 

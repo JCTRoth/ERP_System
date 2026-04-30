@@ -181,17 +181,21 @@ Internationalization service.
 
 === ScriptingService
 
-Custom business logic execution.
+Custom business logic execution and data proxy for UI Builder scripts.
 
 [cols="20,80"]
 |===
-| Port | 8084
+| Port | 8083
 | Features a|
 - Script storage and versioning
-- Script execution engine
-- Sandbox environment
-- API integrations
+- GraalJS sandbox execution engine with resource limits
+- `ERP.query()` / `ERP.mutate()` — access any ERP service from scripts
+- Data proxy REST API (`/api/data/query`, `/api/data/mutate`, `/api/data/services`)
+- Trigger scripts (ON_CREATE, ON_UPDATE, ON_DELETE)
+- Auth forwarding — scripts run with the caller's permissions
 |===
+
+See link:scripting-guide.adoc[Scripting Guide] for full documentation.
 
 === EdifactService
 

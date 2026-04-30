@@ -1,9 +1,11 @@
+import { useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useUIBuilderStore } from '../../stores/uiBuilderStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useI18n } from '../../providers/I18nProvider';
 import { UIComponent, AccessControl } from '../ui-builder/types';
 import ComponentRenderer from '../ui-builder/components/ComponentRenderer';
+import { executeScriptWithERP } from '../ui-builder/scriptRuntime';
 
 /**
  * Check if the current user has access based on an AccessControl config.
@@ -56,6 +58,24 @@ export default function CustomPageDisplay() {
 
   const page = pages.find((p) => p.slug === slug);
 
+  const handleButtonClick = useCallback((component: UIComponent, event: React.MouseEvent) => {
+    const script = component.script;
+    if (!script) return;
+
+    const mockConsole = {
+      log: (...args: unknown[]) => console.log('[CustomPage Script]', ...args),
+      warn: (...args: unknown[]) => console.warn('[CustomPage Script]', ...args),
+      error: (...args: unknown[]) => console.error('[CustomPage Script]', ...args),
+    };
+
+    executeScriptWithERP(script, component, event.nativeEvent, mockConsole, {
+      allowDOM: true,
+      allowFetch: true,
+    }).catch((err) => {
+      console.error('[CustomPage Script Error]', err);
+    });
+  }, []);
+
   if (!page) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -101,7 +121,7 @@ export default function CustomPageDisplay() {
 
     return (
       <div key={component.id} className="mb-4">
-        <ComponentRenderer component={component} />
+        <ComponentRenderer component={component} onButtonClick={handleButtonClick} isPreview={true} />
       </div>
     );
   };

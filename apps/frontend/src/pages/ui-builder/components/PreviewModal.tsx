@@ -4,6 +4,7 @@ import { UIComponent } from '../types';
 import ComponentRenderer from './ComponentRenderer';
 import { useI18n } from '../../../providers/I18nProvider';
 import { useEscapeKey } from '../../../hooks/useEscapeKey';
+import { executeScriptWithERP } from '../scriptRuntime';
 
 interface PreviewModalProps {
   isOpen: boolean;
@@ -25,48 +26,30 @@ export default function PreviewModal({ isOpen, onClose, rows, pageName, scripts 
       return;
     }
 
-    const logs: string[] = [];
     const mockConsole = {
-      log: (...args: unknown[]) => logs.push(args.map(a => JSON.stringify(a)).join(' ')),
-      warn: (...args: unknown[]) => logs.push('[WARN] ' + args.map(a => JSON.stringify(a)).join(' ')),
-      error: (...args: unknown[]) => logs.push('[ERROR] ' + args.map(a => JSON.stringify(a)).join(' ')),
-      info: (...args: unknown[]) => logs.push('[INFO] ' + args.map(a => JSON.stringify(a)).join(' ')),
+      log: (...args: unknown[]) => console.log('[Script]', ...args),
+      warn: (...args: unknown[]) => console.warn('[Script]', ...args),
+      error: (...args: unknown[]) => console.error('[Script]', ...args),
+      info: (...args: unknown[]) => console.info('[Script]', ...args),
     };
 
-    try {
-      const fn = new Function(
-        'event',
-        'componentId',
-        'console',
-        'alert',
-        'document',
-        'fetch',
-        script
-      );
-
-      fn(
-        event.nativeEvent,
-        component.id,
-        mockConsole,
-        (msg: string) => {
-          logs.push(`[ALERT] ${msg}`);
-          alert(msg);
-        },
-        document,
-        fetch
-      );
-
-      setConsoleOutput(prev => [
-        ...prev, 
-        `[${new Date().toLocaleTimeString()}] Executed script for "${component.props.label}"`,
-        ...logs.map(log => `  → ${log}`)
-      ]);
-    } catch (err) {
-      setConsoleOutput(prev => [
-        ...prev, 
-        `[${new Date().toLocaleTimeString()}] Script error for "${component.props.label}": ${err instanceof Error ? err.message : 'Unknown error'}`
-      ]);
-    }
+    executeScriptWithERP(script, component, event.nativeEvent, mockConsole, {
+      allowDOM: true,
+      allowFetch: true,
+    })
+      .then((logs) => {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] Executed script for "${component.props.label}"`,
+          ...logs.map(log => `  → ${log}`)
+        ]);
+      })
+      .catch((err) => {
+        setConsoleOutput(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] Script error for "${component.props.label}": ${err instanceof Error ? err.message : 'Unknown error'}`
+        ]);
+      });
   }, [scripts]);
 
   if (!isOpen) return null;

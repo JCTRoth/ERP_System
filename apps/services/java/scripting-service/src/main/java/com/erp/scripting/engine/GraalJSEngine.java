@@ -1,5 +1,6 @@
 package com.erp.scripting.engine;
 
+import com.erp.scripting.service.DataProxyService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import java.util.concurrent.*;
 public class GraalJSEngine {
     
     private final ObjectMapper objectMapper;
+    private final DataProxyService dataProxyService;
     private final ExecutorService executorService;
     
     @org.springframework.beans.factory.annotation.Value("${scripting.execution.timeout-ms:5000}")
@@ -32,8 +34,9 @@ public class GraalJSEngine {
     @org.springframework.beans.factory.annotation.Value("${scripting.execution.allow-file-access:false}")
     private boolean allowFileAccess;
     
-    public GraalJSEngine(ObjectMapper objectMapper) {
+    public GraalJSEngine(ObjectMapper objectMapper, DataProxyService dataProxyService) {
         this.objectMapper = objectMapper;
+        this.dataProxyService = dataProxyService;
         this.executorService = Executors.newCachedThreadPool();
     }
     
@@ -43,9 +46,13 @@ public class GraalJSEngine {
     }
     
     public ExecutionResult execute(String code, Map<String, Object> context) {
+        return execute(code, context, null, null);
+    }
+
+    public ExecutionResult execute(String code, Map<String, Object> context, String authToken, String companyId) {
         long startTime = System.currentTimeMillis();
         
-        Future<ExecutionResult> future = executorService.submit(() -> executeInSandbox(code, context));
+        Future<ExecutionResult> future = executorService.submit(() -> executeInSandbox(code, context, authToken, companyId));
         
         try {
             return future.get(timeoutMs, TimeUnit.MILLISECONDS);
@@ -63,7 +70,7 @@ public class GraalJSEngine {
         }
     }
     
-    private ExecutionResult executeInSandbox(String code, Map<String, Object> context) {
+    private ExecutionResult executeInSandbox(String code, Map<String, Object> context, String authToken, String companyId) {
         long startTime = System.currentTimeMillis();
         
         // Create sandboxed context with resource limits
@@ -93,7 +100,7 @@ public class GraalJSEngine {
             }
             
             // Add safe utility functions
-            addUtilityFunctions(graalContext, bindings);
+            addUtilityFunctions(graalContext, bindings, authToken, companyId);
             
             // Wrap code to capture return value
             String wrappedCode = wrapCode(code);
@@ -174,7 +181,7 @@ public class GraalJSEngine {
         return value.toString();
     }
     
-    private void addUtilityFunctions(Context context, Value bindings) {
+    private void addUtilityFunctions(Context context, Value bindings, String authToken, String companyId) {
         // Add console.log that captures output
         StringBuilder logOutput = new StringBuilder();
         context.eval("js", """
@@ -188,10 +195,59 @@ public class GraalJSEngine {
             logOutput.append(msg).append("\n");
             log.debug("Script log: {}", msg);
         });
+
+        // Add _queryService and _mutateService host functions for ERP.query/mutate
+        bindings.putMember("_queryService", (org.graalvm.polyglot.proxy.ProxyExecutable) args -> {
+            String service = args[0].asString();
+            String queryStr = args[1].asString();
+            String varsJson = args.length > 2 && !args[2].isNull() ? args[2].asString() : null;
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> variables = varsJson != null && !varsJson.isEmpty()
+                        ? objectMapper.readValue(varsJson, Map.class) : null;
+                Map<String, Object> result = dataProxyService.forwardGraphQLQuery(service, queryStr, variables, authToken, companyId);
+                return context.asValue(objectMapper.writeValueAsString(result));
+            } catch (Exception e) {
+                log.error("Script query failed: {}", e.getMessage());
+                return context.asValue("{\"errors\":[{\"message\":\"" + e.getMessage().replace("\"", "\\\"") + "\"}]}");
+            }
+        });
+
+        bindings.putMember("_mutateService", (org.graalvm.polyglot.proxy.ProxyExecutable) args -> {
+            String service = args[0].asString();
+            String mutationStr = args[1].asString();
+            String varsJson = args.length > 2 && !args[2].isNull() ? args[2].asString() : null;
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> variables = varsJson != null && !varsJson.isEmpty()
+                        ? objectMapper.readValue(varsJson, Map.class) : null;
+                Map<String, Object> result = dataProxyService.forwardGraphQLMutation(service, mutationStr, variables, authToken, companyId);
+                return context.asValue(objectMapper.writeValueAsString(result));
+            } catch (Exception e) {
+                log.error("Script mutation failed: {}", e.getMessage());
+                return context.asValue("{\"errors\":[{\"message\":\"" + e.getMessage().replace("\"", "\\\"") + "\"}]}");
+            }
+        });
         
-        // Add safe JSON utilities
+        // Add safe JSON utilities and ERP object with query/mutate
         context.eval("js", """
             var ERP = {
+                // Database access — synchronous wrappers around host callbacks
+                query: function(service, query, variables) {
+                    var varsJson = variables ? JSON.stringify(variables) : '';
+                    var resultJson = _queryService(service, query, varsJson);
+                    var result = JSON.parse(resultJson);
+                    if (result.errors && result.errors.length) throw new Error(result.errors[0].message);
+                    return result.data;
+                },
+                mutate: function(service, mutation, variables) {
+                    var varsJson = variables ? JSON.stringify(variables) : '';
+                    var resultJson = _mutateService(service, mutation, varsJson);
+                    var result = JSON.parse(resultJson);
+                    if (result.errors && result.errors.length) throw new Error(result.errors[0].message);
+                    return result.data;
+                },
+
                 // Safe math utilities
                 round: function(num, decimals) { return Math.round(num * Math.pow(10, decimals || 0)) / Math.pow(10, decimals || 0); },
                 clamp: function(num, min, max) { return Math.min(Math.max(num, min), max); },

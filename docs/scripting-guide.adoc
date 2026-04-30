@@ -1,0 +1,592 @@
+= ERP System Scripting Guide
+:toc: left
+:toc-title: Table of Contents
+:sectnums:
+:icons: font
+:source-highlighter: highlight.js
+
+== Overview
+
+The ERP System provides a scripting engine that lets you automate business logic, build custom UI pages, and integrate data across services. Scripts are written in JavaScript and can run in two environments:
+
+* **UI Builder (client-side)**: Scripts attached to buttons on custom pages, executed in the browser
+* **Server-side scripting service**: Scripts stored in the database, executed in a sandboxed GraalJS engine
+
+Both environments provide the `ERP` object for reading and writing data from any ERP service.
+
+== The ERP Object
+
+The `ERP` object is the primary API available in all script contexts. It provides database access and utility functions.
+
+=== ERP.query(service, query, variables?)
+
+Execute a GraphQL query against an ERP service.
+
+[cols="1,1,3"]
+|===
+| Parameter | Type | Description
+
+| `service`
+| `string`
+| Target service name (see <<available-services>>)
+
+| `query`
+| `string`
+| GraphQL query string
+
+| `variables`
+| `object` (optional)
+| GraphQL variables
+|===
+
+Returns the `data` field from the GraphQL response.
+
+.Example: Load all customers
+[source,javascript]
+----
+const data = await ERP.query('masterdata',
+  '{ customers { nodes { id name email customerType } } }');
+console.log('Found', data.customers.nodes.length, 'customers');
+----
+
+.Example: Query with variables
+[source,javascript]
+----
+const data = await ERP.query('masterdata', `
+  query GetCustomer($id: UUID!) {
+    customer(id: $id) { id name email }
+  }
+`, { id: 'a1b2c3d4-...' });
+console.log('Customer:', data.customer.name);
+----
+
+=== ERP.mutate(service, mutation, variables?)
+
+Execute a GraphQL mutation against an ERP service. The mutation string **must** start with `mutation`.
+
+[cols="1,1,3"]
+|===
+| Parameter | Type | Description
+
+| `service`
+| `string`
+| Target service name
+
+| `mutation`
+| `string`
+| GraphQL mutation string (must begin with `mutation`)
+
+| `variables`
+| `object` (optional)
+| GraphQL variables
+|===
+
+.Example: Create a customer
+[source,javascript]
+----
+const data = await ERP.mutate('masterdata', `
+  mutation {
+    createCustomer(input: {
+      name: "Acme Corp"
+      customerType: COMPANY
+      email: "info@acme.com"
+    }) { id name }
+  }
+`);
+console.log('Created customer:', data.createCustomer.id);
+----
+
+.Example: Mutation with variables
+[source,javascript]
+----
+const result = await ERP.mutate('masterdata', `
+  mutation UpdateCustomer($id: UUID!, $input: UpdateCustomerInput!) {
+    updateCustomer(id: $id, input: $input) { id name email }
+  }
+`, {
+  id: customerId,
+  input: { email: 'new-email@example.com' }
+});
+----
+
+[[available-services]]
+=== Available Services
+
+[cols="1,3"]
+|===
+| Service | Description
+
+| `gateway`
+| Apollo Gateway — federated queries across all services
+
+| `masterdata`
+| Customers, suppliers, employees, currencies, payment terms, units of measure
+
+| `shop`
+| Products, categories, orders, inventory
+
+| `accounting`
+| Invoices, payments, journal entries, accounts, reports
+
+| `user`
+| Users, authentication, roles, permissions
+
+| `company`
+| Companies, organizational structure, settings
+|===
+
+TIP: Use `gateway` for federated queries that span multiple services. Use a specific service for direct queries, which are faster.
+
+=== Utility Functions
+
+[cols="2,1,3"]
+|===
+| Function | Returns | Description
+
+| `ERP.round(num, decimals?)`
+| `number`
+| Round a number to N decimal places (default: 0)
+
+| `ERP.sum(arr)`
+| `number`
+| Sum of an array of numbers
+
+| `ERP.avg(arr)`
+| `number`
+| Average of an array of numbers
+
+| `ERP.isEmail(str)`
+| `boolean`
+| Validate email format
+
+| `ERP.isUUID(str)`
+| `boolean`
+| Validate UUID format
+
+| `ERP.now()`
+| `number`
+| Current timestamp in milliseconds
+
+| `ERP.formatDate(timestamp)`
+| `string`
+| Format timestamp as ISO 8601 string
+
+| `ERP.slugify(str)`
+| `string`
+| Convert string to URL-safe slug
+|===
+
+Server-side scripts also have access to:
+
+* `ERP.clamp(num, min, max)` — clamp a number to a range
+* `ERP.unique(arr)` — deduplicate array elements
+* `ERP.groupBy(arr, key)` — group array items by a property
+
+== UI Builder Scripts
+
+=== Overview
+
+In the UI Builder, you can attach JavaScript scripts to button components. These scripts run when a user clicks the button in preview mode or on a published custom page.
+
+=== Editing Scripts
+
+1. Open the UI Builder
+2. Select a button component
+3. Click the script icon (code bracket) to open the Script Editor
+4. Write your JavaScript code
+5. Click **Test** to execute in a sandboxed environment
+6. Click **Save Script** to save
+
+=== Available Variables
+
+In addition to the `ERP` object, scripts have access to:
+
+[cols="1,3"]
+|===
+| Variable | Description
+
+| `event`
+| The DOM click event object
+
+| `componentId`
+| The unique ID of the clicked button
+
+| `console`
+| Logging — `console.log()`, `console.warn()`, `console.error()`, `console.info()`
+
+| `alert(message)`
+| Show a browser alert dialog
+
+| `document`
+| The DOM document object (for element manipulation)
+
+| `fetch(url, options)`
+| Standard Fetch API for arbitrary HTTP requests
+|===
+
+=== Async/Await
+
+UI Builder scripts support `async`/`await`. All `ERP.query()` and `ERP.mutate()` calls are asynchronous:
+
+[source,javascript]
+----
+// This works — scripts are automatically wrapped in async context
+const data = await ERP.query('masterdata',
+  '{ customers { nodes { id name } } }');
+
+for (const customer of data.customers.nodes) {
+  console.log(customer.name);
+}
+----
+
+=== Error Handling
+
+Errors are caught and displayed in the preview console:
+
+[source,javascript]
+----
+try {
+  const data = await ERP.query('masterdata',
+    '{ customers { nodes { id name } } }');
+  console.log('Success:', data);
+} catch (err) {
+  console.error('Failed to load customers:', err.message);
+}
+----
+
+=== Example: Customer List Button
+
+[source,javascript]
+----
+// Load customers and display count
+const data = await ERP.query('masterdata',
+  '{ customers { nodes { id name email customerType } } }');
+const customers = data.customers.nodes;
+
+console.log(`Found ${customers.length} customers`);
+
+// Show summary
+const companies = customers.filter(c => c.customerType === 'COMPANY');
+const individuals = customers.filter(c => c.customerType === 'INDIVIDUAL');
+console.log(`Companies: ${companies.length}, Individuals: ${individuals.length}`);
+
+alert(`Total customers: ${customers.length}`);
+----
+
+=== Example: Create Order from Template
+
+[source,javascript]
+----
+// Create a new order for the first customer
+const custData = await ERP.query('masterdata',
+  '{ customers { nodes { id name } } }');
+
+if (custData.customers.nodes.length === 0) {
+  alert('No customers found!');
+  return;
+}
+
+const customer = custData.customers.nodes[0];
+
+const orderData = await ERP.mutate('shop', `
+  mutation CreateOrder($input: CreateOrderInput!) {
+    createOrder(input: $input) {
+      id
+      orderNumber
+      status
+    }
+  }
+`, {
+  input: {
+    customerId: customer.id,
+    notes: 'Created from UI Builder script'
+  }
+});
+
+console.log('Created order:', orderData.createOrder.orderNumber);
+alert(`Order ${orderData.createOrder.orderNumber} created for ${customer.name}`);
+----
+
+=== Example: Dashboard Data
+
+[source,javascript]
+----
+// Load and display key metrics
+const [customers, orders, invoices] = await Promise.all([
+  ERP.query('masterdata', '{ customers { totalCount } }'),
+  ERP.query('shop', '{ orders { totalCount } }'),
+  ERP.query('accounting', '{ invoices { totalCount } }'),
+]);
+
+console.log('=== Dashboard ===');
+console.log(`Customers: ${customers.customers.totalCount}`);
+console.log(`Orders: ${orders.orders.totalCount}`);
+console.log(`Invoices: ${invoices.invoices.totalCount}`);
+----
+
+== Server-Side Scripts
+
+=== Overview
+
+Server-side scripts are stored in the database and executed via the Scripting Service's GraphQL API. They run in a sandboxed GraalJS engine with strict resource limits:
+
+* **Timeout**: 5 seconds (configurable)
+* **Max statements**: 10,000 (prevents infinite loops)
+* **No file system access**
+* **No network access** (except via ERP.query/mutate)
+* **No Java class access**
+
+=== Executing Scripts
+
+Scripts are executed via GraphQL:
+
+[source,graphql]
+----
+mutation {
+  executeScript(
+    scriptId: "uuid-here"
+    input: { key: "value" }
+    executedBy: "user-uuid"
+  ) {
+    executionId
+    success
+    result
+    error
+    executionTimeMs
+  }
+}
+----
+
+=== Script Types
+
+[cols="1,3"]
+|===
+| Type | Description
+
+| `UTILITY`
+| General-purpose utility scripts
+
+| `TRIGGER`
+| Scripts triggered by entity events (create, update, delete)
+
+| `REPORT`
+| Scripts that generate reports or aggregate data
+
+| `INTEGRATION`
+| Scripts for third-party system integration
+|===
+
+=== Triggers
+
+Trigger scripts run automatically when entities are created, updated, or deleted:
+
+[source,graphql]
+----
+mutation {
+  executeTrigger(
+    companyId: "company-uuid"
+    triggerEvent: "ON_CREATE"
+    triggerEntity: "order"
+    data: { orderId: "order-uuid", total: 1500 }
+    executedBy: "user-uuid"
+  ) {
+    executionId
+    success
+    result
+  }
+}
+----
+
+=== ERP.query/mutate in Server-Side Scripts
+
+Server-side scripts can also use `ERP.query()` and `ERP.mutate()`:
+
+[source,javascript]
+----
+// Server-side script: validate order total against customer credit limit
+var order = ERP.query('shop', `
+  query { order(id: "${input.orderId}") { customerId totalAmount } }
+`);
+
+var customer = ERP.query('masterdata', `
+  query { customer(id: "${order.order.customerId}") { name creditLimit } }
+`);
+
+if (order.order.totalAmount > customer.customer.creditLimit) {
+  console.error('Order exceeds credit limit for ' + customer.customer.name);
+  return { approved: false, reason: 'Credit limit exceeded' };
+}
+
+return { approved: true };
+----
+
+NOTE: In server-side scripts, `ERP.query()` and `ERP.mutate()` are **synchronous** (they block until the response returns). In UI Builder scripts, they are **asynchronous** and require `await`.
+
+== Access Control
+
+=== How It Works
+
+Scripts do **not** bypass access control. Every `ERP.query()` and `ERP.mutate()` call forwards the current user's authentication token and company ID to the target service. The target service enforces its own permission checks.
+
+This means:
+
+* A script can only access data that the logged-in user is authorized to see
+* Mutations are validated against the user's permissions
+* Company-scoped data filtering is automatically applied
+* Global super admins can access all data
+
+=== Architecture
+
+[source]
+----
+┌───────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   UI Builder      │     │ Scripting Service │     │ Target Service  │
+│   (Browser)       │────▶│ /api/data/query   │────▶│ /graphql        │
+│                   │     │ /api/data/mutate  │     │                 │
+│ Sends:            │     │ Forwards:         │     │ Enforces:       │
+│ - Auth token      │     │ - Authorization   │     │ - Auth checks   │
+│ - X-Company-Id    │     │ - X-Company-Id    │     │ - Company scope │
+└───────────────────┘     └──────────────────┘     └─────────────────┘
+----
+
+== REST API Reference
+
+The Scripting Service exposes REST endpoints for the data proxy:
+
+=== POST /api/data/query
+
+Execute a GraphQL query.
+
+.Request
+[source,json]
+----
+{
+  "service": "masterdata",
+  "query": "{ customers { nodes { id name } } }",
+  "variables": {}
+}
+----
+
+.Headers
+[cols="1,3"]
+|===
+| Header | Description
+
+| `Authorization`
+| Bearer token for authentication
+
+| `X-Company-Id`
+| Company ID for scoping data
+
+| `Content-Type`
+| Must be `application/json`
+|===
+
+.Response
+[source,json]
+----
+{
+  "data": {
+    "customers": {
+      "nodes": [
+        { "id": "...", "name": "Acme Corp" }
+      ]
+    }
+  }
+}
+----
+
+=== POST /api/data/mutate
+
+Execute a GraphQL mutation. The `query` field must start with `mutation`.
+
+.Request
+[source,json]
+----
+{
+  "service": "masterdata",
+  "query": "mutation { createCustomer(input: { name: \"Test\", customerType: COMPANY }) { id } }",
+  "variables": {}
+}
+----
+
+=== GET /api/data/services
+
+Returns a list of available services and usage information.
+
+.Response
+[source,json]
+----
+{
+  "services": [
+    { "name": "gateway", "description": "Apollo Gateway — federated queries" },
+    { "name": "masterdata", "description": "Customers, suppliers, employees..." }
+  ],
+  "usage": {
+    "query": "POST /api/data/query with { service, query, variables }",
+    "mutate": "POST /api/data/mutate with { service, query, variables }"
+  }
+}
+----
+
+== Configuration
+
+=== Service URLs
+
+Service URLs are configured in `application.yml` with environment variable overrides:
+
+[source,yaml]
+----
+erp:
+  services:
+    gateway: ${GATEWAY_URL:http://gateway:4000}
+    masterdata: ${MASTERDATA_SERVICE_URL:http://masterdata-service:5002}
+    shop: ${SHOP_SERVICE_URL:http://shop-service:5003}
+    accounting: ${ACCOUNTING_SERVICE_URL:http://accounting-service:5001}
+    user: ${USER_SERVICE_URL:http://user-service:5000}
+    company: ${COMPANY_SERVICE_URL:http://company-service:8080}
+----
+
+=== Execution Limits
+
+[source,yaml]
+----
+scripting:
+  execution:
+    timeout-ms: 5000        # Max execution time
+    max-memory-mb: 64       # Max memory per script
+    max-statements: 10000   # Max JS statements (prevents infinite loops)
+    allow-network: false    # Network access (ERP.query/mutate still works via host callbacks)
+    allow-file-access: false
+----
+
+== Troubleshooting
+
+=== Common Errors
+
+[cols="2,3"]
+|===
+| Error | Solution
+
+| `Unknown service: 'xxx'`
+| Use one of the allowed service names: gateway, masterdata, shop, accounting, user, company
+
+| `Query must start with 'mutation'`
+| For ERP.mutate(), ensure your GraphQL string begins with `mutation`
+
+| `Script execution timed out`
+| Script exceeded the timeout limit (default 5s). Optimize or break into smaller operations
+
+| `Query failed (401)`
+| User is not authenticated. Ensure a valid auth token is present
+
+| `Query failed (403)`
+| User lacks permission for this operation
+|===
+
+=== Debugging Tips
+
+1. **Use console.log()**: Output is captured in the preview console (UI Builder) or in script execution results (server-side)
+2. **Test incrementally**: Use the Test button in the Script Editor to validate before saving
+3. **Check service availability**: Call `GET /api/data/services` to verify the data proxy is running
+4. **Inspect network**: In the browser dev tools, check the `/api/data/query` requests for errors

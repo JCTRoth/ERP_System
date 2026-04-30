@@ -5,6 +5,7 @@ import path from "node:path";
 const gatewayUrl = "http://gateway:4000";
 const shopUrl = "http://shop-service:5003";
 const notificationUrl = "http://notification-service:8082";
+const scriptingUrl = "http://scripting-service:8083";
 
 // Log resolved backend targets when Vite starts (helps debug proxy DNS issues)
 console.log(`[vite] using gateway target: ${gatewayUrl}, shop target: ${shopUrl}, notification target: ${notificationUrl}`);
@@ -34,6 +35,12 @@ export default defineConfig({
       // Templates service API
       "/api/templates": {
         target: "http://templates-service:8087",
+        changeOrigin: true,
+        secure: false,
+      },
+      // Scripting service data proxy API
+      "/api/data": {
+        target: scriptingUrl,
         changeOrigin: true,
         secure: false,
       },

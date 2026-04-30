@@ -230,25 +230,29 @@ services:
       - default
     restart: unless-stopped
 
-  # scripting-service:
-  #   build:
-  #     context: ./apps/services/java/scripting-service
-  #     # use default Dockerfile in scripting-service
-  #   profiles:
-  #     - scripting  # Only start with: docker compose --profile scripting up
-  #   ports:
-  #     - "8084:8084"
-  #   volumes:
-  #     - ./apps/services/java/scripting-service:/app
-  #   environment:
-  #     - SPRING_PROFILES_ACTIVE=dev
-  #     - DB_HOST=postgres
-  #     - DB_PORT=5432
-  #     - DB_NAME=companydb
-  #     - DB_USER=erp_company
-  #     - DB_PASSWORD=postgres
-  #   depends_on:
-  #     - postgres
+  scripting-service:
+    build:
+      context: ./apps/services/java/scripting-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=scriptingdb
+      - DB_USER=erp_scripting
+      - DB_PASSWORD=postgres
+      - GATEWAY_URL=http://gateway:4000
+      - MASTERDATA_SERVICE_URL=http://masterdata-service:5002
+      - SHOP_SERVICE_URL=http://shop-service:5003
+      - ACCOUNTING_SERVICE_URL=http://accounting-service:5001
+      - USER_SERVICE_URL=http://user-service:5000
+      - COMPANY_SERVICE_URL=http://company-service:8080
+    depends_on:
+      - postgres
+    networks:
+      - default
+    restart: unless-stopped
 
   # edifact-service:
   #   build:

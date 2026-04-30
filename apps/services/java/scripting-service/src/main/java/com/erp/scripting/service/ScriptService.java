@@ -108,14 +108,26 @@ public class ScriptService {
     
     @Transactional
     public ScriptExecutionResult execute(UUID scriptId, Map<String, Object> input, UUID executedBy) {
+        return execute(scriptId, input, executedBy, null, null);
+    }
+
+    @Transactional
+    public ScriptExecutionResult execute(UUID scriptId, Map<String, Object> input, UUID executedBy,
+                                         String authToken, String companyId) {
         Script script = scriptRepository.findById(scriptId)
                 .orElseThrow(() -> new IllegalArgumentException("Script not found: " + scriptId));
         
-        return executeScript(script, input, executedBy);
+        return executeScript(script, input, executedBy, authToken, companyId);
     }
     
     @Transactional
     public ScriptExecutionResult executeScript(Script script, Map<String, Object> input, UUID executedBy) {
+        return executeScript(script, input, executedBy, null, null);
+    }
+
+    @Transactional
+    public ScriptExecutionResult executeScript(Script script, Map<String, Object> input, UUID executedBy,
+                                                String authToken, String companyId) {
         log.info("Executing script: {} ({})", script.getName(), script.getId());
         
         // Create execution record
@@ -128,8 +140,8 @@ public class ScriptService {
                 .build();
         execution = executionRepository.save(execution);
         
-        // Execute in sandbox
-        GraalJSEngine.ExecutionResult result = jsEngine.execute(script.getCode(), input);
+        // Execute in sandbox with auth context for ERP.query/mutate
+        GraalJSEngine.ExecutionResult result = jsEngine.execute(script.getCode(), input, authToken, companyId);
         
         // Update execution record
         execution.setCompletedAt(OffsetDateTime.now());

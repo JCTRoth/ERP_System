@@ -9,7 +9,10 @@ import com.netflix.graphql.dgs.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -92,10 +95,22 @@ public class ScriptDataFetcher {
             @InputArgument Map<String, Object> input,
             @InputArgument String executedBy
     ) {
+        // Extract auth headers from the incoming request for ERP.query/mutate in scripts
+        String authToken = null;
+        String companyId = null;
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs != null) {
+            HttpServletRequest request = attrs.getRequest();
+            authToken = request.getHeader("Authorization");
+            companyId = request.getHeader("X-Company-Id");
+        }
+
         ScriptService.ScriptExecutionResult result = scriptService.execute(
                 UUID.fromString(scriptId),
                 input,
-                executedBy != null ? UUID.fromString(executedBy) : null
+                executedBy != null ? UUID.fromString(executedBy) : null,
+                authToken,
+                companyId
         );
         return new ScriptExecutionResultDTO(
                 result.executionId().toString(),

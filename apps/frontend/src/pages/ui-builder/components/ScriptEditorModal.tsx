@@ -3,6 +3,7 @@ import { XMarkIcon, PlayIcon } from '@heroicons/react/24/outline';
 import Editor from '@monaco-editor/react';
 import { useEscapeKey } from '../../../hooks/useEscapeKey';
 import { scriptEditorOptions } from '../../../components/MonacoConfig';
+import { executeScriptWithERP } from '../scriptRuntime';
 
 interface ScriptEditorModalProps {
   isOpen: boolean;
@@ -38,55 +39,57 @@ export default function ScriptEditorModal({
 //   - componentId: "${componentId}"
 //   - document: DOM document
 //   - console: For logging
+//   - ERP: Database access (query/mutate)
 
 console.log('Button "${componentLabel}" clicked!');
 
-// Example: Show an alert
-// alert('Hello from button!');
+// Example: Load customers from masterdata service
+// const data = await ERP.query('masterdata',
+//   '{ customers { nodes { id name email } } }');
+// console.log('Customers:', data.customers.nodes);
 
-// Example: Update another element
-// const element = document.getElementById('some-id');
-// if (element) element.textContent = 'Updated!';
+// Example: Create a new customer
+// const result = await ERP.mutate('masterdata',
+//   'mutation { createCustomer(input: { name: "New Corp", type: "Company" }) { id name } }');
+// console.log('Created:', result.createCustomer);
 
-// Example: Make an API call
-// fetch('/api/data').then(res => res.json()).then(console.log);
+// Example: Load orders from shop service
+// const orders = await ERP.query('shop',
+//   '{ orders { nodes { id orderNumber status } } }');
+// console.log('Orders:', orders.orders.nodes);
+
+// Example: Query through the gateway (federated)
+// const data = await ERP.query('gateway',
+//   '{ customers { nodes { id name } } }');
+
+// Utility functions: ERP.round(), ERP.sum(), ERP.avg(),
+//   ERP.isEmail(), ERP.isUUID(), ERP.now(), ERP.formatDate(),
+//   ERP.slugify()
 `;
 
   const handleTest = () => {
     setTestOutput('');
     setTestError('');
     
-    const logs: string[] = [];
     const mockConsole = {
-      log: (...args: unknown[]) => logs.push(args.map(a => String(a)).join(' ')),
-      warn: (...args: unknown[]) => logs.push('[WARN] ' + args.map(a => String(a)).join(' ')),
-      error: (...args: unknown[]) => logs.push('[ERROR] ' + args.map(a => String(a)).join(' ')),
+      log: (...args: unknown[]) => console.log('[Script Test]', ...args),
+      warn: (...args: unknown[]) => console.warn('[Script Test]', ...args),
+      error: (...args: unknown[]) => console.error('[Script Test]', ...args),
     };
 
-    try {
-      // Create a sandboxed function
-      const fn = new Function(
-        'event', 
-        'componentId', 
-        'console', 
-        'alert',
-        `
-        ${code}
-        `
-      );
-      
-      // Run with mock objects
-      fn(
-        { type: 'click', target: null },
-        componentId,
-        mockConsole,
-        (msg: string) => logs.push(`[ALERT] ${msg}`)
-      );
-      
-      setTestOutput(logs.join('\n') || 'Script executed successfully (no output)');
-    } catch (err) {
-      setTestError(err instanceof Error ? err.message : 'Unknown error');
-    }
+    executeScriptWithERP(
+      code,
+      { id: componentId, props: { label: componentLabel } },
+      { type: 'click', target: null },
+      mockConsole,
+      { allowDOM: false, allowFetch: false },
+    )
+      .then((logs) => {
+        setTestOutput(logs.join('\n') || 'Script executed successfully (no output)');
+      })
+      .catch((err) => {
+        setTestError(err instanceof Error ? err.message : 'Unknown error');
+      });
   };
 
   const handleSave = () => {
@@ -175,7 +178,14 @@ console.log('Button "${componentLabel}" clicked!');
               <li><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">fetch()</code> - Make API calls</li>
               <li><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">console.log()</code> - Log messages</li>
               <li><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">alert()</code> - Show alerts</li>
+              <li><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">ERP.query(service, query, vars?)</code> - Query data from an ERP service</li>
+              <li><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">ERP.mutate(service, mutation, vars?)</code> - Write data to an ERP service</li>
+              <li><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">ERP.round() / ERP.sum() / ERP.avg()</code> - Math utilities</li>
+              <li><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">ERP.isEmail() / ERP.isUUID()</code> - Validation helpers</li>
             </ul>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+              Services: masterdata, shop, accounting, user, company, gateway. Scripts are async — use <code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">await</code>.
+            </p>
           </div>
         </div>
 
