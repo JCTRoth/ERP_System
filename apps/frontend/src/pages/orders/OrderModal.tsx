@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, gql } from '@apollo/client';
-import { XMarkIcon, PlusIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusIcon, TrashIcon, InformationCircleIcon, UserPlusIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -64,6 +64,29 @@ const GET_TAX_CODES = gql`
   }
 `;
 
+const CREATE_CUSTOMER = gql`
+  mutation CreateCustomer($input: CreateCustomerInput!) {
+    createCustomer(input: $input) {
+      id
+      name
+      email
+      contactPerson
+    }
+  }
+`;
+
+const ADD_CUSTOMER_ADDRESS = gql`
+  mutation AddCustomerAddress($customerId: UUID!, $input: CreateAddressInput!) {
+    addCustomerAddress(customerId: $customerId, input: $input) {
+      id
+      addressLine1
+      city
+      postalCode
+      country
+    }
+  }
+`;
+
 interface OrderItem {
   productId: string;
   productName: string;
@@ -80,6 +103,12 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   useEscapeKey(onClose);
   console.log('OrderModal rendered');
   const [customerId, setCustomerId] = useState<string>('');
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newCustomerEmail, setNewCustomerEmail] = useState('');
+  const [newCustomerPhone, setNewCustomerPhone] = useState('');
+  const [createCustomerFromAddress, setCreateCustomerFromAddress] = useState(true);
+  const [updateCustomerAddress, setUpdateCustomerAddress] = useState(false);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState('');
   const [useDifferentBillingAddress, setUseDifferentBillingAddress] = useState(false);
@@ -105,6 +134,8 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   const { data: customersData, loading: customersLoading, error: customersError } = useQuery(GET_CUSTOMERS, ({} as any));
   const { data: taxCodesData, loading: taxCodesLoading, error: taxCodesError } = useQuery(GET_TAX_CODES, ({ client: shopClient } as any));
   const [createOrder, { loading }] = useMutation(CREATE_ORDER, ({ client: shopClient } as any));
+  const [createCustomerMutation] = useMutation(CREATE_CUSTOMER);
+  const [addCustomerAddressMutation] = useMutation(ADD_CUSTOMER_ADDRESS);
 
   // Set default tax code to standard rate (19%) when data loads
   useEffect(() => {
@@ -127,9 +158,34 @@ export default function OrderModal({ onClose }: OrderModalProps) {
     console.log('Customers error:', customersError);
   }, [productsData, productsLoading, productsError, customersData, customersLoading, customersError]);
 
+  // Handle customer selection change
+  const handleCustomerChange = (value: string) => {
+    if (value === '__new__') {
+      setCustomerId('');
+      setIsNewCustomer(true);
+      setCreateCustomerFromAddress(true);
+      setUpdateCustomerAddress(false);
+      // Clear address fields for fresh input
+      setShippingName('');
+      setShippingAddress('');
+      setShippingCity('');
+      setShippingPostalCode('');
+      setShippingCountry('');
+      setShippingPhone('');
+    } else {
+      setCustomerId(value);
+      setIsNewCustomer(false);
+      setCreateCustomerFromAddress(false);
+      setUpdateCustomerAddress(false);
+      setNewCustomerName('');
+      setNewCustomerEmail('');
+      setNewCustomerPhone('');
+    }
+  };
+
   // Auto-fill shipping address from customer master data when customer is selected and shipping address is empty
   useEffect(() => {
-    if (customerId && customersData?.customers?.nodes) {
+    if (customerId && !isNewCustomer && customersData?.customers?.nodes) {
       const selectedCustomer = customersData.customers.nodes.find((c: any) => c.id === customerId);
       
       if (selectedCustomer && 
@@ -165,7 +221,7 @@ export default function OrderModal({ onClose }: OrderModalProps) {
         }
       }
     }
-  }, [customerId, customersData, shippingName, shippingAddress, shippingCity, shippingPostalCode, shippingCountry]);
+  }, [customerId, isNewCustomer, customersData, shippingName, shippingAddress, shippingCity, shippingPostalCode, shippingCountry]);
 
   const addItem = () => {
     setItems([...items, { productId: '', productName: '', quantity: 1, unitPrice: 0 }]);
@@ -200,8 +256,13 @@ export default function OrderModal({ onClose }: OrderModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!customerId) {
+    if (!customerId && !isNewCustomer) {
       alert(t('orders.customerRequired'));
+      return;
+    }
+
+    if (isNewCustomer && !newCustomerName.trim()) {
+      alert(t('orders.customerNameRequired') || 'Customer name is required');
       return;
     }
     
@@ -216,10 +277,59 @@ export default function OrderModal({ onClose }: OrderModalProps) {
     }
 
     try {
+      let orderCustomerId = customerId;
+
+      // Create new customer if needed
+      if (isNewCustomer) {
+        const customerInput: any = {
+          name: newCustomerName.trim(),
+          type: 'Company',
+          email: newCustomerEmail || null,
+          phone: newCustomerPhone || null,
+        };
+
+        // Include address in customer creation if checkbox is checked
+        if (createCustomerFromAddress) {
+          customerInput.addresses = [{
+            type: 'Main',
+            addressLine1: shippingAddress,
+            city: shippingCity,
+            postalCode: shippingPostalCode,
+            country: shippingCountry,
+            isDefault: true,
+          }];
+        }
+
+        const customerResult = await createCustomerMutation({
+          variables: { input: customerInput },
+        });
+        orderCustomerId = customerResult.data.createCustomer.id;
+      }
+      // Update existing customer address if checkbox is checked
+      else if (updateCustomerAddress && customerId) {
+        try {
+          await addCustomerAddressMutation({
+            variables: {
+              customerId,
+              input: {
+                type: 'Shipping',
+                addressLine1: shippingAddress,
+                city: shippingCity,
+                postalCode: shippingPostalCode,
+                country: shippingCountry,
+                isDefault: false,
+              },
+            },
+          });
+        } catch (addrError) {
+          console.warn('Failed to update customer address:', addrError);
+        }
+      }
+
       await createOrder(({
         variables: {
           input: {
-            customerId,
+            customerId: orderCustomerId,
             items: items.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
@@ -269,10 +379,10 @@ export default function OrderModal({ onClose }: OrderModalProps) {
               {t('orders.customer')}
             </label>
             <select
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
+              value={isNewCustomer ? '__new__' : customerId}
+              onChange={(e) => handleCustomerChange(e.target.value)}
               className="input mt-1 w-full"
-              required
+              required={!isNewCustomer}
               disabled={customersLoading}
             >
               <option value="">
@@ -282,6 +392,9 @@ export default function OrderModal({ onClose }: OrderModalProps) {
                   ? t('common.error')
                   : t('orders.selectCustomer')
                 }
+              </option>
+              <option value="__new__">
+                ＋ {t('orders.newCustomer') || 'New Customer'}
               </option>
               {!customersLoading && !customersError && customersData?.customers?.nodes?.map((customer: {
                 id: string;
@@ -298,6 +411,40 @@ export default function OrderModal({ onClose }: OrderModalProps) {
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                 {t('common.error')} {t('orders.customer').toLowerCase()}
               </p>
+            )}
+
+            {/* New Customer Inline Fields */}
+            {isNewCustomer && (
+              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-700 dark:text-blue-400">
+                  <UserPlusIcon className="h-4 w-4" />
+                  {t('orders.newCustomerDetails') || 'New Customer Details'}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder={t('orders.customerName') || 'Customer Name *'}
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    className="input col-span-2"
+                    required
+                  />
+                  <input
+                    type="email"
+                    placeholder={t('orders.customerEmail') || 'Email'}
+                    value={newCustomerEmail}
+                    onChange={(e) => setNewCustomerEmail(e.target.value)}
+                    className="input"
+                  />
+                  <input
+                    type="tel"
+                    placeholder={t('orders.phone') || 'Phone'}
+                    value={newCustomerPhone}
+                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                    className="input"
+                  />
+                </div>
+              </div>
             )}
           </div>
 
@@ -507,6 +654,38 @@ export default function OrderModal({ onClose }: OrderModalProps) {
                 className="input col-span-2"
               />
             </div>
+
+            {/* Create Customer from Address / Update Customer Address */}
+            {isNewCustomer && (
+              <div className="mt-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={createCustomerFromAddress}
+                    onChange={(e) => setCreateCustomerFromAddress(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {t('orders.createCustomerFromAddress') || 'Create new Customer from Address'}
+                  </span>
+                </label>
+              </div>
+            )}
+            {!isNewCustomer && customerId && (
+              <div className="mt-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={updateCustomerAddress}
+                    onChange={(e) => setUpdateCustomerAddress(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {t('orders.updateCustomerAddress') || 'Update customer Address'}
+                  </span>
+                </label>
+              </div>
+            )}
 
             {/* Different Billing Address Checkbox */}
             <div className="mt-4">
