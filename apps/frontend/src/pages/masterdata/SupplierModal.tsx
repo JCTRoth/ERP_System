@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useCurrency } from '../../hooks/useCurrency';
 import Tooltip from '../../components/Tooltip';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 
@@ -52,6 +53,7 @@ interface SupplierModalProps {
 export default function SupplierModal({ supplier, onClose, onSuccess }: SupplierModalProps) {
   const { t } = useI18n();
   useEscapeKey(onClose);
+  const { currencyCode } = useCurrency();
   const isEditing = !!supplier;
 
   const [formData, setFormData] = useState({
@@ -66,7 +68,7 @@ export default function SupplierModal({ supplier, onClose, onSuccess }: Supplier
     country: '',
     vatNumber: '',
     leadTimeDays: 14,
-    currency: 'USD',
+    currency: currencyCode,
     isActive: true,
     notes: '',
   });

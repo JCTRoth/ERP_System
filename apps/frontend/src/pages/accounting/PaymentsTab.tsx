@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { useQuery, useMutation, gql } from "@apollo/client";
 import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useI18n } from "../../providers/I18nProvider";
+import { useCurrency } from '../../hooks/useCurrency';
 
 interface Account {
   id: string;
@@ -279,7 +280,7 @@ export default function PaymentsTab() {
       const input: any = {
         id: editingPayment.id,
         amount: amountNumber,
-        currency: formState.currency || "EUR",
+        currency: formState.currency || currencyCode,
         method: formState.method,
         paymentDate: isoDate,
         reference: formState.reference || null,
@@ -300,7 +301,7 @@ export default function PaymentsTab() {
       const input: any = {
         type: "CustomerPayment",
         amount: amountNumber,
-        currency: formState.currency || "EUR",
+        currency: formState.currency || currencyCode,
         method: formState.method,
         paymentDate: isoDate,
         reference: formState.reference || null,
@@ -319,15 +320,10 @@ export default function PaymentsTab() {
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = "USD") => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-    }).format(amount);
-  };
+  const { formatCurrency, currencyCode, locale } = useCurrency();
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",

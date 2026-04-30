@@ -3,6 +3,7 @@ import { useMutation, useQuery, gql } from '@apollo/client';
 import { XMarkIcon, PlusIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useCurrency } from '../../hooks/useCurrency';
 import { getShopApolloClient } from '../../lib/apollo';
 
 const shopClient = getShopApolloClient();
@@ -245,12 +246,7 @@ export default function OrderModal({ onClose }: OrderModalProps) {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  const { formatCurrency } = useCurrency();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

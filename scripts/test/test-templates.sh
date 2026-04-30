@@ -213,7 +213,7 @@ for i in $(seq 0 $((TEMPLATE_COUNT - 1))); do
   HTTP_CODE=$(tail -n1 <<< "$PDF_RESPONSE")
   
   if [ "$HTTP_CODE" == "200" ]; then
-    PDF_SIZE=$(stat -f%z "${TEST_RESULTS_DIR}/${TEMPLATE_KEY}.pdf" 2>/dev/null || stat -c%s "${TEST_RESULTS_DIR}/${TEMPLATE_KEY}.pdf" 2>/dev/null)
+    PDF_SIZE=$(wc -c < "${TEST_RESULTS_DIR}/${TEMPLATE_KEY}.pdf")
     echo -e "${GREEN}OK${NC} ($(numfmt --to=iec $PDF_SIZE 2>/dev/null || echo "$PDF_SIZE bytes"))"
   else
     echo -e "${RED}FAILED${NC} (HTTP $HTTP_CODE)"

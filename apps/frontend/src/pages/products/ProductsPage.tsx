@@ -8,6 +8,7 @@ import {
   FunnelIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useCurrency } from '../../hooks/useCurrency';
 import ProductModal from './ProductModal';
 import { getShopApolloClient } from '../../lib/apollo';
 
@@ -135,12 +136,7 @@ export default function ProductsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  const { formatCurrency } = useCurrency();
 
   return (
     <div>

@@ -8,6 +8,7 @@ import {
   PencilIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useCurrency } from '../../hooks/useCurrency';
 import { AccountModal } from './AccountModal';
 
 const GET_ACCOUNTS = gql`
@@ -85,6 +86,7 @@ const ACCOUNTS_REFRESH_INTERVAL_MS = 10000;
 
 export default function AccountsTab() {
   const { t } = useI18n();
+  const { formatCurrency } = useCurrency();
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE']));
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [modalState, setModalState] = useState<{
@@ -188,13 +190,6 @@ export default function AccountsTab() {
       newExpanded.add(type);
     }
     setExpandedTypes(newExpanded);
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
   };
 
   // Group accounts by type

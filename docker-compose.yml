@@ -104,6 +104,7 @@ services:
     container_name: erp-accounting-service
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://*:5001
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=accountingdb;Username=erp_accounting;Password=${DB_PASSWORD:-RaxhWee5Pei1e}
       Database__EnableSeeding: "true"
     depends_on:

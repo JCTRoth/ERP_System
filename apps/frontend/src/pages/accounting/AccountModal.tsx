@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useCurrency } from '../../hooks/useCurrency';
 
 interface Account {
   id: string;
@@ -27,13 +28,14 @@ interface AccountModalProps {
 export function AccountModal({ isOpen, mode, account, onClose, onSave }: AccountModalProps) {
   const { t } = useI18n();
   useEscapeKey(onClose, isOpen);
+  const { currencyCode } = useCurrency();
   const [formData, setFormData] = useState({
     accountNumber: '',
     name: '',
     type: 'ASSET',
     category: 'CURRENT',
     parentAccountId: '',
-    currency: 'USD',
+    currency: currencyCode,
     isActive: true,
     description: '',
   });
@@ -46,7 +48,7 @@ export function AccountModal({ isOpen, mode, account, onClose, onSave }: Account
         type: account.type,
         category: account.category,
         parentAccountId: account.parentAccountId || '',
-        currency: 'USD', // Default for edit, since UpdateAccountInput doesn't include currency
+        currency: currencyCode,
         isActive: account.isActive,
         description: account.description || '',
       });
@@ -57,12 +59,12 @@ export function AccountModal({ isOpen, mode, account, onClose, onSave }: Account
         type: 'ASSET',
         category: 'CASH',
         parentAccountId: '',
-        currency: 'USD',
+        currency: currencyCode,
         isActive: true,
         description: '',
       });
     }
-  }, [mode, account, isOpen]);
+  }, [mode, account, isOpen, currencyCode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -383,7 +383,11 @@ public class AccountingDbContext : DbContext
         var revenueId = Guid.Parse("a0000000-0000-0000-0000-000000000005");
         var cogsId = Guid.Parse("a0000000-0000-0000-0000-000000000006");
         var expenseId = Guid.Parse("a0000000-0000-0000-0000-000000000007");
+        var equityId = Guid.Parse("a0000000-0000-0000-0000-000000000008");
 
+        // Balances reflect all seeded journal entry lines (including opening balance entries).
+        // Asset/Expense: balance = sum(debit) - sum(credit)
+        // Liability/Equity/Revenue: balance = sum(credit) - sum(debit)
         modelBuilder.Entity<Account>().HasData(
             new Account
             {
@@ -393,6 +397,7 @@ public class AccountingDbContext : DbContext
                 Name = "Cash",
                 Type = AccountType.Asset,
                 Category = AccountCategory.Cash,
+                Balance = 24550.00m, // 25000 opening - 450 write-off
                 IsActive = true,
                 IsSystemAccount = true,
                 SortOrder = 1,
@@ -406,6 +411,7 @@ public class AccountingDbContext : DbContext
                 Name = "Bank Account",
                 Type = AccountType.Asset,
                 Category = AccountCategory.BankAccount,
+                Balance = 14650.00m, // 25000 opening + 450 payments - 2500 rent Jan - 2500 rent Feb - 5800 supplier
                 IsActive = true,
                 IsSystemAccount = true,
                 SortOrder = 2,
@@ -419,6 +425,7 @@ public class AccountingDbContext : DbContext
                 Name = "Accounts Receivable",
                 Type = AccountType.Asset,
                 Category = AccountCategory.AccountsReceivable,
+                Balance = 204.50m, // 654.50 invoiced - 450 received
                 IsActive = true,
                 IsSystemAccount = true,
                 SortOrder = 3,
@@ -432,9 +439,24 @@ public class AccountingDbContext : DbContext
                 Name = "Accounts Payable",
                 Type = AccountType.Liability,
                 Category = AccountCategory.AccountsPayable,
+                Balance = 0.00m, // 5800 purchase - 5800 paid
                 IsActive = true,
                 IsSystemAccount = true,
                 SortOrder = 10,
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new Account
+            {
+                Id = equityId,
+                CompanyId = DemoCompanyId,
+                AccountNumber = "3000",
+                Name = "Owner's Equity",
+                Type = AccountType.Equity,
+                Category = AccountCategory.Capital,
+                Balance = 50000.00m, // Initial capital
+                IsActive = true,
+                IsSystemAccount = true,
+                SortOrder = 15,
                 CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new Account
@@ -445,6 +467,7 @@ public class AccountingDbContext : DbContext
                 Name = "Sales Revenue",
                 Type = AccountType.Revenue,
                 Category = AccountCategory.Sales,
+                Balance = 654.50m, // 238 + 178.50 + 238
                 IsActive = true,
                 IsSystemAccount = true,
                 SortOrder = 20,
@@ -458,6 +481,7 @@ public class AccountingDbContext : DbContext
                 Name = "Cost of Goods Sold",
                 Type = AccountType.Expense,
                 Category = AccountCategory.CostOfGoodsSold,
+                Balance = 6250.00m, // 450 write-off + 5800 purchase
                 IsActive = true,
                 IsSystemAccount = true,
                 SortOrder = 30,
@@ -471,6 +495,7 @@ public class AccountingDbContext : DbContext
                 Name = "Operating Expenses",
                 Type = AccountType.Expense,
                 Category = AccountCategory.OperatingExpenses,
+                Balance = 5000.00m, // 2500 rent Jan + 2500 rent Feb
                 IsActive = true,
                 IsSystemAccount = true,
                 SortOrder = 40,
@@ -807,8 +832,42 @@ public class AccountingDbContext : DbContext
         var je8Id = Guid.Parse("d0000000-0000-0000-0000-000000000008");
         var je9Id = Guid.Parse("d0000000-0000-0000-0000-000000000009");
         var je10Id = Guid.Parse("d0000000-0000-0000-0000-000000000010");
+        var jeOpeningId = Guid.Parse("d0000000-0000-0000-0000-000000000100");
+        var jePurchaseId = Guid.Parse("d0000000-0000-0000-0000-000000000101");
 
         modelBuilder.Entity<JournalEntry>().HasData(
+            // JE-Opening: Opening balance - initial company capital
+            new JournalEntry
+            {
+                Id = jeOpeningId,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2025-0001",
+                EntryDate = new DateTime(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Opening balance - initial company capital",
+                Reference = "OPENING-2025",
+                Type = JournalEntryType.Standard,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 50000.00m,
+                TotalCredit = 50000.00m,
+                Currency = "EUR",
+                CreatedAt = new DateTime(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            // JE-Purchase: Purchase from PharmaChem (creates AP, matched by JE10 payment)
+            new JournalEntry
+            {
+                Id = jePurchaseId,
+                CompanyId = DemoCompanyId,
+                EntryNumber = "JE-2026-0011",
+                EntryDate = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+                Description = "Purchase order - PharmaChem Industries quarterly supplies",
+                Reference = "PO-2026-Q1",
+                Type = JournalEntryType.Standard,
+                Status = JournalEntryStatus.Posted,
+                TotalDebit = 5800.00m,
+                TotalCredit = 5800.00m,
+                Currency = "EUR",
+                CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
             // JE1: Sales invoice INV-2026-0001 (Jonas R - €238.00)
             new JournalEntry
             {
@@ -1017,7 +1076,16 @@ public class AccountingDbContext : DbContext
 
             // JE10: Supplier payment → Debit AP, Credit Bank
             new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000019"), JournalEntryId = je10Id, LineNumber = 1, AccountId = apId, Description = "Supplier payment - PharmaChem Industries", DebitAmount = 5800.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc) },
-            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000020"), JournalEntryId = je10Id, LineNumber = 2, AccountId = bankId, Description = "Bank payment - PharmaChem Q1 order", DebitAmount = 0, CreditAmount = 5800.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc) }
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000020"), JournalEntryId = je10Id, LineNumber = 2, AccountId = bankId, Description = "Bank payment - PharmaChem Q1 order", DebitAmount = 0, CreditAmount = 5800.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE-Opening: Opening balance → Debit Cash + Bank, Credit Equity
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000021"), JournalEntryId = jeOpeningId, LineNumber = 1, AccountId = cashId, Description = "Opening balance - Cash", DebitAmount = 25000.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000022"), JournalEntryId = jeOpeningId, LineNumber = 2, AccountId = bankId, Description = "Opening balance - Bank", DebitAmount = 25000.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000023"), JournalEntryId = jeOpeningId, LineNumber = 3, AccountId = equityId, Description = "Owner's Equity - initial capital", DebitAmount = 0, CreditAmount = 50000.00m, Currency = "EUR", CreatedAt = new DateTime(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc) },
+
+            // JE-Purchase: Purchase from PharmaChem → Debit COGS, Credit AP
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000024"), JournalEntryId = jePurchaseId, LineNumber = 1, AccountId = cogsId, Description = "PharmaChem quarterly supplies", DebitAmount = 5800.00m, CreditAmount = 0, Currency = "EUR", CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc) },
+            new JournalEntryLine { Id = Guid.Parse("d1000000-0000-0000-0000-000000000025"), JournalEntryId = jePurchaseId, LineNumber = 2, AccountId = apId, Description = "Accounts Payable - PharmaChem Industries", DebitAmount = 0, CreditAmount = 5800.00m, Currency = "EUR", CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc) }
         );
     }
 }

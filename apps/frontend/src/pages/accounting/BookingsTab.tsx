@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { useI18n } from '../../providers/I18nProvider';
+import { useCurrency } from '../../hooks/useCurrency';
 import { ArrowDownTrayIcon, EyeIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const GET_JOURNAL_ENTRIES = gql`
@@ -53,18 +54,17 @@ interface JournalEntry {
 const STATUS_OPTIONS = ['DRAFT', 'PENDING', 'POSTED', 'REVERSED'] as const;
 const TYPE_OPTIONS = ['STANDARD', 'ADJUSTING', 'CLOSING', 'REVERSING', 'RECURRING'] as const;
 
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-
 export default function BookingsTab() {
   const { t } = useI18n();
+  const { formatCurrency, locale } = useCurrency();
+
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+
   const today = new Date();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(today.getDate() - 30);

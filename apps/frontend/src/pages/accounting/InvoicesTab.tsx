@@ -7,6 +7,7 @@ import {
   TrashIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useCurrency } from '../../hooks/useCurrency';
 import InvoiceModal from './InvoiceModal';
 
 const GET_INVOICES = gql`
@@ -69,6 +70,7 @@ const INVOICE_STATUS_COLORS: Record<string, string> = {
 
 export default function InvoicesTab() {
   const { t } = useI18n();
+  const { formatCurrency, locale } = useCurrency();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [readOnly, setReadOnly] = useState(false);
@@ -138,15 +140,8 @@ export default function InvoicesTab() {
     refetch();
   };
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  };
-
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

@@ -10,6 +10,7 @@ import {
   BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useCurrency } from '../../hooks/useCurrency';
 import AssetModal, { type Asset as AssetModalAsset } from './AssetModal';
 
 // Helper function to convert PascalCase to camelCase
@@ -74,6 +75,7 @@ const TYPE_ICONS: Record<string, typeof ComputerDesktopIcon> = {
 
 export default function AssetsTab() {
   const { t } = useI18n();
+  const { formatCurrency } = useCurrency();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -110,13 +112,6 @@ export default function AssetsTab() {
     asset.assetNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     asset.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
 
   // Summary stats
   const totalAssets = data?.assets?.totalCount || 0;

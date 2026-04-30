@@ -4,6 +4,7 @@ import { XMarkIcon, PlusIcon, TrashIcon, QuestionMarkCircleIcon } from '@heroico
 import { useI18n } from '../../providers/I18nProvider';
 import Tooltip from '../../components/Tooltip';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useCurrency } from '../../hooks/useCurrency';
 
 // Helper function to format UUID with dashes
 const formatUUID = (uuid: string): string => {
@@ -192,6 +193,7 @@ interface InvoiceModalProps {
 export default function InvoiceModal({ invoice, onClose, readOnly = false }: InvoiceModalProps) {
   const { t } = useI18n();
   useEscapeKey(onClose);
+  const { currencyCode, locale } = useCurrency();
   const isEditing = !!invoice;
   // Allow editing for DRAFT, PENDING, and REVIEW statuses
   const isReadOnly = readOnly || (isEditing && !['DRAFT', 'PENDING', 'REVIEW'].includes(invoice?.status));
@@ -207,7 +209,7 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
     customerName: '',
     invoiceDate: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    currency: 'USD',
+    currency: currencyCode,
     notes: '',
   });
 
@@ -571,7 +573,7 @@ export default function InvoiceModal({ invoice, onClose, readOnly = false }: Inv
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: formData.currency,
     }).format(amount);

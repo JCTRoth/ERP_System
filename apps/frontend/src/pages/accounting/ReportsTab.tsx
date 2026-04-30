@@ -5,6 +5,7 @@ import {
   CalendarIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useCurrency } from '../../hooks/useCurrency';
 
 const GET_BALANCE_SHEET = gql`
   query GetBalanceSheet($asOfDate: DateTime!) {
@@ -107,6 +108,7 @@ type ReportType = 'balance-sheet' | 'income-statement' | 'trial-balance' | 'cash
 
 export default function ReportsTab() {
   const { t } = useI18n();
+  const { formatCurrency } = useCurrency();
   const [selectedReport, setSelectedReport] = useState<ReportType>('balance-sheet');
   const [asOfDate, setAsOfDate] = useState(new Date().toISOString().split('T')[0]);
   const [startDate, setStartDate] = useState(
@@ -167,13 +169,6 @@ export default function ReportsTab() {
       </div>
     );
   }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
 
   const reports = [
     { key: 'balance-sheet', labelKey: 'accounting.reports.balanceSheet' },

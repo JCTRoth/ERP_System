@@ -6,6 +6,7 @@ import {
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
+import { useCurrency } from '../../hooks/useCurrency';
 
 const GET_JOURNAL_ENTRIES = gql`
   query GetJournalEntries($first: Int, $where: JournalEntryFilterInput) {
@@ -69,6 +70,7 @@ const ENTRY_STATUS_COLORS: Record<string, string> = {
 
 export default function JournalEntriesTab() {
   const { t } = useI18n();
+  const { formatCurrency, locale } = useCurrency();
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -98,15 +100,8 @@ export default function JournalEntriesTab() {
     );
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

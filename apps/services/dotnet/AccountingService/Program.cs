@@ -105,6 +105,9 @@ app.MapHealthChecks("/health");
 // Apply migrations or create database on startup
 InitializeAccountingDatabase(app);
 
+// Recalculate account balances from posted journal entries to ensure correctness
+RecalculateAccountBalances(app);
+
 app.Run();
 
 static void InitializeAccountingDatabase(WebApplication app)
@@ -151,6 +154,88 @@ static void InitializeAccountingDatabase(WebApplication app)
 
             Thread.Sleep(TimeSpan.FromSeconds(delaySeconds));
         }
+    }
+}
+
+static void RecalculateAccountBalances(WebApplication app)
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("AccountingStartup");
+
+        // Use a plain DbContextOptions without tenant filtering to access all data
+        var optionsBuilder = new DbContextOptionsBuilder<AccountingDbContext>();
+        optionsBuilder.UseNpgsql(app.Configuration.GetConnectionString("DefaultConnection"));
+        using var db = new AccountingDbContext(optionsBuilder.Options);
+
+        var accounts = db.Accounts.AsQueryable();
+        if (!accounts.Any())
+        {
+            logger.LogInformation("No accounts found, skipping balance recalculation");
+            return;
+        }
+
+        // Sum debits/credits per account from posted journal entries only
+        var balances = db.JournalEntryLines
+            .Where(l => l.JournalEntry != null &&
+                        l.JournalEntry.Status == AccountingService.Models.JournalEntryStatus.Posted)
+            .GroupBy(l => l.AccountId)
+            .Select(g => new
+            {
+                AccountId = g.Key,
+                TotalDebit = g.Sum(l => l.DebitAmount),
+                TotalCredit = g.Sum(l => l.CreditAmount)
+            })
+            .ToDictionary(x => x.AccountId);
+
+        var updated = 0;
+        foreach (var account in accounts)
+        {
+            decimal newBalance;
+            if (balances.TryGetValue(account.Id, out var b))
+            {
+                // Asset & Expense: balance = debit - credit
+                // Liability, Equity & Revenue: balance = credit - debit
+                if (account.Type == AccountingService.Models.AccountType.Asset ||
+                    account.Type == AccountingService.Models.AccountType.Expense)
+                {
+                    newBalance = b.TotalDebit - b.TotalCredit;
+                }
+                else
+                {
+                    newBalance = b.TotalCredit - b.TotalDebit;
+                }
+            }
+            else
+            {
+                newBalance = 0;
+            }
+
+            if (account.Balance != newBalance)
+            {
+                logger.LogInformation(
+                    "Account {Number} ({Name}): balance {Old} → {New}",
+                    account.AccountNumber, account.Name, account.Balance, newBalance);
+                account.Balance = newBalance;
+                updated++;
+            }
+        }
+
+        if (updated > 0)
+        {
+            db.SaveChanges();
+            logger.LogInformation("Recalculated {Count} account balances from journal entries", updated);
+        }
+        else
+        {
+            logger.LogInformation("All account balances are already correct");
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("AccountingStartup");
+        logger.LogWarning(ex, "Failed to recalculate account balances (non-fatal)");
     }
 }
 

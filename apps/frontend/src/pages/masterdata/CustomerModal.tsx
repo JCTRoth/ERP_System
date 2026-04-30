@@ -3,6 +3,7 @@ import { useMutation, gql } from '@apollo/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useI18n } from '../../providers/I18nProvider';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useCurrency } from '../../hooks/useCurrency';
 
 const CREATE_CUSTOMER = gql`
   mutation CreateCustomer($input: CreateCustomerInput!) {
@@ -46,6 +47,7 @@ interface CustomerModalProps {
 export default function CustomerModal({ customer, onClose }: CustomerModalProps) {
   const { t } = useI18n();
   useEscapeKey(onClose);
+  const { currencyCode } = useCurrency();
   const isEditing = !!customer;
 
   const [formData, setFormData] = useState({
@@ -58,7 +60,7 @@ export default function CustomerModal({ customer, onClose }: CustomerModalProps)
     taxId: '',
     creditLimit: 0,
     paymentTermDays: 30,
-    currency: 'USD',
+    currency: currencyCode,
     status: 'ACTIVE',
     notes: '',
   });
@@ -82,7 +84,7 @@ export default function CustomerModal({ customer, onClose }: CustomerModalProps)
         taxId: customer.taxId || '',
         creditLimit: customer.creditLimit || 0,
         paymentTermDays: customer.paymentTermDays || 30,
-        currency: customer.currency || 'USD',
+        currency: customer.currency || currencyCode,
         status: customer.status || 'ACTIVE',
         notes: '',
       });
@@ -98,12 +100,12 @@ export default function CustomerModal({ customer, onClose }: CustomerModalProps)
         taxId: '',
         creditLimit: 0,
         paymentTermDays: 30,
-        currency: 'USD',
+        currency: currencyCode,
         status: 'ACTIVE',
         notes: '',
       });
     }
-  }, [customer]);
+  }, [customer, currencyCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
