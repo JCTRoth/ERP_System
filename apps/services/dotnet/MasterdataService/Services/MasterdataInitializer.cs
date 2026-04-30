@@ -208,6 +208,103 @@ internal static class MasterdataInitializer
             });
         }
 
+        // Seed default units of measure
+        if (!dbContext.UnitsOfMeasure.Any(u => u.Code == "EA"))
+        {
+            dbContext.UnitsOfMeasure.Add(new Models.UnitOfMeasure
+            {
+                Id = Guid.Parse("a0000001-0000-0000-0000-000000000001"),
+                Code = "EA",
+                Name = "Each",
+                Symbol = "ea",
+                Type = Models.UomType.Unit,
+                IsBaseUnit = true,
+                ConversionFactor = 1m,
+                IsActive = true,
+                CreatedAt = now
+            });
+        }
+
+        if (!dbContext.UnitsOfMeasure.Any(u => u.Code == "KG"))
+        {
+            dbContext.UnitsOfMeasure.Add(new Models.UnitOfMeasure
+            {
+                Id = Guid.Parse("a0000001-0000-0000-0000-000000000002"),
+                Code = "KG",
+                Name = "Kilogram",
+                Symbol = "kg",
+                Type = Models.UomType.Weight,
+                IsBaseUnit = true,
+                ConversionFactor = 1m,
+                IsActive = true,
+                CreatedAt = now
+            });
+        }
+
+        if (!dbContext.UnitsOfMeasure.Any(u => u.Code == "LB"))
+        {
+            dbContext.UnitsOfMeasure.Add(new Models.UnitOfMeasure
+            {
+                Id = Guid.Parse("a0000001-0000-0000-0000-000000000003"),
+                Code = "LB",
+                Name = "Pound",
+                Symbol = "lb",
+                Type = Models.UomType.Weight,
+                IsBaseUnit = false,
+                ConversionFactor = 0.453592m,
+                IsActive = true,
+                CreatedAt = now
+            });
+        }
+
+        if (!dbContext.UnitsOfMeasure.Any(u => u.Code == "M"))
+        {
+            dbContext.UnitsOfMeasure.Add(new Models.UnitOfMeasure
+            {
+                Id = Guid.Parse("a0000001-0000-0000-0000-000000000004"),
+                Code = "M",
+                Name = "Meter",
+                Symbol = "m",
+                Type = Models.UomType.Length,
+                IsBaseUnit = true,
+                ConversionFactor = 1m,
+                IsActive = true,
+                CreatedAt = now
+            });
+        }
+
+        if (!dbContext.UnitsOfMeasure.Any(u => u.Code == "L"))
+        {
+            dbContext.UnitsOfMeasure.Add(new Models.UnitOfMeasure
+            {
+                Id = Guid.Parse("a0000001-0000-0000-0000-000000000005"),
+                Code = "L",
+                Name = "Liter",
+                Symbol = "L",
+                Type = Models.UomType.Volume,
+                IsBaseUnit = true,
+                ConversionFactor = 1m,
+                IsActive = true,
+                CreatedAt = now
+            });
+        }
+
+        if (!dbContext.UnitsOfMeasure.Any(u => u.Code == "HR"))
+        {
+            dbContext.UnitsOfMeasure.Add(new Models.UnitOfMeasure
+            {
+                Id = Guid.Parse("a0000001-0000-0000-0000-000000000006"),
+                Code = "HR",
+                Name = "Hour",
+                Symbol = "hr",
+                Type = Models.UomType.Time,
+                IsBaseUnit = true,
+                ConversionFactor = 1m,
+                IsActive = true,
+                CreatedAt = now
+            });
+        }
+
         if (!dbContext.Departments.Any(d => d.Code == "SALES"))
         {
             dbContext.Departments.Add(new Models.Department

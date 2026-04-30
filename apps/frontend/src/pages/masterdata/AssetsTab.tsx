@@ -14,7 +14,10 @@ import { useCurrency } from '../../hooks/useCurrency';
 import AssetModal, { type Asset as AssetModalAsset } from './AssetModal';
 
 // Helper function to convert PascalCase to camelCase
-const toCamelCase = (str: string) => str.charAt(0).toLowerCase() + str.slice(1);
+const toCamelCase = (str: string) => {
+  if (str === str.toUpperCase()) return str.toLowerCase();
+  return str.charAt(0).toLowerCase() + str.slice(1);
+};
 
 const GET_ASSETS = gql`
   query GetAssets($first: Int, $where: AssetFilterInput) {

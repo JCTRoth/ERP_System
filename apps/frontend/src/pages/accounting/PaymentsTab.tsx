@@ -440,7 +440,7 @@ export default function PaymentsTab() {
     });
 
     const csv = [header, ...rows]
-      .map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
+      .map((row) => row.map((value: string | number | null | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

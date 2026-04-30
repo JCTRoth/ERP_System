@@ -65,6 +65,7 @@
   "accounting.entryNumber": "Buchungsnummer",
   "accounting.entryType.adjusting": "Berichtigung",
   "accounting.entryType.closing": "Abschluss",
+  "accounting.entryType.payment": "Zahlung",
   "accounting.entryType.recurring": "Wiederkehrend",
   "accounting.entryType.reversing": "Stornierung",
   "accounting.entryType.standard": "Standard",

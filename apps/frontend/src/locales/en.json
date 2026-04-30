@@ -67,6 +67,7 @@
   "accounting.entryNumber": "Entry Number",
   "accounting.entryType.adjusting": "Adjusting",
   "accounting.entryType.closing": "Closing",
+  "accounting.entryType.payment": "Payment",
   "accounting.entryType.recurring": "Recurring",
   "accounting.entryType.reversing": "Reversing",
   "accounting.entryType.standard": "Standard",

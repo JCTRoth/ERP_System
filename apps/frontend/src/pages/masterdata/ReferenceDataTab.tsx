@@ -6,8 +6,11 @@ import CurrencyModal from './CurrencyModal';
 import PaymentTermModal from './PaymentTermModal';
 import UnitOfMeasureModal from './UnitOfMeasureModal';
 
-// Helper function to convert PascalCase to camelCase
-const toCamelCase = (str: string) => str.charAt(0).toLowerCase() + str.slice(1);
+// Helper function to convert PascalCase/UPPERCASE to camelCase
+const toCamelCase = (str: string) => {
+  if (str === str.toUpperCase()) return str.toLowerCase();
+  return str.charAt(0).toLowerCase() + str.slice(1);
+};
 
 const GET_CURRENCIES = gql`
   query GetCurrencies {

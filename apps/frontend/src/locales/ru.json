@@ -65,6 +65,7 @@
   "accounting.entryNumber": "Номер записи",
   "accounting.entryType.adjusting": "Корректирующая",
   "accounting.entryType.closing": "Закрывающая",
+  "accounting.entryType.payment": "Платёж",
   "accounting.entryType.recurring": "Повторяющаяся",
   "accounting.entryType.reversing": "Сторнирующая",
   "accounting.entryType.standard": "Стандартная",
