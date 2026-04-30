@@ -39,9 +39,11 @@ Every payment has a direction:
 The direction is selected via the **Incoming / Outgoing** toggle at the top of the payment modal. Incoming is the default.
 
 === Payment List
+- **Filters**: Date range (From/To), Direction (Incoming/Outgoing/All), and Payment Method (Bank Transfer, Credit Card, Cash, etc.). Defaults to the last 30 days.
 - **Columns**: Payment Date, Type (badge with direction icon), Amount (red for outgoing), Counterparty, Method, Reference, Invoice #, and Actions.
 - **Type badges**: A green "Incoming" badge with a down-arrow icon indicates customer payments. A red "Outgoing" badge with an up-arrow icon indicates supplier payments.
 - **Counterparty**: Shows the payer name for incoming payments and the payee name for outgoing payments.
+- **Export**: Use **Export CSV** to download the current filtered view as a CSV file. The filename includes the selected date range.
 
 === Actions
   - **Add Payment**: Opens a modal. First choose the payment direction (Incoming or Outgoing). Then fill in the counterparty name (customer or supplier), amount, currency, date, method, reference, optional invoice link, optional account, and notes.

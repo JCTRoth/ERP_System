@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useQuery, useMutation, gql } from "@apollo/client";
 import { PlusIcon, PencilIcon, TrashIcon, ArrowDownTrayIcon, ArrowUpTrayIcon } from "@heroicons/react/24/outline";
 import { useI18n } from "../../providers/I18nProvider";
@@ -165,9 +165,49 @@ export default function PaymentsTab() {
   });
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Filters
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const [startDate, setStartDate] = useState(thirtyDaysAgo.toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [methodFilter, setMethodFilter] = useState<string>('all');
+
+  const PAYMENT_TYPE_OPTIONS = ['CUSTOMER_PAYMENT', 'SUPPLIER_PAYMENT'] as const;
+  const PAYMENT_METHOD_OPTIONS = [
+    { value: 'BANK_TRANSFER', label: 'banktransfer' },
+    { value: 'CREDIT_CARD', label: 'creditcard' },
+    { value: 'DEBIT_CARD', label: 'debitcard' },
+    { value: 'CASH', label: 'cash' },
+    { value: 'CHECK', label: 'check' },
+    { value: 'PAY_PAL', label: 'paypal' },
+    { value: 'DIRECT_DEBIT', label: 'directdebit' },
+    { value: 'INVOICE', label: 'invoice' },
+    { value: 'OTHER', label: 'other' },
+  ] as const;
+
+  const whereFilter = useMemo(() => {
+    const where: any = {};
+    if (startDate) {
+      where.paymentDate = { ...(where.paymentDate || {}), gte: new Date(`${startDate}T00:00:00Z`).toISOString() };
+    }
+    if (endDate) {
+      where.paymentDate = { ...(where.paymentDate || {}), lte: new Date(`${endDate}T23:59:59Z`).toISOString() };
+    }
+    if (typeFilter !== 'all') {
+      where.type = { eq: typeFilter };
+    }
+    if (methodFilter !== 'all') {
+      where.method = { eq: methodFilter };
+    }
+    return where;
+  }, [startDate, endDate, typeFilter, methodFilter]);
+
   const { data, loading, refetch, error } = useQuery(GET_PAYMENT_RECORDS, {
     variables: {
-      first: 100,
+      first: 500,
+      where: whereFilter,
     },
     errorPolicy: "all",
   });
@@ -372,10 +412,52 @@ export default function PaymentsTab() {
 
   const payments = data?.paymentRecords?.nodes || [];
 
+  const handleExport = () => {
+    if (!payments.length) return;
+
+    const header = [
+      t('accounting.paymentDate') || 'Payment Date',
+      t('accounting.type') || 'Type',
+      t('accounting.amount') || 'Amount',
+      t('accounting.currency') || 'Currency',
+      t('accounting.counterparty') || 'Counterparty',
+      t('accounting.paymentMethod') || 'Payment Method',
+      t('accounting.reference') || 'Reference',
+      t('accounting.invoice') || 'Invoice',
+    ];
+    const rows = payments.map((payment: PaymentRecord) => {
+      const isOutgoing = payment.type === 'SUPPLIER_PAYMENT' || payment.type === 'SupplierPayment';
+      return [
+        formatDate(payment.paymentDate),
+        isOutgoing ? (t('accounting.outgoing') || 'Outgoing') : (t('accounting.incoming') || 'Incoming'),
+        isOutgoing ? -payment.amount : payment.amount,
+        payment.currency,
+        isOutgoing ? (payment.payeeName || '') : (payment.payerName || ''),
+        payment.paymentMethod,
+        payment.reference || '',
+        payment.invoice?.invoiceNumber || '',
+      ];
+    });
+
+    const csv = [header, ...rows]
+      .map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `payments-${startDate}-to-${endDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div>
+    <div className="space-y-4">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">{t("accounting.payments")}</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -389,6 +471,78 @@ export default function PaymentsTab() {
         >
           <PlusIcon className="h-5 w-5" />
           {t("accounting.addPayment") || "Add Payment"}
+        </button>
+      </div>
+
+      {/* Filters & Export */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+              {t('accounting.from') || 'From'}
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="input"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+              {t('accounting.to') || 'To'}
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="input"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+              {t('accounting.paymentDirection') || 'Direction'}
+            </label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="input"
+            >
+              <option value="all">{t('common.all') || 'All'}</option>
+              {PAYMENT_TYPE_OPTIONS.map((type) => (
+                <option key={type} value={type}>
+                  {type === 'CUSTOMER_PAYMENT'
+                    ? (t('accounting.incoming') || 'Incoming')
+                    : (t('accounting.outgoing') || 'Outgoing')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+              {t('accounting.paymentMethod') || 'Method'}
+            </label>
+            <select
+              value={methodFilter}
+              onChange={(e) => setMethodFilter(e.target.value)}
+              className="input"
+            >
+              <option value="all">{t('common.all') || 'All'}</option>
+              {PAYMENT_METHOD_OPTIONS.map((method) => (
+                <option key={method.value} value={method.value}>
+                  {t(`accounting.paymentMethod.${method.label}`) || method.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <button
+          onClick={handleExport}
+          className="btn-secondary flex items-center gap-2"
+          disabled={!payments.length}
+        >
+          <ArrowDownTrayIcon className="h-5 w-5" />
+          {t('accounting.exportCsv') || 'Export CSV'}
         </button>
       </div>
 
