@@ -18,6 +18,11 @@ image::docs/flowchart.png[ERP System Architecture Flowchart,alt="ERP System arch
 | 3000
 | Web application UI
 
+| Webshop
+| React + TypeScript
+| 5174
+| Customer-facing storefront UI
+
 | Gateway
 | Apollo Gateway
 | 4000
@@ -77,6 +82,7 @@ image::docs/flowchart.png[ERP System Architecture Flowchart,alt="ERP System arch
 === Technology Stack
 
 * *Frontend*: React 18, TypeScript, Vite, TailwindCSS, Apollo Client
+* *Webshop*: React 18, TypeScript, Vite, TailwindCSS, Apollo Client
 * *Backend (.NET)*: .NET 8, HotChocolate GraphQL, Entity Framework Core
 * *Backend (Java)*: Spring Boot 3.2, Netflix DGS GraphQL
 * *Backend (Node.js)*: Node.js 20, Express, PostgreSQL
@@ -156,7 +162,40 @@ docker-compose up -d
 
 # Access the application
 open http://localhost:3000
+open http://localhost:5174
 ----
+
+== Webshop (Storefront)
+
+The repository includes a separate customer-facing webshop at `apps/webshop`.
+
+image::docs/images/webshop/home.png[Webshop home page,alt="Webshop home page",width=100%]
+
+=== Key Facts
+
+* *Default URL*: http://localhost:5174
+* *API Path*: `/graphql` (proxied by Vite to the ERP Gateway)
+* *Gateway Target*: `GATEWAY_URL` env var or `http://localhost:4000`
+* *Company Context*: `X-Company-Id` header is sent by the Apollo client (`VITE_COMPANY_ID` or fallback demo company)
+
+=== Local Start
+
+[source,bash]
+----
+cd apps/webshop
+npm install
+npm run dev -- --host 0.0.0.0 --port 5174
+----
+
+=== Webshop Features
+
+* Product catalog and category browsing
+* Product detail pages
+* Guest cart (session-based)
+* Checkout flow with shipping selection
+* Order confirmation page
+
+For implementation details, see link:apps/webshop/README.md[apps/webshop/README.md].
 
 === Local Kubernetes Deployment
 

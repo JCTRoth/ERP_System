@@ -33,6 +33,13 @@ public class SeedDataService : ISeedDataService
     {
         try
         {
+            // Skip seeding if data already exists
+            if (await _context.Products.IgnoreQueryFilters().AnyAsync())
+            {
+                _logger.LogInformation("Database already contains data, skipping seed.");
+                return;
+            }
+
             _logger.LogInformation("Starting database seeding...");
 
             // Clear existing sample data and seed MediVita pharmaceutical data
@@ -79,7 +86,7 @@ public class SeedDataService : ISeedDataService
     private async Task StampAllSeedDataCompanyId()
     {
         var tables = new[] { "products", "categories", "brands", "suppliers", "customers", "orders", "shipping_methods" };
-        var companyId = MediVitaCompanyId.ToString();
+        var companyId = MediVitaCompanyId;
         foreach (var table in tables)
         {
             // table names are from a hardcoded array — safe to interpolate
@@ -896,19 +903,19 @@ public class SeedDataService : ISeedDataService
 
     private async Task CloneDataForDemoCompany()
     {
-        var mediVita = MediVitaCompanyId.ToString();
-        var demo = DemoCompanyId.ToString();
+        var mediVita = MediVitaCompanyId;
+        var demo = DemoCompanyId;
 
         // Clone brands with '-demo' slug suffix
         await _context.Database.ExecuteSqlRawAsync($@"
-            INSERT INTO brands (id, company_id, name, slug, description, website, logo_url, is_active, created_at, updated_at)
-            SELECT gen_random_uuid(), {0}, name, slug || '-demo', description, website, logo_url, is_active, NOW(), NULL
+            INSERT INTO brands (id, company_id, name, slug, description, website_url, logo_url, is_active, created_at, updated_at)
+            SELECT gen_random_uuid(), {0}, name, slug || '-demo', description, website_url, logo_url, is_active, NOW(), NULL
             FROM brands WHERE company_id = {1}
             ON CONFLICT DO NOTHING", demo, mediVita);
 
         // Clone categories with '-demo' slug suffix
         await _context.Database.ExecuteSqlRawAsync($@"
-            INSERT INTO categories (id, company_id, name, slug, description, parent_id, sort_order, is_active, image_url, created_at, updated_at)
+            INSERT INTO categories (id, company_id, name, slug, description, parent_category_id, sort_order, is_active, image_url, created_at, updated_at)
             SELECT gen_random_uuid(), {0}, name, slug || '-demo', description, NULL, sort_order, is_active, image_url, NOW(), NULL
             FROM categories WHERE company_id = {1}
             ON CONFLICT DO NOTHING", demo, mediVita);

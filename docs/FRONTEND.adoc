@@ -9,6 +9,8 @@
 
 The frontend application is built with React 18 and TypeScript, using Vite as the build tool.
 
+In addition to the ERP admin frontend (`apps/frontend`), this repository also contains a dedicated customer storefront (`apps/webshop`).
+
 == Technology Stack
 
 * **React 18** - UI library with concurrent features
@@ -79,6 +81,56 @@ apps/frontend/
 ├── tsconfig.json
 ├── vite.config.ts
 └── vitest.config.ts
+----
+
+== Webshop Frontend
+
+The webshop is implemented as a standalone React application and targets customer shopping flows.
+
+=== Structure
+
+[source,text]
+----
+apps/webshop/
+├── src/
+│   ├── components/        # Reusable storefront UI components
+│   ├── context/           # Cart and i18n context
+│   ├── graphql/           # Queries and mutations
+│   ├── lib/               # Apollo client and helpers
+│   ├── pages/             # Home, catalog, product, cart, checkout, confirmation
+│   ├── App.tsx
+│   └── main.tsx
+├── public/
+├── package.json
+├── vite.config.ts
+└── tailwind.config.js
+----
+
+=== Runtime and API Integration
+
+* Dev URL: `http://localhost:5174`
+* Vite proxy forwards `/graphql` to `process.env.GATEWAY_URL` or `http://localhost:4000`
+* Apollo client sends `X-Company-Id` on each request (`VITE_COMPANY_ID` with demo fallback)
+* Cart uses session-based guest flow via `cartBySession` and cart mutations
+
+image::images/webshop/catalog.png[Webshop catalog page,alt="Webshop catalog page",width=100%]
+
+=== Webshop Start Commands
+
+[source,bash]
+----
+cd apps/webshop
+npm install
+npm run dev -- --host 0.0.0.0 --port 5174
+----
+
+=== Webshop Build and Check
+
+[source,bash]
+----
+cd apps/webshop
+npx tsc --noEmit
+npm run build
 ----
 
 == Key Features

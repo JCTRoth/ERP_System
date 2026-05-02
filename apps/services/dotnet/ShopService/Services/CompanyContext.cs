@@ -32,6 +32,15 @@ public class CompanyContext : ICompanyContext
                 {
                     _companyId = companyId.Value;
                 }
+                else
+                {
+                    // Fall back to X-Company-Id header (for unauthenticated webshop requests)
+                    var header = _httpContextAccessor.HttpContext?.Request.Headers["X-Company-Id"].FirstOrDefault();
+                    if (!string.IsNullOrEmpty(header) && Guid.TryParse(header, out var headerCompanyId) && headerCompanyId != Guid.Empty)
+                    {
+                        _companyId = headerCompanyId;
+                    }
+                }
             }
             return _companyId;
         }

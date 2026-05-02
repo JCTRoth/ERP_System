@@ -197,7 +197,8 @@ public class OrderItemResolvers
 {
     public async Task<Product?> GetProduct([Parent] OrderItem item, [Service] ShopDbContext context)
     {
-        return await context.Products.FindAsync(item.ProductId);
+        return await context.Products
+            .FirstOrDefaultAsync(p => p.Id == item.ProductId);
     }
 }
 
@@ -413,7 +414,11 @@ public class CartResolvers
 {
     public IQueryable<CartItem> GetItems([Parent] Cart cart, [Service] ShopDbContext context)
     {
-        return context.CartItems.Where(i => i.CartId == cart.Id);
+        return context.CartItems
+            .Include(i => i.Product)
+            .ThenInclude(p => p.Images)
+            .Include(i => i.Variant)
+            .Where(i => i.CartId == cart.Id);
     }
 }
 

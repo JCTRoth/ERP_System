@@ -35,6 +35,30 @@ const PUBLIC_FIELDS = new Set([
   'verifyEmail',
   'register',
   'test',
+  // Public webshop queries (read-only product browsing + cart)
+  'products',
+  'product',
+  'productsByCategory',
+  'featuredProducts',
+  'searchProducts',
+  'categories',
+  'category',
+  'rootCategories',
+  'brands',
+  'brand',
+  'cartBySession',
+  'cartByCustomer',
+  'cart',
+  'addToCart',
+  'updateCartItem',
+  'removeCartItem',
+  'applyCouponToCart',
+  'removeCouponFromCart',
+  'clearCart',
+  'shippingMethods',
+  'availableShippingMethods',
+  'validateCoupon',
+  'stock',
 ]);
 
 const AUTH_ONLY_FIELDS = new Set([
@@ -250,7 +274,7 @@ function buildAuthContext(req) {
       authorization: authorization || null,
       isAuthenticated: false,
       userId: null,
-      companyId: null,
+      companyId: req.headers['x-company-id'] || null,
       platformRole: null,
       companyRole: null,
       isGlobalSuperAdmin: false,
@@ -467,6 +491,17 @@ function authorizeGraphqlRequest(req, res, next) {
   return next();
 }
 
+// Fields that should be proxied directly to user-service (before gateway is ready)
+const USER_SERVICE_PROXY_FIELDS = new Set([
+  'login',
+  'refreshToken',
+  'requestPasswordReset',
+  'resetPassword',
+  'verifyEmail',
+  'register',
+  'test',
+]);
+
 function shouldProxyDirectToUserService(body) {
   const query = body?.query;
   if (typeof query !== 'string' || !query.trim()) {
@@ -484,7 +519,7 @@ function shouldProxyDirectToUserService(body) {
       .filter(selection => selection.kind === Kind.FIELD)
       .map(selection => selection.name.value);
 
-    return fields.length > 0 && fields.every(fieldName => PUBLIC_FIELDS.has(fieldName));
+    return fields.length > 0 && fields.every(fieldName => USER_SERVICE_PROXY_FIELDS.has(fieldName));
   } catch {
     return false;
   }

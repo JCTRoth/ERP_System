@@ -101,8 +101,10 @@ public class CartService : ICartService
     {
         var cart = await GetOrCreateAsync(input.CustomerId, input.SessionId);
 
-        // Check if product exists
-        var product = await _context.Products.FindAsync(input.ProductId);
+        // Use a normal query (not FindAsync) so EF global company filters are respected.
+        // Otherwise a product from another company can be selected by key and later resolve as null.
+        var product = await _context.Products
+            .FirstOrDefaultAsync(p => p.Id == input.ProductId);
         if (product == null)
             throw new InvalidOperationException($"Product {input.ProductId} not found");
 
@@ -126,6 +128,7 @@ public class CartService : ICartService
                 Id = Guid.NewGuid(),
                 CartId = cart.Id,
                 ProductId = input.ProductId,
+                Product = product,
                 VariantId = input.VariantId,
                 Quantity = input.Quantity,
                 UnitPrice = product.Price,
@@ -133,10 +136,17 @@ public class CartService : ICartService
             };
 
             cart.Items.Add(cartItem);
+            _context.Entry(cartItem).State = EntityState.Added;
         }
 
         await RecalculateCartAsync(cart);
         await _context.SaveChangesAsync();
+
+        // Reload cart with full navigation properties
+        await _context.Entry(cart).Collection(c => c.Items).Query()
+            .Include(i => i.Product)
+            .Include(i => i.Variant)
+            .LoadAsync();
 
         _logger.LogInformation("Item added to cart {CartId}: Product {ProductId} x {Quantity}",
             cart.Id, input.ProductId, input.Quantity);

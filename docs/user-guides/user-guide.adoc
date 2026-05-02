@@ -29,6 +29,12 @@
 - **Companies** and **Users**: Administration of organizations and people.
 - **Settings**: Profile and system preferences.
 
+== Additional Guides
+
+- link:webshop.adoc[Webshop User Guide]: Customer storefront flow (home, catalog, product details, cart, checkout) with screenshots.
+- link:accounting.adoc[Accounting Module Guide]: Detailed accounting workflows.
+- link:keyboard-shortcuts.adoc[Keyboard Shortcuts Guide]: Complete shortcuts reference.
+
 == Common Interaction Patterns
 - **Filtering & sorting**: Many tables expose drop-down filters or clickable headers. Apply filters before creating exports or reports.
 - **Create/Edit**: Actions usually open a modal dialog with required fields marked by `*`. Save/Cancel buttons sit at the bottom right of the modal.

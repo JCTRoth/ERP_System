@@ -92,6 +92,42 @@ docker compose -f docker-compose.dev.yml up gateway
 
 The frontend runs in a Docker container with hot-reload enabled.
 
+=== Webshop Development
+
+The customer-facing webshop runs as a separate frontend application.
+
+==== Running Locally
+
+[source,bash]
+----
+cd apps/webshop
+npm install
+npm run dev -- --host 0.0.0.0 --port 5174
+----
+
+Access URL:
+
+* Webshop: http://localhost:5174
+
+image::images/webshop/home.png[Webshop home page in development,alt="Webshop home page in development",width=100%]
+
+==== Webshop API Routing
+
+* Requests to `/graphql` are proxied by Vite.
+* The target is `process.env.GATEWAY_URL` or `http://localhost:4000`.
+* Company context is sent via `X-Company-Id` from the webshop Apollo client.
+
+==== Webshop Checks
+
+[source,bash]
+----
+cd apps/webshop
+npx tsc --noEmit
+curl -X POST http://localhost:5174/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ __typename }"}'
+----
+
 ==== Running Locally (Alternative)
 
 If you prefer running the frontend locally:
