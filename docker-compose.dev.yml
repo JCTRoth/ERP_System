@@ -276,23 +276,7 @@ services:
       - default
     restart: unless-stopped
 
-  # edifact-service:
-  #   build:
-  #     context: ./apps/services/java/edifact-service
-  #     # use default Dockerfile in edifact-service
-  #   ports:
-  #     - "8085:8085"
-  #   volumes:
-  #     - ./apps/services/java/edifact-service:/app
-  #   environment:
-  #     - SPRING_PROFILES_ACTIVE=dev
-  #     - DB_HOST=postgres
-  #     - DB_PORT=5432
-  #     - DB_NAME=companydb
-  #     - DB_USER=erp_company
-  #     - DB_PASSWORD=postgres
-  #   depends_on:
-  #     - postgres
+
 
   templates-service:
     build:
@@ -327,7 +311,6 @@ services:
       ERP_NOTIFICATION_PASSWORD: postgres
       ERP_TRANSLATION_PASSWORD: postgres
       ERP_TEMPLATES_PASSWORD: postgres
-      ERP_EDIFACT_PASSWORD: postgres
       ERP_SCRIPTING_PASSWORD: postgres
     ports:
       - "15432:5432"

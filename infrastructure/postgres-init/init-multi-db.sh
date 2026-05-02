@@ -35,9 +35,7 @@ BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_scripting') THEN
         CREATE USER erp_scripting WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
-    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_edifact') THEN
-        CREATE USER erp_edifact WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
-    END IF;
+    # edifact user removed
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_templates') THEN
         CREATE USER erp_templates WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
@@ -56,6 +54,6 @@ CREATE DATABASE accountingdb OWNER erp_accounting;
 CREATE DATABASE masterdatadb OWNER erp_masterdata;
 CREATE DATABASE notificationdb OWNER erp_notification;
 CREATE DATABASE scriptingdb OWNER erp_scripting;
-CREATE DATABASE edifactdb OWNER erp_edifact;
+    -- edifact database removed
 CREATE DATABASE templatesdb OWNER erp_templates;
 EOSQL

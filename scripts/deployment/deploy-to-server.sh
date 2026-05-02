@@ -800,7 +800,7 @@ ensure_ssl_certificates() {
 wait_for_databases() {
     local max_attempts=30
     local attempt=1
-    local databases=("userdb" "companydb" "translationdb" "shopdb" "ordersdb" "accountingdb" "masterdatadb" "notificationdb" "scriptingdb" "edifactdb" "templatesdb")
+    local databases=("userdb" "companydb" "translationdb" "shopdb" "ordersdb" "accountingdb" "masterdatadb" "notificationdb" "scriptingdb" "templatesdb")
     
     print_info "Waiting for all databases to be created..."
     

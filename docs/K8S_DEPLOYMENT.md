@@ -199,12 +199,11 @@ The `k8s-local-deploy.sh` script handles:
 - **orders-service** (5004)
 - **Status:** ✓ Connecting to PostgreSQL
 
-### Java Services (5 total)
+### Java Services (4 total)
 - **company-service** (8080)
 - **translation-service** (8081)
 - **notification-service** (8082)
 - **scripting-service** (8083)
-- **edifact-service** (8084)
 - **Status:** ✓ Connecting to PostgreSQL
 
 ### Supporting Services

@@ -52,9 +52,6 @@ services:
   scriptingService:
     image:
       tag: local
-  edifactService:
-    image:
-      tag: local
   templatesService:
     image:
       repository: erp/templates-service

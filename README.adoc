@@ -68,11 +68,7 @@ image::docs/flowchart.png[ERP System Architecture Flowchart,alt="ERP System arch
 | 8084
 | Custom scripting
 
-| EdifactService
-| Java Spring
-| 8085
-| EDI/EDIFACT processing
-
+// EdifactService removed from this distribution
 | TemplatesService
 | Node.js
 | 8087
@@ -271,7 +267,6 @@ ERP_System/
 │       │   ├── notification-service/
 │       │   ├── translation-service/
 │       │   ├── scripting-service/
-│       │   ├── edifact-service/
 │       │   └── templates-service/
 │       └── nodejs/        # Node.js microservices
 │           └── templates-service/

@@ -201,28 +201,7 @@ services:
       restart_policy:
         condition: on-failure
 
-#  edifact-service:
-#    image: ghcr.io/jctroth/erp-edifact-service:latest
-#    container_name: erp-edifact-service
-#    environment:
-#      SPRING_PROFILES_ACTIVE: prod
-#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/erp_edifact
-#      SPRING_DATASOURCE_USERNAME: erp_edifact
-#      SPRING_DATASOURCE_PASSWORD: postgres
-#    depends_on:
-#      postgres:
-#        condition: service_healthy
-#    logging: *default-logging
-#    networks:
-#      - backend
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '1.0'
-#          memory: 1G
-#        reservations:
-#          cpus: '0.5'
-#          memory: 512M
+ 
 #      restart_policy:
 #        condition: on-failure
 

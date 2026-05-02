@@ -197,21 +197,7 @@ Custom business logic execution and data proxy for UI Builder scripts.
 
 See link:scripting-guide.adoc[Scripting Guide] for full documentation.
 
-=== EdifactService
-
-EDI/EDIFACT document processing.
-
-[cols="20,80"]
-|===
-| Port | 8085
-| Features a|
-- EDIFACT message parsing
-- Document type support (ORDERS, INVOIC, DESADV)
-- Trading partner management
-- Message validation
-- Conversion mappings
-|===
-
+// EdifactService removed from this distribution
 == Node.js Services
 
 === Common Patterns

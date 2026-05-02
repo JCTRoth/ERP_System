@@ -101,7 +101,6 @@ jobs:
           - notification-service
           - translation-service
           - scripting-service
-          - edifact-service
 
     steps:
       - uses: actions/checkout@v4

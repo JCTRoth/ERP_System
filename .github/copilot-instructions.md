@@ -14,7 +14,7 @@ This is a modern, full-stack Enterprise Resource Planning (ERP) system built wit
 - **Frontend**: React 18 + TypeScript + Vite + TailwindCSS + Apollo Client
 - **Backend Services**:
   - .NET 8 (GraphQL HotChocolate): User, Shop, Accounting, Masterdata services
-  - Java Spring Boot 3.2 (Netflix DGS GraphQL): Company, Translation, Notification, Scripting, Edifact services
+  - Java Spring Boot 3.2 (Netflix DGS GraphQL): Company, Translation, Notification, Scripting services
   - Node.js + Express: Templates service (AsciiDoc-based document generation)
 - **Gateway**: Apollo Gateway (GraphQL Federation)
 - **Infrastructure**: Docker Compose (dev), Kubernetes + Helm (prod), PostgreSQL per service

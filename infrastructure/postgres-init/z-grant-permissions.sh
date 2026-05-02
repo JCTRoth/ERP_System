@@ -36,8 +36,7 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'notificationdb')\gexe
 SELECT 'CREATE DATABASE scriptingdb OWNER erp_scripting'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'scriptingdb')\gexec
 
-SELECT 'CREATE DATABASE edifactdb OWNER erp_edifact'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'edifactdb')\gexec
+-- edifact database removed
 
 SELECT 'CREATE DATABASE templatesdb OWNER erp_templates'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'templatesdb')\gexec
@@ -66,7 +65,7 @@ grant_permissions accountingdb erp_accounting
 grant_permissions masterdatadb erp_masterdata
 grant_permissions notificationdb erp_notification
 grant_permissions scriptingdb erp_scripting
-grant_permissions edifactdb erp_edifact
+-- edifact database removed
 grant_permissions templatesdb erp_templates
 
 echo "Databases created and permissions granted successfully."

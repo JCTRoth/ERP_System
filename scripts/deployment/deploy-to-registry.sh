@@ -68,7 +68,6 @@ declare -a SERVICES=(
     "translation-service:apps/services/java/translation-service"
     "notification-service:apps/services/java/notification-service"
     "scripting-service:apps/services/java/scripting-service"
-    "edifact-service:apps/services/java/edifact-service"
     "templates-service:apps/services/nodejs/templates-service"
 )
 

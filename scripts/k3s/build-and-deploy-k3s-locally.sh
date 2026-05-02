@@ -80,7 +80,7 @@ import_images() {
         erp/accounting-service:latest erp/masterdata-service:latest erp/orders-service:latest \
         erp/company-service:latest erp/translation-service:latest \
         erp/notification-service:latest erp/scripting-service:latest \
-        erp/edifact-service:latest erp/templates-service:latest \
+        erp/templates-service:latest \
         > "$tmp_dir/all.tar"
 
     log_info "Importing into K3s containerd (requires sudo)..."

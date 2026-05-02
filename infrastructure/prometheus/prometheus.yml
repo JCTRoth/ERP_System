@@ -18,7 +18,7 @@ scrape_configs:
           - 'masterdata-service:5003'
     metrics_path: /metrics
 
-  # Java Services (CompanyService, TranslationService, NotificationService, ScriptingService, EdifactService)
+  # Java Services (CompanyService, TranslationService, NotificationService, ScriptingService)
   - job_name: 'java-services'
     static_configs:
       - targets:
@@ -26,7 +26,6 @@ scrape_configs:
           - 'translation-service:8081'
           - 'notification-service:8082'
           - 'scripting-service:8083'
-          - 'edifact-service:8084'
     metrics_path: /actuator/prometheus
 
   # Apollo Gateway

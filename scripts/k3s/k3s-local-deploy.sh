@@ -119,7 +119,7 @@ build_images() {
     docker build -t erp/translation-service:latest ./java/translation-service
     docker build -t erp/notification-service:latest ./java/notification-service
     docker build -t erp/scripting-service:latest ./java/scripting-service
-    docker build -t erp/edifact-service:latest ./java/edifact-service
+    # edifact-service removed; skipping build
     
     # Node.js Templates Service
     log_info "Building templates service..."
@@ -149,7 +149,7 @@ load_images() {
         erp/masterdata-service:latest erp/orders-service:latest \
         erp/company-service:latest erp/translation-service:latest \
         erp/notification-service:latest erp/scripting-service:latest \
-        erp/edifact-service:latest erp/templates-service:latest \
+        erp/templates-service:latest \
         > /tmp/erp-images/all.tar
 
     log_info "Importing images into K3s containerd (requires sudo)..."
