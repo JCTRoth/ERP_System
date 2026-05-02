@@ -36,8 +36,9 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
       }
 
       const code = extensions?.code;
-      // Only force logout for explicit auth errors
-      if (code === 'UNAUTHENTICATED' || code === 'FORBIDDEN') {
+      // Force logout only when auth is no longer valid (expired/invalid token).
+      // FORBIDDEN can be a scope/tenant permission denial for a single query.
+      if (code === 'UNAUTHENTICATED') {
         shouldForceLogout = true;
         return;
       }
@@ -48,8 +49,9 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
     if ('statusCode' in networkError) {
       const statusCode = networkError.statusCode;
 
-      // Only force logout for explicit auth failures (401/403)
-      if (statusCode === 401 || statusCode === 403) {
+      // Force logout only for explicit unauthenticated responses.
+      // 403 should stay in-page as a permission error.
+      if (statusCode === 401) {
         shouldForceLogout = true;
       }
       // Do NOT force logout for 500 errors (server-side issues) — leave the

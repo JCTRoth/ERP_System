@@ -103,13 +103,12 @@ export default function DashboardPage() {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const currentAssignment = companyAssignments.find(a => a.companyId === currentCompanyId);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const hasCompanyContext = Boolean(currentCompanyId);
   const canReadCompanies = hasPermission('company.company.read');
   const canReadUsers = hasPermission('user.user.read');
-  // Don't gate on currentCompanyId — the JWT token carries company claims,
-  // so the server handles authorization.  Skip only when not authenticated.
-  const canReadCustomers = isAuthenticated;
-  const canReadOrders = isAuthenticated;
-  const canReadProducts = isAuthenticated;
+  const canReadCustomers = isAuthenticated && hasCompanyContext && hasPermission('masterdata.record.read');
+  const canReadOrders = isAuthenticated && hasCompanyContext && hasPermission('orders.order.read');
+  const canReadProducts = isAuthenticated && hasCompanyContext && hasPermission('shop.product.read');
 
   const shopClient = getShopApolloClient();
 
