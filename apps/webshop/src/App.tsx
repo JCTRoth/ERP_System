@@ -9,13 +9,15 @@ import CategoryPage from "./pages/CategoryPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
+import InfoPage from "./pages/InfoPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="app-shell flex min-h-screen flex-col">
       <Header />
       <CartDrawer />
-      <main className="flex-1">
+      <main className="flex-1 pb-12">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/products" element={<CatalogPage />} />
@@ -24,6 +26,9 @@ export default function App() {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order/:id" element={<OrderConfirmationPage />} />
+          <Route path="/support/:slug" element={<InfoPage scope="support" />} />
+          <Route path="/legal/:slug" element={<InfoPage scope="legal" />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
       <Footer />

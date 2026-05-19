@@ -4,6 +4,7 @@ import { GET_CART_BY_SESSION } from "../graphql/queries";
 import { ADD_TO_CART, UPDATE_CART_ITEM, REMOVE_CART_ITEM, CLEAR_CART, APPLY_COUPON, REMOVE_COUPON } from "../graphql/mutations";
 import { getSessionId } from "../lib/utils";
 import toast from "react-hot-toast";
+import { useI18n } from "./I18nContext";
 
 export interface CartItem {
   id: string;
@@ -35,6 +36,7 @@ export interface Cart {
 interface CartContextType {
   cart: Cart | null;
   loading: boolean;
+  error: unknown;
   itemCount: number;
   addToCart: (productId: string, quantity: number, variantId?: string) => Promise<void>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
@@ -49,8 +51,9 @@ const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const sessionId = getSessionId();
+  const { t } = useI18n();
 
-  const { data, loading, refetch } = useQuery(GET_CART_BY_SESSION, {
+  const { data, loading, error, refetch } = useQuery(GET_CART_BY_SESSION, {
     variables: { sessionId },
     fetchPolicy: "cache-and-network",
   });
@@ -73,9 +76,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         },
       });
       refetch();
-      toast.success("Added to cart");
+      toast.success(t("cart.added"));
     },
-    [addToCartMutation, sessionId, refetch]
+    [addToCartMutation, refetch, sessionId, t]
   );
 
   const updateQuantity = useCallback(
@@ -109,9 +112,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         variables: { input: { cartId: cart.id, couponCode: code } },
       });
       refetch();
-      toast.success("Coupon applied");
+      toast.success(t("cart.couponApplied"));
     },
-    [applyCouponMutation, cart, refetch]
+    [applyCouponMutation, cart, refetch, t]
   );
 
   const removeCouponFn = useCallback(async () => {
@@ -125,6 +128,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       value={{
         cart,
         loading,
+        error,
         itemCount,
         addToCart,
         updateQuantity,
