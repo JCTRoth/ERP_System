@@ -3,5 +3,5 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
 COPY . .
-EXPOSE 5174
-CMD ["npx", "vite", "--host"]
+EXPOSE 3008
+CMD ["npx", "vite", "--host", "--port", "3008"]

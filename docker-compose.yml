@@ -174,6 +174,33 @@ services:
         condition: on-failure
 
   # ==========================================================================
+  # Webshop
+  # ==========================================================================
+  webshop:
+    image: ghcr.io/jctroth/erp-webshop:latest
+    container_name: erp-webshop
+    ports:
+      - "3008:3008"
+    environment:
+      VITE_API_URL: /graphql
+      VITE_API_WS_URL: ws://${DEPLOY_DOMAIN:-shopping-now.net}:8088/graphql
+    depends_on:
+      - gateway
+    logging: *default-logging
+    networks:
+      - erp-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+        reservations:
+          cpus: '0.5'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+
+  # ==========================================================================
   # Java Services
   # ==========================================================================
   company-service:
@@ -395,6 +422,7 @@ services:
     depends_on:
       - frontend
       - gateway
+      - webshop
     logging: *default-logging
     networks:
       - erp-network

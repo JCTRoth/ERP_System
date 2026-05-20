@@ -18,12 +18,12 @@ From repository root:
 ```bash
 cd apps/webshop
 npm install
-npm run dev -- --host 0.0.0.0 --port 5174
+npm run dev -- --host 0.0.0.0 --port 3008
 ```
 
 Open:
 
-- `http://localhost:5174`
+- `http://localhost:3008`
 
 ## API Integration
 
@@ -56,7 +56,7 @@ npx tsc --noEmit
 npm run build
 
 # Quick API smoke test through Vite proxy
-curl -X POST http://localhost:5174/graphql \
+curl -X POST http://localhost:3008/graphql \
   -H "Content-Type: application/json" \
   -d '{"query":"{ __typename }"}'
 ```

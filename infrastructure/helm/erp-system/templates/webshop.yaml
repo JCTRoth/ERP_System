@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "erp-system.fullname" . }}-webshop
+  labels:
+    {{- include "erp-system.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webshop
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "erp-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: webshop
+  template:
+    metadata:
+      labels:
+        {{- include "erp-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: webshop
+    spec:
+      containers:
+        - name: webshop
+          image: "{{ .Values.services.webshop.image.repository }}:{{ .Values.services.webshop.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.webshop.port }}
+              protocol: TCP
+          env:
+            - name: VITE_API_URL
+              value: "/graphql"
+            - name: VITE_API_WS_URL
+              value: "ws://{{ .Values.ingress.hosts[0].host }}/graphql"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+          resources:
+            {{- toYaml .Values.services.webshop.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "erp-system.fullname" . }}-webshop
+  labels:
+    {{- include "erp-system.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webshop
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.services.webshop.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "erp-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: webshop

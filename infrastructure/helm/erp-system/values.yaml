@@ -222,6 +222,21 @@ services:
         cpu: 200m
         memory: 512Mi
 
+  # Webshop
+  webshop:
+    enabled: true
+    image:
+      repository: erp/webshop
+      tag: latest
+    port: 3008
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
 # edifactService removed from values (service deprecated)
 # =============================================================================
 # Ingress Configuration
@@ -237,7 +252,7 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-          service: frontend
+          service: webshop
         - path: /graphql
           pathType: Prefix
           service: gateway

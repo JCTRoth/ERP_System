@@ -41,6 +41,10 @@ spec:
                 name: {{ include "erp-system.fullname" $ }}-gateway
                 port:
                   number: {{ $.Values.services.gateway.port }}
+                {{- else if eq .service "webshop" }}
+                name: {{ include "erp-system.fullname" $ }}-webshop
+                port:
+                  number: {{ $.Values.services.webshop.port }}
                 {{- end }}
           {{- end }}
     {{- end }}
