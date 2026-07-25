@@ -33,6 +33,65 @@ spec:
                 name: erp-gateway
                 port:
                   number: 4000
+          # API Routes (proxied directly to backend services)
+          - path: /api/smtp-configuration
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-notification-service
+                port:
+                  number: 8082
+          - path: /api/templates
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-templates-service
+                port:
+                  number: 8087
+          - path: /api/masterdata
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-masterdata-service
+                port:
+                  number: 5002
+          - path: /api/shop
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-shop-service
+                port:
+                  number: 5003
+          - path: /api/company
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-company-service
+                port:
+                  number: 8080
+          - path: /api/translation
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-translation-service
+                port:
+                  number: 8081
+          # Templates Service direct access
+          - path: /api/accounting
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-accounting-service
+                port:
+                  number: 5001
+          # MinIO document buckets
+          - path: /documents-
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-minio
+                port:
+                  number: 9000
           # Webshop
           - path: /shop
             pathType: Prefix
