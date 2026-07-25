@@ -42,6 +42,8 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Production"
+            - name: DOTNET_USE_POLLING_FILE_WATCHER
+              value: "true"
             - name: ASPNETCORE_URLS
               value: "http://*:5001"
             - name: ConnectionStrings__DefaultConnection

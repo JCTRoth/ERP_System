@@ -53,7 +53,7 @@ spec:
       containers:
         - name: minio
           image: minio/minio:RELEASE.2024-01-16T16-07-38Z
-          command: ["server", "/data", "--console-address", ":9001"]
+          args: ["server", "/data", "--console-address", ":9001"]
           ports:
             - containerPort: 9000
             - containerPort: 9001
