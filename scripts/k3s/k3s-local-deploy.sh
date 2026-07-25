@@ -26,6 +26,32 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 log_step() { echo -e "\n${GREEN}==>${NC} $*"; }
 
+# Ensure PATH includes /usr/local/bin (where k3s/kubectl are installed)
+export PATH="$PATH:/usr/local/bin"
+
+# Fix pod-to-pod networking on Fedora by adding iptables ACCEPT rules
+# for the CNI bridge and flannel interfaces.
+fix_networking() {
+    log_step "Checking pod-to-pod networking..."
+    # Ensure bridge-nf-call-iptables is enabled (needed for kube-proxy ClusterIP)
+    local current
+    current=$(cat /proc/sys/net/bridge/bridge-nf-call-iptables 2>/dev/null || echo "0")
+    if [ "$current" != "1" ]; then
+        log_info "Enabling bridge-nf-call-iptables (required for ClusterIP services)..."
+        sudo sysctl -w net.bridge.bridge-nf-call-iptables=1 &>/dev/null || true
+    fi
+    # Add iptables rules to allow traffic on cni0 and flannel.1 (pod-to-pod)
+    if ! sudo iptables -C FORWARD -i cni0 -j ACCEPT 2>/dev/null; then
+        sudo iptables -I FORWARD -i cni0 -j ACCEPT 2>/dev/null || true
+        sudo iptables -I FORWARD -o cni0 -j ACCEPT 2>/dev/null || true
+    fi
+    if ! sudo iptables -C FORWARD -i flannel.1 -j ACCEPT 2>/dev/null; then
+        sudo iptables -I FORWARD -i flannel.1 -j ACCEPT 2>/dev/null || true
+        sudo iptables -I FORWARD -o flannel.1 -j ACCEPT 2>/dev/null || true
+    fi
+    log_info "✓ Pod-to-pod networking configured"
+}
+
 # Check prerequisites
 check_requirements() {
     log_step "Checking prerequisites..."
@@ -58,11 +84,11 @@ check_requirements() {
     fi
 
     local k3s_ver
-    k3s_ver=$(k3s --version | head -1)
-    log_info "✓ kubectl: $(kubectl version --client --short 2>/dev/null || kubectl version --client -o json | jq -r '.clientVersion.gitVersion')"
+    k3s_ver=$(k3s --version 2>/dev/null | head -1 || echo "unknown version")
+    log_info "✓ kubectl: $(kubectl version --client --short 2>/dev/null || kubectl version --client -o json | jq -r '.clientVersion.gitVersion' 2>/dev/null || echo 'unknown')"
     log_info "✓ K3s:     ${k3s_ver}"
-    log_info "✓ Helm:    $(helm version --short)"
-    log_info "✓ Docker:  $(docker version --format '{{.Client.Version}}' 2>/dev/null)"
+    log_info "✓ Helm:    $(helm version --short 2>/dev/null || echo 'unknown')"
+    log_info "✓ Docker:  $(docker version --format '{{.Client.Version}}' 2>/dev/null || echo 'unknown')"
     log_info "✓ Ingress class: traefik  |  Storage class: local-path"
 }
 
@@ -73,20 +99,12 @@ ensure_namespace() {
     log_info "✓ Namespace $NAMESPACE ready"
 }
 
-# Create secrets if missing
-ensure_secrets() {
-    log_step "Ensuring secrets are created..."
-    
-    if ! kubectl get secret erp-system-secrets -n "$NAMESPACE" &> /dev/null; then
-        log_info "Creating secrets..."
-        kubectl create secret generic erp-system-secrets \
-            --namespace="$NAMESPACE" \
-            --from-literal=postgres-password='postgres' \
-            --from-literal=jwt-secret='your-super-secret-256bit-key-for-hs256-algorithm' \
-            --dry-run=client -o yaml | kubectl apply -f - || true
-    fi
-    
-    log_info "✓ Secrets configured"
+# Helm dependency update (fetch prometheus/grafana charts)
+update_helm_deps() {
+    log_step "Updating Helm dependencies..."
+    cd "$PROJECT_ROOT"
+    helm dependency update "$HELM_CHART" 2>&1 || log_warn "Helm dep update failed (continuing anyway)"
+    log_info "✓ Helm dependencies updated"
 }
 
 # Build Docker images
@@ -125,6 +143,10 @@ build_images() {
     log_info "Building templates service..."
     docker build -t erp/templates-service:latest ./nodejs/templates-service
     
+    # Webshop
+    log_info "Building webshop..."
+    docker build -f apps/webshop/Dockerfile -t erp/webshop:latest ./apps/webshop
+    
     cd "$PROJECT_ROOT"
     log_info "✓ All images built successfully"
 }
@@ -150,6 +172,7 @@ load_images() {
         erp/company-service:latest erp/translation-service:latest \
         erp/notification-service:latest erp/scripting-service:latest \
         erp/templates-service:latest \
+        erp/webshop:latest \
         > /tmp/erp-images/all.tar
 
     log_info "Importing images into K3s containerd (requires sudo)..."
@@ -170,8 +193,12 @@ deploy_helm() {
         --create-namespace \
         --values "$HELM_VALUES" \
         --set environment=development \
+        --set networkPolicy.enabled=false \
+        --set secrets.postgresPassword="postgres" \
+        --set secrets.jwtSecret="your-super-secret-256bit-key-for-hs256-algorithm" \
+        --set secrets.minioRootPassword="minioadmin123" \
         --wait \
-        --timeout 5m
+        --timeout 10m
     
     log_info "✓ Helm deployment complete"
 }
@@ -266,8 +293,9 @@ main() {
     case "$action" in
         full)
             check_requirements
+            fix_networking
             ensure_namespace
-            ensure_secrets
+            update_helm_deps
             build_images
             load_images
             deploy_helm
@@ -285,8 +313,9 @@ main() {
             ;;
         deploy)
             check_requirements
+            fix_networking
             ensure_namespace
-            ensure_secrets
+            update_helm_deps
             deploy_helm
             wait_for_services
             show_status

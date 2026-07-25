@@ -343,7 +343,7 @@ smtp:
 # Security
 # =============================================================================
 networkPolicy:
-  enabled: true
+  enabled: false
 
 podSecurityPolicy:
   enabled: false

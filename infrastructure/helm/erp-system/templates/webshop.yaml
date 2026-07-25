@@ -29,7 +29,7 @@ spec:
             - name: VITE_API_URL
               value: "/graphql"
             - name: VITE_API_WS_URL
-              value: "ws://{{ .Values.ingress.hosts[0].host }}/graphql"
+              value: "ws://{{ (index .Values.ingress.hosts 0).host }}/graphql"
           livenessProbe:
             httpGet:
               path: /

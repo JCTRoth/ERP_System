@@ -116,3 +116,6 @@ tls.crt
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode
+
+.claude/worktrees
+.claude/settings.local.json
