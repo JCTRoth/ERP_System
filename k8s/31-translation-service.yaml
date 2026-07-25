@@ -1,0 +1,63 @@
+# ── Translation Service (port 8081) ───────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-translation-service
+  namespace: erp
+  labels:
+    app: erp-translation-service
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-translation-service
+  ports:
+    - port: 8081
+      targetPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-translation-service
+  namespace: erp
+  labels:
+    app: erp-translation-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-translation-service
+  template:
+    metadata:
+      labels:
+        app: erp-translation-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: translation-service
+          image: ghcr.io/jctroth/erp-translation-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://erp-postgres:5432/translationdb"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "erp_translation"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "Ra$hWee5Pei1e$"
+            - name: SERVER_PORT
+              value: "8081"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z erp-postgres 5432; do echo "Waiting for postgres..."; sleep 3; done']

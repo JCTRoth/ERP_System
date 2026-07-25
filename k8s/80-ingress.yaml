@@ -1,0 +1,51 @@
+---
+# =============================================================================
+# Ingress — Traefik routing with cert-manager TLS
+#
+# Routes:
+#   /         → erp-frontend:3000   (ERP main app, nginx proxies /graphql internally)
+#   /shop     → erp-webshop:3008    (public webshop)
+#   /graphql  → erp-gateway:4000    (direct WebSocket-compatible GraphQL)
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: erp-ingress
+  namespace: erp
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: "web,websecure"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - erp.shopping-now.net
+      secretName: erp-tls-cert
+  rules:
+    - host: erp.shopping-now.net
+      http:
+        paths:
+          # GraphQL API — direct route for WebSocket upgrade support
+          - path: /graphql
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-gateway
+                port:
+                  number: 4000
+          # Webshop
+          - path: /shop
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-webshop
+                port:
+                  number: 3008
+          # ERP Frontend (catch-all)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-frontend
+                port:
+                  number: 3000

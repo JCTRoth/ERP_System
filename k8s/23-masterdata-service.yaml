@@ -1,0 +1,61 @@
+# ── Masterdata Service (port 5002) ────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-masterdata-service
+  namespace: erp
+  labels:
+    app: erp-masterdata-service
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-masterdata-service
+  ports:
+    - port: 5002
+      targetPort: 5002
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-masterdata-service
+  namespace: erp
+  labels:
+    app: erp-masterdata-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-masterdata-service
+  template:
+    metadata:
+      labels:
+        app: erp-masterdata-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: masterdata-service
+          image: ghcr.io/jctroth/erp-masterdata-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5002
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://*:5002"
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=erp-postgres;Port=5432;Database=masterdatadb;Username=erp_masterdata;Password=Ra$hWee5Pei1e$"
+            - name: Database__EnableSeeding
+              value: "true"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z erp-postgres 5432; do echo "Waiting for postgres..."; sleep 3; done']

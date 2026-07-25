@@ -1,0 +1,84 @@
+---
+# =============================================================================
+# MinIO — Object Storage (port 9000 API, 9001 Console)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-minio
+  namespace: erp
+  labels:
+    app: erp-minio
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-minio
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: erp-minio-data
+  namespace: erp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-minio
+  namespace: erp
+  labels:
+    app: erp-minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-minio
+  template:
+    metadata:
+      labels:
+        app: erp-minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+          command: ["server", "/data", "--console-address", ":9001"]
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: erp-minio-secret
+                  key: root-user
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: erp-minio-secret
+                  key: root-password
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+      volumes:
+        - name: minio-data
+          persistentVolumeClaim:
+            claimName: erp-minio-data

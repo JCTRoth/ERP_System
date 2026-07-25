@@ -1,0 +1,62 @@
+---
+# =============================================================================
+# Templates Service (Node.js, port 8087)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-templates-service
+  namespace: erp
+  labels:
+    app: erp-templates-service
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-templates-service
+  ports:
+    - port: 8087
+      targetPort: 8087
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-templates-service
+  namespace: erp
+  labels:
+    app: erp-templates-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-templates-service
+  template:
+    metadata:
+      labels:
+        app: erp-templates-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: templates-service
+          image: ghcr.io/jctroth/erp-templates-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8087
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "8087"
+            - name: DATABASE_URL
+              value: "postgresql://erp_templates:Ra$hWee5Pei1e$@erp-postgres:5432/templatesdb"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z erp-postgres 5432; do echo "Waiting for postgres..."; sleep 3; done']

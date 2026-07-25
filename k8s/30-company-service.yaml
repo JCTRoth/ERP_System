@@ -1,0 +1,63 @@
+# ── Company Service (port 8080) ───────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-company-service
+  namespace: erp
+  labels:
+    app: erp-company-service
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-company-service
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-company-service
+  namespace: erp
+  labels:
+    app: erp-company-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-company-service
+  template:
+    metadata:
+      labels:
+        app: erp-company-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: company-service
+          image: ghcr.io/jctroth/erp-company-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://erp-postgres:5432/companydb"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "erp_company"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "Ra$hWee5Pei1e$"
+            - name: SERVER_PORT
+              value: "8080"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "800m"
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z erp-postgres 5432; do echo "Waiting for postgres..."; sleep 3; done']

@@ -1,0 +1,77 @@
+# ── Shop Service (port 5003) ──────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-shop-service
+  namespace: erp
+  labels:
+    app: erp-shop-service
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-shop-service
+  ports:
+    - port: 5003
+      targetPort: 5003
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-shop-service
+  namespace: erp
+  labels:
+    app: erp-shop-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-shop-service
+  template:
+    metadata:
+      labels:
+        app: erp-shop-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: shop-service
+          image: ghcr.io/jctroth/erp-shop-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5003
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://*:5003"
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=erp-postgres;Port=5432;Database=shopdb;Username=erp_shop;Password=Ra$hWee5Pei1e$"
+            - name: Database__EnableSeeding
+              value: "true"
+            - name: Minio__Endpoint
+              value: "erp-minio:9000"
+            - name: Minio__AccessKey
+              valueFrom:
+                secretKeyRef:
+                  name: erp-minio-secret
+                  key: root-user
+            - name: Minio__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: erp-minio-secret
+                  key: root-password
+            - name: Minio__UseSSL
+              value: "false"
+            - name: Services__TemplatesService
+              value: "http://erp-templates-service:8087"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z erp-postgres 5432; do echo "Waiting for postgres..."; sleep 3; done']

@@ -1,0 +1,76 @@
+# ── User Service (port 5000) ──────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-user-service
+  namespace: erp
+  labels:
+    app: erp-user-service
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-user-service
+  ports:
+    - port: 5000
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-user-service
+  namespace: erp
+  labels:
+    app: erp-user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-user-service
+  template:
+    metadata:
+      labels:
+        app: erp-user-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: user-service
+          image: ghcr.io/jctroth/erp-user-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://*:5000"
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=erp-postgres;Port=5432;Database=userdb;Username=erp_user;Password=Ra$hWee5Pei1e$"
+            - name: JWT__Secret
+              valueFrom:
+                secretKeyRef:
+                  name: erp-jwt-secret
+                  key: jwt-secret
+            - name: JWT__Issuer
+              value: "erp-system"
+            - name: JWT__Audience
+              value: "erp-clients"
+            - name: Database__EnableSeeding
+              value: "true"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z erp-postgres 5432; do echo "Waiting for postgres..."; sleep 3; done']

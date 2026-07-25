@@ -1,0 +1,56 @@
+---
+# =============================================================================
+# Webshop (React SPA served via nginx, port 3008)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-webshop
+  namespace: erp
+  labels:
+    app: erp-webshop
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-webshop
+  ports:
+    - port: 3008
+      targetPort: 3008
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-webshop
+  namespace: erp
+  labels:
+    app: erp-webshop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-webshop
+  template:
+    metadata:
+      labels:
+        app: erp-webshop
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: webshop
+          image: ghcr.io/jctroth/erp-webshop:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3008
+          env:
+            - name: VITE_API_URL
+              value: "/graphql"
+            - name: VITE_API_WS_URL
+              value: "wss://erp.shopping-now.net/graphql"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"

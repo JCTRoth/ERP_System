@@ -119,3 +119,5 @@ tls.crt
 
 .claude/worktrees
 .claude/settings.local.json
+.env.deploy
+.env.k3s.example

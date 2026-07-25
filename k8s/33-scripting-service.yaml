@@ -1,0 +1,63 @@
+# ── Scripting Service (port 8083) ─────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-scripting-service
+  namespace: erp
+  labels:
+    app: erp-scripting-service
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-scripting-service
+  ports:
+    - port: 8083
+      targetPort: 8083
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-scripting-service
+  namespace: erp
+  labels:
+    app: erp-scripting-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-scripting-service
+  template:
+    metadata:
+      labels:
+        app: erp-scripting-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: scripting-service
+          image: ghcr.io/jctroth/erp-scripting-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://erp-postgres:5432/scriptingdb"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "erp_scripting"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "Ra$hWee5Pei1e$"
+            - name: SERVER_PORT
+              value: "8083"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z erp-postgres 5432; do echo "Waiting for postgres..."; sleep 3; done']

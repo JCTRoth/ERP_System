@@ -1,0 +1,96 @@
+---
+# =============================================================================
+# Apollo Gateway (Node.js, port 4000)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-gateway
+  namespace: erp
+  labels:
+    app: erp-gateway
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-gateway
+  ports:
+    - port: 4000
+      targetPort: 4000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-gateway
+  namespace: erp
+  labels:
+    app: erp-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-gateway
+  template:
+    metadata:
+      labels:
+        app: erp-gateway
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: gateway
+          image: ghcr.io/jctroth/erp-gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "4000"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: LISTEN_HOST
+              value: "0.0.0.0"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: erp-jwt-secret
+                  key: jwt-secret
+            # Backend service URLs — k8s internal DNS
+            - name: USER_SERVICE_URL
+              value: "http://erp-user-service:5000/graphql/"
+            - name: SHOP_SERVICE_URL
+              value: "http://erp-shop-service:5003/graphql/"
+            - name: ACCOUNTING_SERVICE_URL
+              value: "http://erp-accounting-service:5001/graphql/"
+            - name: MASTERDATA_SERVICE_URL
+              value: "http://erp-masterdata-service:5002/graphql/"
+            - name: ORDERS_SERVICE_URL
+              value: "http://erp-orders-service:5004/graphql/"
+            - name: COMPANY_SERVICE_URL
+              value: "http://erp-company-service:8080/graphql"
+            - name: TRANSLATION_SERVICE_URL
+              value: "http://erp-translation-service:8081/graphql"
+            - name: NOTIFICATION_SERVICE_URL
+              value: "http://erp-notification-service:8082/graphql"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 60
+            periodSeconds: 30

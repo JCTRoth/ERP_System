@@ -1,0 +1,61 @@
+# ── Accounting Service (port 5001) ────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-accounting-service
+  namespace: erp
+  labels:
+    app: erp-accounting-service
+spec:
+  type: ClusterIP
+  selector:
+    app: erp-accounting-service
+  ports:
+    - port: 5001
+      targetPort: 5001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-accounting-service
+  namespace: erp
+  labels:
+    app: erp-accounting-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: erp-accounting-service
+  template:
+    metadata:
+      labels:
+        app: erp-accounting-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: accounting-service
+          image: ghcr.io/jctroth/erp-accounting-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5001
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://*:5001"
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=erp-postgres;Port=5432;Database=accountingdb;Username=erp_accounting;Password=Ra$hWee5Pei1e$"
+            - name: Database__EnableSeeding
+              value: "true"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z erp-postgres 5432; do echo "Waiting for postgres..."; sleep 3; done']
