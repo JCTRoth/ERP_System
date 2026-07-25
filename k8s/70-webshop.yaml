@@ -17,6 +17,15 @@ data:
         root /usr/share/nginx/html;
         index index.html;
 
+        location /shop/graphql {
+            proxy_pass http://erp-gateway:4000/graphql;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }
+
         location / {
             try_files $uri $uri/ /index.html;
         }
@@ -29,8 +38,13 @@ data:
             proxy_set_header Host $host;
             proxy_cache_bypass $http_upgrade;
         }
-    }
 
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+    }
 ---
 apiVersion: v1
 kind: Service

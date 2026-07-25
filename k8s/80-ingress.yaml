@@ -92,6 +92,14 @@ spec:
                 name: erp-minio
                 port:
                   number: 9000
+          # Shop GraphQL API — frontend sends shop queries to /shop/graphql
+          - path: /shop/graphql
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-gateway
+                port:
+                  number: 4000
           # Webshop
           - path: /shop
             pathType: Prefix
