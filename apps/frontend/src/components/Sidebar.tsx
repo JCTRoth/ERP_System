@@ -65,8 +65,11 @@ export default function Sidebar() {
     };
   };
 
+  const isSuperAdmin = hasPermission('admin');
+
   const visibleMenuItems = menuItems.filter((item) => {
-    if (item.requiresCompany && !currentCompanyId) {
+    // Super Admins bypass company context requirement — they have access to everything
+    if (item.requiresCompany && !currentCompanyId && !isSuperAdmin) {
       return false;
     }
 

@@ -79,14 +79,16 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       isAdmin: () =>
-        get().isGlobalSuperAdmin || ['SUPER_ADMIN', 'ADMIN'].includes(get().companyRole || ''),
+        get().isGlobalSuperAdmin || ['SUPER_ADMIN', 'ADMIN', 'admin', 'super_admin'].includes(get().companyRole || ''),
 
       isSuperAdmin: () =>
-        get().isGlobalSuperAdmin || get().companyRole === 'SUPER_ADMIN' || get().user?.role === 'SUPER_ADMIN',
+        get().isGlobalSuperAdmin || ['SUPER_ADMIN', 'ADMIN', 'admin', 'super_admin'].includes(get().companyRole || '') || ['SUPER_ADMIN', 'ADMIN', 'admin', 'super_admin'].includes(get().user?.role || ''),
 
       hasPermission: (permission) => {
+        const role = get().user?.role;
+        const superRoles = ['SUPER_ADMIN', 'ADMIN', 'admin', 'super_admin'];
         // Global super admins have all permissions
-        if (get().isGlobalSuperAdmin || get().user?.role === 'SUPER_ADMIN') {
+        if (get().isGlobalSuperAdmin || superRoles.includes(role || '')) {
           return true;
         }
 
@@ -95,6 +97,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setAuth: (user, accessToken, refreshToken, authorization = null) => {
+        const superRoles = ['SUPER_ADMIN', 'ADMIN', 'admin', 'super_admin'];
         set({
           user,
           accessToken,
@@ -102,7 +105,7 @@ export const useAuthStore = create<AuthState>()(
           currentCompanyId: authorization?.companyId ?? null,
           currentCompanyName: authorization?.companyName ?? null,
           companyRole: authorization?.companyRole ?? null,
-          isGlobalSuperAdmin: authorization?.isGlobalSuperAdmin ?? user.role === 'SUPER_ADMIN',
+          isGlobalSuperAdmin: authorization?.isGlobalSuperAdmin ?? superRoles.includes(user.role || ''),
           groupCodes: authorization?.groupCodes ?? [],
           permissionCodes: authorization?.permissionCodes ?? [],
           scopeGrants: authorization?.scopeGrants ?? [],
@@ -111,12 +114,13 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setAuthorizationContext: (authorization, accessToken = null) => {
+        const superRoles = ['SUPER_ADMIN', 'ADMIN', 'admin', 'super_admin'];
         set((state) => ({
           accessToken: accessToken ?? state.accessToken,
           currentCompanyId: authorization?.companyId ?? null,
           currentCompanyName: authorization?.companyName ?? null,
           companyRole: authorization?.companyRole ?? null,
-          isGlobalSuperAdmin: authorization?.isGlobalSuperAdmin ?? state.user?.role === 'SUPER_ADMIN',
+          isGlobalSuperAdmin: authorization?.isGlobalSuperAdmin ?? superRoles.includes(state.user?.role || ''),
           groupCodes: authorization?.groupCodes ?? [],
           permissionCodes: authorization?.permissionCodes ?? [],
           scopeGrants: authorization?.scopeGrants ?? [],

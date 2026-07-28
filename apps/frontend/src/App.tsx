@@ -53,8 +53,14 @@ function PermissionRoute({
   const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
   const companyAssignments = useAuthStore((state) => state.companyAssignments);
   const hasPermission = useAuthStore((state) => state.hasPermission);
+  const user = useAuthStore((state) => state.user);
+  const isGlobalSuperAdmin = useAuthStore((state) => state.isGlobalSuperAdmin);
 
-  if (requiresCompany && !currentCompanyId) {
+  // Super Admins bypass company context requirement
+  const superRoles = ['SUPER_ADMIN', 'ADMIN', 'admin', 'super_admin'];
+  const isSuperAdmin = isGlobalSuperAdmin || superRoles.includes(user?.role || '');
+
+  if (requiresCompany && !currentCompanyId && !isSuperAdmin) {
     if (companyAssignments.length > 0) {
       return <Navigate to="/auth/select-company" replace />;
     }
