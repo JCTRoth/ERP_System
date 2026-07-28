@@ -338,6 +338,15 @@ export default function DashboardPage() {
             </p>
           </div>
         )}
+        {isAuthenticated && !hasCompanyContext && (
+          <div className="mt-4 rounded-lg border border-blue-300 bg-blue-100 p-3 dark:border-blue-900/50 dark:bg-blue-900/20">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              {companyAssignments.length > 0
+                ? t("dashboard.selectCompanyHint", { default: "Please select a company from the settings page to view your dashboard data." })
+                : t("dashboard.noAssignmentsHint", { default: "You are not assigned to any company yet. Contact your administrator to get access." })}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}

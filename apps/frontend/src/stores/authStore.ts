@@ -82,13 +82,15 @@ export const useAuthStore = create<AuthState>()(
         get().isGlobalSuperAdmin || ['SUPER_ADMIN', 'ADMIN'].includes(get().companyRole || ''),
 
       isSuperAdmin: () =>
-        get().isGlobalSuperAdmin || get().companyRole === 'SUPER_ADMIN',
+        get().isGlobalSuperAdmin || get().companyRole === 'SUPER_ADMIN' || get().user?.role === 'SUPER_ADMIN',
 
       hasPermission: (permission) => {
-        if (get().isGlobalSuperAdmin) {
+        // Global super admins have all permissions
+        if (get().isGlobalSuperAdmin || get().user?.role === 'SUPER_ADMIN') {
           return true;
         }
 
+        // Check company-level permissions
         return get().permissionCodes.includes(permission);
       },
 

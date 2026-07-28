@@ -64,6 +64,8 @@ spec:
                   key: root-password
             - name: Minio__UseSSL
               value: "false"
+            - name: Minio__PublicUrl
+              value: "https://erp.shopping-now.net"
             - name: Services__TemplatesService
               value: "http://erp-templates-service:8087"
           resources:

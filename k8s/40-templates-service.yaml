@@ -49,6 +49,22 @@ spec:
               value: "8087"
             - name: DATABASE_URL
               value: "postgresql://erp_templates:Ra$hWee5Pei1e$@erp-postgres:5432/templatesdb"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8087
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8087
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           resources:
             requests:
               memory: "128Mi"

@@ -218,19 +218,32 @@ class AuthService {
     try {
       if (refreshToken) {
         const client = getApolloClient();
-        await client.mutate({
-          mutation: LOGOUT_MUTATION,
-          variables: { refreshToken },
-        });
+        try {
+          await client.mutate({
+            mutation: LOGOUT_MUTATION,
+            variables: { refreshToken },
+          });
+        } catch (mutationError: any) {
+          // Logout mutation might not be available (e.g., not in gateway schema)
+          // or token may be expired — this is non-critical, we clear local state anyway
+          if (mutationError.graphQLErrors?.length > 0) {
+            console.warn('Logout mutation failed (non-critical):', mutationError.graphQLErrors[0]?.message);
+          } else {
+            console.warn('Logout request failed (non-critical):', mutationError.message);
+          }
+        }
       }
     } catch (error) {
-      // Ignore logout errors - we'll clear local state anyway
       console.warn('Logout error:', error);
     } finally {
       state.logout();
       // Clear Apollo cache
-      const client = getApolloClient();
-      await client.clearStore();
+      try {
+        const client = getApolloClient();
+        await client.clearStore();
+      } catch {
+        // Ignore cache clear errors
+      }
     }
   }
 
@@ -262,6 +275,11 @@ class AuthService {
         variables: { refreshToken, companyId: currentCompanyId || null },
       });
 
+      if (!data?.refreshToken) {
+        console.warn('RefreshToken returned empty response, keeping existing auth state');
+        return false;
+      }
+
       const result = data.refreshToken;
       useAuthStore.getState().setAuth(
         result.user ?? state.user!,
@@ -271,10 +289,14 @@ class AuthService {
       );
 
       return true;
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      // Token refresh failed - logout
-      state.logout();
+    } catch (error: any) {
+      // Refresh token failure is non-critical — the user may still have a valid session
+      // Don't logout on failure, just log the warning and keep existing state
+      if (error.graphQLErrors?.length > 0) {
+        console.warn('RefreshToken mutation not available (non-critical):', error.graphQLErrors[0]?.message);
+      } else {
+        console.warn('RefreshToken failed (non-critical):', error.message);
+      }
       return false;
     }
   }

@@ -8,6 +8,18 @@ set -euo pipefail
 log_info()  { echo -e "\033[0;32m[INFO]\033[0m $*"; }
 log_error() { echo -e "\033[0;31m[ERROR]\033[0m $*"; }
 
+# 0. Unload br_netfilter which can silently consume bridged IP packets
+#     (Fedora 44+ kernel bug causing pod-to-pod traffic to disappear)
+if lsmod | grep -q "^br_netfilter"; then
+    log_info "Unloading br_netfilter (known to break pod-to-pod bridging)..."
+    modprobe -r br_netfilter 2>/dev/null && log_info "✓ br_netfilter unloaded" || log_error "Failed to unload br_netfilter"
+    # Blacklist to prevent re-load on reboot
+    if [ ! -f /etc/modprobe.d/br_netfilter-blacklist.conf ]; then
+        echo "blacklist br_netfilter" > /etc/modprobe.d/br_netfilter-blacklist.conf
+        log_info "✓ br_netfilter blacklisted permanently"
+    fi
+fi
+
 # 1. Ensure bridge-nf-call-iptables is enabled (needed for kube-proxy ClusterIP)
 BRIDGE_NF=$(cat /proc/sys/net/bridge/bridge-nf-call-iptables 2>/dev/null || echo "0")
 if [ "$BRIDGE_NF" != "1" ]; then

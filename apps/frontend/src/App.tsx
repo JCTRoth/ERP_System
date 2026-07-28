@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { useUIStore } from './stores/uiStore';
+import { authService } from './services/authService';
 import MainLayout from './layouts/MainLayout';
 import AuthLayout from './layouts/AuthLayout';
 import LoginPage from './pages/auth/LoginPage';
@@ -73,9 +74,26 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const [authInitialized, setAuthInitialized] = useState(false);
   const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
   const setTheme = useUIStore((state) => state.setTheme);
   const setShowTranslationKeys = useUIStore((state) => state.setShowTranslationKeys);
+
+  // Refresh auth token on app mount to restore authorization context
+  useEffect(() => {
+    const isAuthenticated = useAuthStore.getState().isAuthenticated;
+    const hasStoredToken = !!useAuthStore.getState().refreshToken;
+    
+    if (isAuthenticated && hasStoredToken) {
+      // Token refresh returns authorization context (companyId, permissions, etc.)
+      // This is needed after page reload to restore the full auth state
+      authService.refreshToken().finally(() => {
+        setAuthInitialized(true);
+      });
+    } else {
+      setAuthInitialized(true);
+    }
+  }, []);
 
   useEffect(() => {
     const scope = currentCompanyId || 'global';
@@ -90,6 +108,17 @@ export default function App() {
       setShowTranslationKeys(scopedShowKeys === 'true');
     }
   }, [currentCompanyId, setTheme, setShowTranslationKeys]);
+
+  if (!authInitialized) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
+          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Routes>

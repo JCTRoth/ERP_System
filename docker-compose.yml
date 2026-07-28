@@ -80,7 +80,7 @@ services:
       Minio__AccessKey: minioadmin
       Minio__SecretKey: minioadmin
       Minio__UseSSL: "false"
-      Minio__PublicUrl: https://${DEPLOY_DOMAIN:-shopping-now.net}/minio
+      Minio__PublicUrl: https://${DEPLOY_DOMAIN:-shopping-now.net}
       Services__TemplatesService: http://templates-service:8087
     depends_on:
       postgres:

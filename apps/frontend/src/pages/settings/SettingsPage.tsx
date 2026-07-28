@@ -87,6 +87,15 @@ export default function SettingsPage() {
       const response = await fetch('/api/smtp-configuration', {
         headers: smtpHeaders,
       });
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => `HTTP ${response.status}`);
+        throw new Error(`Server returned ${response.status}: ${errorText.slice(0, 200)}`);
+      }
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`Expected JSON but got ${contentType}: ${body.slice(0, 200)}`);
+      }
       const data = await response.json();
       console.log('SMTP API response:', data);
       
