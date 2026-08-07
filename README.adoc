@@ -426,6 +426,11 @@ End-to-end browser tests live in `apps/e2e` and cover the ERP frontend and the
 webshop. They run against the *real* stack (PostgreSQL + services + gateway +
 frontend), so the backend must be running first.
 
+Covered areas (see `apps/e2e/tests/`): authentication (login, errors, logout,
+forgot-password link), dashboard, sidebar navigation, users, companies,
+translations, settings, products, orders, accounting, master data, templates,
+UI builder, and the webshop storefront (home, catalog, cart).
+
 ==== Install
 
 [source,bash]
