@@ -420,6 +420,72 @@ cd apps/services/java/company-service
 ./gradlew test
 ----
 
+=== Playwright E2E Tests
+
+End-to-end browser tests live in `apps/e2e` and cover the ERP frontend and the
+webshop. They run against the *real* stack (PostgreSQL + services + gateway +
+frontend), so the backend must be running first.
+
+==== Install
+
+[source,bash]
+----
+npm install                 # installs @playwright/test via the npm workspace
+npm run e2e:install         # downloads the Chromium browser
+----
+
+==== Configure
+
+All settings have sensible defaults and can be overridden via environment
+variables (see `apps/e2e/.env.example`):
+
+[source,bash]
+----
+E2E_BASE_URL=http://localhost:5173     # ERP frontend
+E2E_WEBSHOP_URL=http://localhost:3008  # webshop
+E2E_USER_EMAIL=admin@erp-system.local  # seeded super admin
+E2E_USER_PASSWORD=Admin123!
+----
+
+The tests authenticate with the seeded super admin user
+(`admin@erp-system.local` / `Admin123!`, see UserService `UserDbContext` seed).
+
+==== Run
+
+[source,bash]
+----
+# Start the backend stack first (frontend on 5173, webshop on 3008)
+./scripts/dev/start-local.sh
+
+# Run the full suite (frontend + webshop) from the repository root
+npm run test:e2e
+
+# Or via the helper script (also runs pre-flight health checks)
+./scripts/test/test-e2e-playwright.sh
+
+# Run a single project / file
+npm --workspace @erp/e2e run test:webshop
+npx playwright test users.spec.ts --project=chromium
+----
+
+The HTML report is written to `apps/e2e/playwright-report`; open it with
+`npm run e2e:report`.
+
+==== Important behaviour
+
+* *Authentication first*: the login flow is always the very first test
+  executed (dedicated `setup` project).
+* *Fail-fast*: if the authentication test fails, the entire suite stops
+  immediately — no other test runs.
+* In CI the stack is started via `docker-compose.prod-local.yml` and the suite
+  runs against `http://localhost:8088` (see the `e2e` job in
+  `.github/workflows/ci-cd.yml`).
+
+=== Scripts / Integration Tests
+
+See link:scripts/test/README.md[scripts/test/README.md] for the shell-based
+integration and E2E test scripts.
+
 == Deployment
 
 === Docker Compose (Development)

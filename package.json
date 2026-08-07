@@ -11,7 +11,11 @@
     "lint": "nx run-many --target=lint --all",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "nx": "nx",
-    "graph": "nx graph"
+    "graph": "nx graph",
+    "e2e": "nx run e2e:e2e",
+    "test:e2e": "npm --workspace @erp/e2e run test",
+    "e2e:install": "npm --workspace @erp/e2e run install:browsers",
+    "e2e:report": "npm --workspace @erp/e2e run report"
   },
   "devDependencies": {
     "@nx/devkit": "^22.6.1",
@@ -29,6 +33,7 @@
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "knip": "^6.32.0",
     "nx": "^22.7.0",
     "prettier": "^3.2.0",
     "typescript": "^5.4.0"

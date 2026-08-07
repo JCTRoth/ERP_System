@@ -35,7 +35,7 @@ BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_scripting') THEN
         CREATE USER erp_scripting WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;
-    # edifact user removed
+    -- edifact user removed
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'erp_templates') THEN
         CREATE USER erp_templates WITH ENCRYPTED PASSWORD '$DB_PASS' CREATEDB;
     END IF;

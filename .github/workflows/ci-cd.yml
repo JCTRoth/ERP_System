@@ -152,6 +152,78 @@ jobs:
           npm install -g @apollo/rover
           rover supergraph compose --config supergraph-config.yaml --elv2-license accept || true
 
+  # E2E (Playwright) Job
+  # Runs the complete Playwright suite (apps/e2e) against the real full stack
+  # started via docker-compose.prod-local.yml (frontend on 8088, webshop on 3008,
+  # gateway on 4000). The auth test always runs first and the suite stops
+  # immediately if it fails.
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [frontend]
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Start ERP stack (docker compose)
+        run: |
+          docker compose -f docker-compose.prod-local.yml up -d --build
+          # Wait for the gateway, frontend and webshop to become reachable
+          for i in $(seq 1 90); do
+            if curl -sf http://localhost:4000/health >/dev/null 2>&1 && \
+               curl -sf http://localhost:8088/ >/dev/null 2>&1 && \
+               curl -sf http://localhost:3008/ >/dev/null 2>&1; then
+              echo "Stack is up after ${i} tries"
+              break
+            fi
+            sleep 10
+          done
+          curl -sf http://localhost:4000/health >/dev/null || { echo "Gateway never became healthy"; exit 1; }
+          curl -sf http://localhost:8088/ >/dev/null || { echo "Frontend never became healthy"; exit 1; }
+          curl -sf http://localhost:3008/ >/dev/null || { echo "Webshop never became healthy"; exit 1; }
+
+      - name: Run Playwright E2E tests
+        env:
+          CI: 'true'
+          E2E_BASE_URL: http://localhost:8088
+          E2E_WEBSHOP_URL: http://localhost:3008
+        run: npx playwright test
+        working-directory: apps/e2e
+
+      - name: Upload Playwright HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: apps/e2e/playwright-report
+          retention-days: 7
+
+      - name: Upload Playwright test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: apps/e2e/test-results
+          retention-days: 7
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f docker-compose.prod-local.yml down -v
+
   # Docker Build Job
   docker-build:
     name: Docker Build

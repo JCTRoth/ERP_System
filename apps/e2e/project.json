@@ -1,0 +1,40 @@
+{
+  "name": "e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/e2e/tests",
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "playwright test",
+        "cwd": "apps/e2e",
+        "color": true
+      },
+      "configurations": {
+        "chromium": {
+          "command": "playwright test --project=chromium"
+        },
+        "webshop": {
+          "command": "playwright test --project=webshop"
+        },
+        "ui": {
+          "command": "playwright test --ui"
+        },
+        "report": {
+          "command": "playwright show-report"
+        }
+      },
+      "cache": false
+    },
+    "install-browsers": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "playwright install chromium",
+        "cwd": "apps/e2e",
+        "color": true
+      },
+      "cache": false
+    }
+  }
+}

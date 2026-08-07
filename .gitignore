@@ -48,6 +48,12 @@ coverage/
 .nyc_output/
 test-results/
 
+# Playwright E2E
+apps/e2e/test-results/
+apps/e2e/playwright-report/
+apps/e2e/blob-report/
+apps/e2e/.auth/
+
 # Java
 *.class
 *.jar

@@ -84,7 +84,45 @@ This is a modern, full-stack Enterprise Resource Planning (ERP) system built wit
 - **Database**: PostgreSQL 15
 - **Infrastructure**: Docker, Kubernetes, Helm
 - **Communication**: GraphQL Federation, REST
-- **Documentation**: AsciiDoc, PDF generation</content>
+- **Documentation**: AsciiDoc, PDF generation
+
+## Playwright E2E Testing
+
+The end-to-end browser suite lives in `apps/e2e` (`@erp/e2e`). When writing or
+maintaining Playwright tests, follow these mandatory guidelines:
+
+### Auth-first & fail-fast (never break these)
+- The authentication flow in `tests/auth.setup.ts` (the `setup` project) must
+  **always be the very first test executed** — it performs the login and saves
+  the shared `storageState`.
+- If the auth test fails, the **entire suite must stop immediately**. Preserve
+  `workers: 1`, `maxFailures: 1`, and `dependencies: ['setup']` on all test
+  projects in `playwright.config.ts`. Do not add test projects that bypass the
+  setup dependency.
+- Authenticated tests consume the shared `storageState`
+  (`utils/paths.ts` → `AUTH_STORAGE_STATE`). Use
+  `storageState: { cookies: [], origins: [] }` only for tests that deliberately
+  exercise the login page.
+
+### Credentials & data
+- Default test user is the **seeded super admin** `admin@erp-system.local` /
+  `Admin123!` (UserService seed). Override via `E2E_USER_EMAIL` /
+  `E2E_USER_PASSWORD`; never commit real credentials.
+- Do not create, delete, or mutate database records inside tests — assert on
+  seeded data and read-only interactions.
+
+### Writing & maintaining tests
+- Run through the workspace: `npm run test:e2e`, `nx run e2e:e2e`, or
+  `./scripts/test/test-e2e-playwright.sh`. The real backend stack must be
+  running (`scripts/dev/start-local.sh`).
+- Prefer `getByRole` / `getByLabel` / `getByText`; add `data-testid` only when
+  no stable accessible selector exists.
+- Keep tests independent and deterministic — no sleeps; use
+  `expect(...).toBeVisible()` polling.
+- The config pins `locale: 'en-US'`; selectors must not depend on non-English
+  labels.
+- When adding a feature, include e2e coverage in `apps/e2e/tests/`. Always run
+  the suite locally before finishing; keep CI green.
 
 ## Scripts Folder
 

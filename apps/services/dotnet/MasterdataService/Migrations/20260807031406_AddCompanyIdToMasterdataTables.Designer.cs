@@ -3,6 +3,7 @@ using System;
 using MasterdataService.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MasterdataService.Migrations
 {
     [DbContext(typeof(MasterdataDbContext))]
-    partial class MasterdataDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260807031406_AddCompanyIdToMasterdataTables")]
+    partial class AddCompanyIdToMasterdataTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

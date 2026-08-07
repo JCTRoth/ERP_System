@@ -65,7 +65,7 @@ grant_permissions accountingdb erp_accounting
 grant_permissions masterdatadb erp_masterdata
 grant_permissions notificationdb erp_notification
 grant_permissions scriptingdb erp_scripting
--- edifact database removed
+# edifact database removed
 grant_permissions templatesdb erp_templates
 
 echo "Databases created and permissions granted successfully."

@@ -18,9 +18,13 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-securepassword123}
+      # Must match the password used by every service (see DB_PASSWORD defaults below)
+      # and the init scripts in infrastructure/postgres-init (init-multi-db.sh).
+      DB_PASSWORD: ${DB_PASSWORD:-RaxhWee5Pei1e}
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./infrastructure/postgres-init:/docker-entrypoint-initdb.d:ro
+      # :z relabels the bind mount for SELinux-enforcing hosts (e.g. Fedora)
+      - ./infrastructure/postgres-init:/docker-entrypoint-initdb.d:ro,z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 10s
@@ -247,7 +251,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 8087
-      DATABASE_URL: postgresql://erp_templates:postgres@postgres:5432/templatesdb
+      DATABASE_URL: postgresql://erp_templates:${DB_PASSWORD:-RaxhWee5Pei1e}@postgres:5432/templatesdb
     depends_on:
       postgres:
         condition: service_healthy
@@ -320,9 +324,31 @@ services:
     networks:
       - erp-network
     ports:
-      - "8088:80"
+      # nginx inside the frontend image listens on 3000 (see nginx.conf)
+      - "8088:3000"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # Webshop
+  # ==========================================================================
+  webshop:
+    build:
+      context: ./apps/webshop
+      dockerfile: Dockerfile
+    container_name: erp-webshop
+    depends_on:
+      - gateway
+    logging: *default-logging
+    networks:
+      - erp-network
+    ports:
+      - "3008:3008"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3008/"]
       interval: 30s
       timeout: 10s
       retries: 3
