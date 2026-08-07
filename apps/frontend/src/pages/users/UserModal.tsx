@@ -16,8 +16,8 @@ const CREATE_USER = gql`
 `;
 
 const UPDATE_USER = gql`
-  mutation UpdateUser($id: ID!, $input: UpdateUserInput!) {
-    updateUser(id: $id, input: $input) {
+  mutation UpdateUser($id: UUID!, $firstName: String, $lastName: String, $preferredLanguage: String) {
+    updateUser(id: $id, firstName: $firstName, lastName: $lastName, preferredLanguage: $preferredLanguage) {
       id
       email
       firstName
@@ -54,43 +54,43 @@ export default function UserModal({ user, onClose }: Props) {
     isActive: user?.isActive ?? true,
   });
 
-  const [createUser, { loading: creating }] = useMutation(CREATE_USER, {
+  const [createUser, { loading: creating, error: createError }] = useMutation(CREATE_USER, {
     onCompleted: onClose,
   });
 
-  const [updateUser, { loading: updating }] = useMutation(UPDATE_USER, {
+  const [updateUser, { loading: updating, error: updateError }] = useMutation(UPDATE_USER, {
     onCompleted: onClose,
   });
 
   const loading = creating || updating;
+  const mutationError = createError || updateError;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isEditing) {
-      await updateUser({
-        variables: { 
-          id: user.id, 
-          input: {
-            email: formData.email,
+    try {
+      if (isEditing) {
+        await updateUser({
+          variables: {
+            id: user.id,
             firstName: formData.firstName,
             lastName: formData.lastName,
             preferredLanguage: formData.preferredLanguage,
-            isActive: formData.isActive,
-            ...(formData.password && { password: formData.password }),
-          }
-        },
-      });
-    } else {
-      await createUser({
-        variables: { 
-          email: formData.email,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          preferredLanguage: formData.preferredLanguage,
-        },
-      });
+          },
+        });
+      } else {
+        await createUser({
+          variables: {
+            email: formData.email,
+            password: formData.password,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            preferredLanguage: formData.preferredLanguage,
+          },
+        });
+      }
+    } catch (err: any) {
+      console.error('User mutation failed:', err);
     }
   };
 
@@ -106,6 +106,12 @@ export default function UserModal({ user, onClose }: Props) {
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
+
+        {mutationError && (
+          <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/30 dark:text-red-400">
+            {mutationError.message}
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -25,15 +25,15 @@ public interface UserGroupAssignmentRepository extends JpaRepository<UserGroupAs
 
     boolean existsByUserIdAndCompanyIdAndGroupId(UUID userId, UUID companyId, UUID groupId);
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     void deleteByUserIdAndCompanyId(UUID userId, UUID companyId);
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM UserGroupAssignment uga " +
            "WHERE uga.userId = :userId AND uga.companyId = :companyId AND uga.group.isSystem = true")
     void deleteSystemAssignments(@Param("userId") UUID userId, @Param("companyId") UUID companyId);
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM UserGroupAssignment uga WHERE uga.group.id = :groupId")
     void deleteByGroupId(@Param("groupId") UUID groupId);
 }

@@ -64,12 +64,22 @@ export default function UsersPage() {
 
   const handleDeactivate = async (id: string) => {
     if (window.confirm(t('users.confirmDelete'))) {
-      await deleteUser({ variables: { id } });
+      try {
+        await deleteUser({ variables: { id } });
+      } catch (err: any) {
+        console.error('Deactivate user failed:', err);
+        alert(err.message || 'Failed to deactivate user');
+      }
     }
   };
 
   const handleActivate = async (id: string) => {
-    await activateUser({ variables: { id } });
+    try {
+      await activateUser({ variables: { id } });
+    } catch (err: any) {
+      console.error('Activate user failed:', err);
+      alert(err.message || 'Failed to activate user');
+    }
   };
 
   const handleModalClose = () => {

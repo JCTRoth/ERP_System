@@ -93,6 +93,11 @@ public class UserCompanyAssignmentService {
         assignment.setRole(newRole);
         
         UserCompanyAssignment saved = assignmentRepository.save(assignment);
+        
+        // Flush the UPDATE before calling sync, because sync uses @Modifying queries
+        // with clearAutomatically=true that clear the persistence context.
+        assignmentRepository.flush();
+        
         authorizationService.syncAssignmentToDefaultGroups(saved);
         log.info("Updated role for user {} in company {} from {} to {}", 
                 userId, companyId, oldRole, newRole);
@@ -111,8 +116,12 @@ public class UserCompanyAssignmentService {
                         "Assignment not found for user " + userId + " and company " + companyId
                 ));
 
-        assignmentRepository.delete(assignment);
+        // Remove user groups FIRST (uses @Modifying query), before deleting the
+        // managed assignment entity. This avoids StaleStateException caused by
+        // the @Modifying query's auto-flush triggering a double delete.
         authorizationService.removeUserGroups(userId, companyId);
+        
+        assignmentRepository.delete(assignment);
         log.info("Removed user {} from company {}", userId, companyId);
 
         // Publish event
