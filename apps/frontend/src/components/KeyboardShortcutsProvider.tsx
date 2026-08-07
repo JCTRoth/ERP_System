@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, createContext, useContext } from 'react';
+import { useEffect, useState, useCallback, createContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
 
@@ -16,8 +16,6 @@ const KeyboardShortcutsContext = createContext<KeyboardShortcutsContextType>({
   openHelp: () => {},
   closeHelp: () => {},
 });
-
-export const useKeyboardShortcutsContext = () => useContext(KeyboardShortcutsContext);
 
 /**
  * Returns true if the currently focused element is a text-input field.

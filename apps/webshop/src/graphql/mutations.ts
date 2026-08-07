@@ -108,15 +108,3 @@ export const CREATE_ORDER = gql`
     }
   }
 `;
-
-// ── Payment Mutations ──
-export const CREATE_PAYMENT = gql`
-  mutation CreatePayment($input: CreatePaymentInput!) {
-    createPayment(input: $input) {
-      id
-      amount
-      status
-      method
-    }
-  }
-`;

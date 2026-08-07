@@ -19,7 +19,7 @@ import {
   getRequiredContextFields,
 } from '../lib/templateUtils';
 
-export interface TemplatePreviewState {
+interface TemplatePreviewState {
   renderResult: any;
   loading: boolean;
   renderError: string | null;

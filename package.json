@@ -15,7 +15,8 @@
     "e2e": "nx run e2e:e2e",
     "test:e2e": "npm --workspace @erp/e2e run test",
     "e2e:install": "npm --workspace @erp/e2e run install:browsers",
-    "e2e:report": "npm --workspace @erp/e2e run report"
+    "e2e:report": "npm --workspace @erp/e2e run report",
+    "knip": "knip"
   },
   "devDependencies": {
     "@nx/devkit": "^22.6.1",
@@ -45,9 +46,5 @@
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
-  },
-  "dependencies": {
-    "@monaco-editor/react": "^4.7.0",
-    "jszip": "^3.10.1"
   }
 }

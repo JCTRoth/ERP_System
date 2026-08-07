@@ -24,7 +24,7 @@ const UPDATE_PAYMENT_TERM = gql`
   }
 `;
 
-export interface PaymentTermData {
+interface PaymentTermData {
   id: string;
   code: string;
   name: string;

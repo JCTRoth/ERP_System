@@ -24,7 +24,7 @@ const UPDATE_CURRENCY = gql`
   }
 `;
 
-export interface CurrencyData {
+interface CurrencyData {
   id: string;
   code: string;
   name: string;

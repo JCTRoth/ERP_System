@@ -108,7 +108,7 @@ export function getDefaultColumnSpan(type: ComponentType): ColumnSpan {
  * Get valid starting column positions for a component with given span
  * E.g., span 2 can start at column 1 or 2; span 3 can only start at column 1
  */
-export function getValidStartColumns(span: ColumnSpan): (1 | 2 | 3)[] {
+function getValidStartColumns(span: ColumnSpan): (1 | 2 | 3)[] {
   const validColumns: (1 | 2 | 3)[] = [];
   for (let col = 1; col <= 3; col++) {
     if (col + span - 1 <= 3) {
@@ -154,7 +154,7 @@ export function getUsedColumnsInRow(row: UIRow): number {
   return row.components.reduce((sum, comp) => sum + (comp.columnSpan || getDefaultColumnSpan(comp.type)), 0);
 }
 
-export function getRemainingColumnsInRow(row: UIRow): number {
+function getRemainingColumnsInRow(row: UIRow): number {
   return 3 - getUsedColumnsInRow(row);
 }
 

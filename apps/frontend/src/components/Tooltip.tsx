@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-export type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
+type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
 interface TooltipProps {
   content: ReactNode;

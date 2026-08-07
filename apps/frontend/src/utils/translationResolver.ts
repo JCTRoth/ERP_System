@@ -11,20 +11,12 @@
 const TRANSLATION_REF_REGEX = /\$t\{([^}]+)\}/g;
 
 /**
- * Check if a string contains any $t{} references.
- */
-export function hasTranslationRefs(value: unknown): boolean {
-  if (typeof value !== 'string') return false;
-  return TRANSLATION_REF_REGEX.test(value);
-}
-
-/**
  * Resolve all $t{key} references in a string.
  * @param value - The string potentially containing $t{key} references
  * @param t - The translation function from useI18n()
  * @returns The string with all $t{key} references replaced with translated text
  */
-export function resolveTranslationRefs(
+function resolveTranslationRefs(
   value: string,
   t: (key: string) => string
 ): string {

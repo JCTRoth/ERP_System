@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'USER' | 'VIEWER';
-
 export interface CompanyAssignment {
   id: string;
   companyId: string;
@@ -10,7 +8,7 @@ export interface CompanyAssignment {
   role: string;
 }
 
-export interface ScopeGrant {
+interface ScopeGrant {
   permissionCode: string;
   scopeType: string;
   scopeJson?: string | null;

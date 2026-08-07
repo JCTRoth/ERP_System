@@ -60,35 +60,6 @@ export const GET_COMPANIES = gql`
 `;
 
 // Detail queries for fetching full records
-export const GET_ORDER_DETAILS = gql`
-  query GetOrderDetails($id: UUID!) {
-    shopOrder(id: $id) {
-      id
-      orderNumber
-      subtotal
-      taxAmount
-      shippingAmount
-      discountAmount
-      total
-      notes
-      items {
-        id
-        productId
-        productName
-        sku
-        quantity
-        unitPrice
-        discount
-        taxAmount
-        total
-      }
-      shippingAddress { name street city postalCode country phone }
-      billingAddress { name street city postalCode country }
-      createdAt
-    }
-  }
-`;
-
 // Shop service version - uses UUID instead of String
 export const GET_SHOP_ORDER_DETAILS = gql`
   query GetShopOrderDetails($id: UUID!) {

@@ -135,12 +135,12 @@ const GET_CURRENT_USER = gql`
   }
 `;
 
-export interface LoginCredentials {
+interface LoginCredentials {
   email: string;
   password: string;
 }
 
-export interface LoginResult {
+interface LoginResult {
   user: {
     id: string;
     email: string;
@@ -154,7 +154,7 @@ export interface LoginResult {
   expiresAt?: string;
 }
 
-export type PasswordResetResult = boolean;
+type PasswordResetResult = boolean;
 
 interface AuthContextResult {
   accessToken: string;

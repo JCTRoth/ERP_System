@@ -118,7 +118,7 @@ const logLink = new ApolloLink((operation, forward) => {
   });
 });
 
-export const shopApolloClient = new ApolloClient({
+const shopApolloClient = new ApolloClient({
   link: from([logLink, errorLink, authLink, shopHttpLink]),
   cache: new InMemoryCache({
     typePolicies: {

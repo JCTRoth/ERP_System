@@ -6,7 +6,7 @@ import { getSessionId } from "../lib/utils";
 import toast from "react-hot-toast";
 import { useI18n } from "./I18nContext";
 
-export interface CartItem {
+interface CartItem {
   id: string;
   productId: string;
   product?: {
@@ -22,7 +22,7 @@ export interface CartItem {
   total: number;
 }
 
-export interface Cart {
+interface Cart {
   id: string;
   sessionId: string;
   subtotal: number;

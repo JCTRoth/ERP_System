@@ -82,7 +82,7 @@ async function mutateService(
  * Build the ERP runtime object injected into script contexts.
  * All methods are async — scripts should use `await ERP.query(...)`.
  */
-export function createERPRuntime() {
+function createERPRuntime() {
   return {
     /**
      * Query data from an ERP service.

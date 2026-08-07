@@ -1,6 +1,6 @@
 export type InfoPageScope = "support" | "legal";
 
-export interface InfoPageSection {
+interface InfoPageSection {
   titleKey: string;
   copyKey: string;
 }
