@@ -627,8 +627,6 @@
   "settings.appearance": "Appearance",
   "settings.companyServiceApi": "Company Service API",
   "settings.companyServiceApiDesc": "Multi-tenant company management, organizational structure, and company settings. Java/Spring Boot service.",
-  "settings.debugInfo": "Debug Information",
-  "settings.developer": "Development",
   "settings.general": "General",
   "settings.graphqlPlayground": "GraphQL Playground",
   "settings.graphqlPlaygroundDesc": "Interactive GraphQL IDE for exploring and testing the federated API. Includes schema documentation and query autocompletion.",

@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUIStore } from '@/stores/uiStore.ts';
 import {
   Cog6ToothIcon,
-  CodeBracketIcon,
   ServerIcon,
   UserIcon,
   ChartBarIcon,
@@ -13,9 +12,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { KEYBOARD_SHORTCUTS, SHORTCUT_CATEGORIES } from '@/hooks/keyboardShortcuts';
 
-type SettingsTab = 'general' | 'developer' | 'interface' | 'monitoring' | 'smtpServer' | 'account' | 'shortcuts';
+type SettingsTab = 'general' | 'interface' | 'monitoring' | 'smtpServer' | 'account' | 'shortcuts';
 
-const VALID_TABS: SettingsTab[] = ['general', 'developer', 'interface', 'monitoring', 'smtpServer', 'account', 'shortcuts'];
+const VALID_TABS: SettingsTab[] = ['general', 'interface', 'monitoring', 'smtpServer', 'account', 'shortcuts'];
 
 export default function SettingsPage() {
   const { t, language, setLanguage } = useI18n();
@@ -24,7 +23,6 @@ export default function SettingsPage() {
   const showTranslationKeys = useUIStore((state) => state.showTranslationKeys);
   const setShowTranslationKeys = useUIStore((state) => state.setShowTranslationKeys);
   const user = useAuthStore((state) => state.user);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
   const currentCompanyId = useAuthStore((state) => state.currentCompanyId);
   
   // Use current window location to construct dynamic URLs for API interfaces
@@ -244,7 +242,6 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'general' as const, label: t('settings.general') || 'General', icon: Cog6ToothIcon },
-    ...(isAdmin() ? [{ id: 'developer' as const, label: t('settings.developer') || 'Development', icon: CodeBracketIcon }] : []),
     { id: 'interface' as const, label: t('settings.interface') || 'Interfaces', icon: ServerIcon },
     { id: 'monitoring' as const, label: 'Monitoring', icon: ChartBarIcon },
     { id: 'smtpServer' as const, label: t('settings.smtpServer') || 'SMTP Server', icon: ServerIcon },
@@ -358,29 +355,6 @@ export default function SettingsPage() {
                     }`}
                   />
                 </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Developer Tab (Admin Only) */}
-        {activeTab === 'developer' && isAdmin() && (
-          <div className="card p-6">
-            <h2 className="mb-4 text-lg font-semibold">{t('settings.developer')}</h2>
-            
-            <div className="space-y-6">
-              {/* Debug Info */}
-              <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
-                <h3 className="mb-3 font-medium">{t('settings.debugInfo') || 'Debug Information'}</h3>
-                <div className="rounded-lg bg-gray-50 p-4 font-mono text-sm dark:bg-gray-900">
-                  <div className="space-y-1 text-gray-600 dark:text-gray-400">
-                    <p>User ID: {user?.id || 'N/A'}</p>
-                    <p>Role: {user?.role || 'user'}</p>
-                    <p>Language: {language}</p>
-                    <p>Theme: {theme}</p>
-                    <p>Translation Keys: {showTranslationKeys ? 'Visible' : 'Hidden'}</p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

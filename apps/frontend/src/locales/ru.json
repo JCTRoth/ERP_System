@@ -567,8 +567,6 @@
   "settings.appearance": "Внешний вид",
   "settings.companyServiceApi": "API службы компаний",
   "settings.companyServiceApiDesc": "Многопользовательское управление компаниями, организационная структура и настройки компании. Сервис Java/Spring Boot.",
-  "settings.debugInfo": "Отладочная информация",
-  "settings.developer": "Разработчик",
   "settings.general": "Общие",
   "settings.graphqlPlayground": "GraphQL Playground",
   "settings.graphqlPlaygroundDesc": "Интерактивная среда GraphQL для исследования и тестирования федеративного API. Включает документацию по схеме и автозавершение запросов.",

@@ -593,8 +593,6 @@
   "settings.appearance": "Erscheinungsbild",
   "settings.companyServiceApi": "Unternehmens-Service-API",
   "settings.companyServiceApiDesc": "Mandantenfähiges Unternehmensmanagement, Organisationsstruktur und Unternehmenseinstellungen. Java/Spring Boot-Service.",
-  "settings.debugInfo": "Debug-Informationen",
-  "settings.developer": "Entwickler",
   "settings.general": "Allgemein",
   "settings.graphqlPlayground": "GraphQL-Playground",
   "settings.graphqlPlaygroundDesc": "Interaktive GraphQL-IDE zum Erkunden und Testen der föderierten API. Enthält Schemadokumentation und Abfrageautovervollständigung.",
