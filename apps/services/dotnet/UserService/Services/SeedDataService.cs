@@ -32,13 +32,11 @@ public class SeedDataService : ISeedDataService
         {
             _logger.LogInformation("Starting UserService database seeding...");
 
-            if (!await _context.Users.AnyAsync())
-            {
-                _logger.LogInformation("Seeding demo users...");
-                await SeedDemoUsers();
-            }
+            // Idempotent per-email seeding: demo users are added when missing,
+            // so extending the demo set later also applies to existing databases.
+            var seeded = await SeedDemoUsers();
 
-            _logger.LogInformation("UserService database seeding completed successfully");
+            _logger.LogInformation("UserService database seeding completed successfully ({Seeded} new user(s))", seeded);
         }
         catch (Exception ex)
         {
@@ -47,7 +45,7 @@ public class SeedDataService : ISeedDataService
         }
     }
 
-    private async Task SeedDemoUsers()
+    private async Task<int> SeedDemoUsers()
     {
         var users = new[]
         {
@@ -162,12 +160,81 @@ public class SeedDataService : ISeedDataService
                 PreferredLanguage = "en",
                 CreatedAt = DateTime.UtcNow,
                 Role = "user"
+            },
+            // Accounting Manager
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "accounting@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Accounting123!"),
+                FirstName = "Anna",
+                LastName = "Schmidt",
+                IsActive = true,
+                EmailVerified = true,
+                PreferredLanguage = "en",
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
+            },
+            // Operations Manager
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "operations@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Operations123!"),
+                FirstName = "David",
+                LastName = "Miller",
+                IsActive = true,
+                EmailVerified = true,
+                PreferredLanguage = "en",
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
+            },
+            // HR Manager
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "hr@medivita.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Hr123!"),
+                FirstName = "Laura",
+                LastName = "Wilson",
+                IsActive = true,
+                EmailVerified = true,
+                PreferredLanguage = "en",
+                CreatedAt = DateTime.UtcNow,
+                Role = "user"
+            },
+            // Demo_Corporation admin (second demo tenant)
+            new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "admin@demo-corporation.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
+                FirstName = "Oliver",
+                LastName = "Brown",
+                IsActive = true,
+                EmailVerified = true,
+                PreferredLanguage = "en",
+                CreatedAt = DateTime.UtcNow,
+                Role = "admin"
             }
         };
 
-        await _context.Users.AddRangeAsync(users);
+        var existingEmails = await _context.Users
+            .Where(u => users.Select(x => x.Email).Contains(u.Email))
+            .Select(u => u.Email)
+            .ToListAsync();
+
+        var newUsers = users.Where(u => !existingEmails.Contains(u.Email, StringComparer.OrdinalIgnoreCase)).ToList();
+        if (newUsers.Count == 0)
+        {
+            _logger.LogInformation("All demo users already present, nothing to seed.");
+            return 0;
+        }
+
+        await _context.Users.AddRangeAsync(newUsers);
         await _context.SaveChangesAsync();
-        
-        _logger.LogInformation("Seeded {Count} MediVita users successfully", users.Length);
+
+        _logger.LogInformation("Seeded {Count} new demo user(s) (total demo users: {Total})", newUsers.Count, users.Length);
+        return newUsers.Count;
     }
 }

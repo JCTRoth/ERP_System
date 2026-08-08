@@ -26,6 +26,9 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     placeholder-replacement: false
+    # Email template seeding moved to code (EmailTemplateSeeder). Allow removal of the old
+    # seed-only migration from the classpath without failing on databases that applied it.
+    ignore-migration-patterns: "*:missing,*:future"
   
   # 1und1 SMTP Configuration
   mail:

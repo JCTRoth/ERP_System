@@ -208,7 +208,7 @@ preflight_checks() {
 # ============================================================================
 
 run_startup() {
-    local total=16
+    local total=17
     local step=0
 
     print_header "Starting ERP System ($total services)"
@@ -313,6 +313,19 @@ run_startup() {
     print_step $step $total "GraphQL Gateway"
     start_service "gateway" "Gateway" wait_for_graphql "Gateway" 4000 || true
 
+    # ---- Seeding (verify every started backend is seeded; restart to re-seed if empty) ----
+
+    step=$((step + 1))
+    print_step $step $total "Seed & Verify Demo Data"
+    if "$PROJECT_DIR/scripts/dev/seed-local.sh"; then
+        print_status "All services seeded"
+        STARTED=$((STARTED + 1))
+    else
+        print_warning "Some services are missing seed data — see messages above"
+        FAILED=$((FAILED + 1))
+        FAILED_SERVICES+=("Seeding")
+    fi
+
     # ---- Frontends (depend on gateway) ----
 
     step=$((step + 1))
@@ -394,8 +407,15 @@ show_results() {
     echo ""
     echo -e "  ${BOLD}Credentials:${NC}"
     echo ""
-    echo "    Email:    admin@erp-system.local"
-    echo "    Password: Admin123!"
+    echo "    Super admin: admin@erp-system.local / Admin123!"
+    echo "    MediVita admin: admin@medivita.com / Admin123!"
+    echo "    Demo_Corp admin: admin@demo-corporation.com / Admin123!"
+    echo ""
+    echo "    More MediVita demo users (password: <role>123!, e.g. sales123!):"
+    echo "      ceo@medivita.com, cfo@medivita.com, research@medivita.com,"
+    echo "      sales@medivita.com, procurement@medivita.com, warehouse@medivita.com,"
+    echo "      support@medivita.com, accounting@medivita.com, operations@medivita.com,"
+    echo "      hr@medivita.com"
     echo ""
 
     # Show running containers

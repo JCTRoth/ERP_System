@@ -1,0 +1,98 @@
+[
+  {
+    "name": "welcome",
+    "subject": "Welcome to ERP System - Your Business Management Solution",
+    "language": "en",
+    "description": "Welcome email for new ERP System users",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #2563eb;\">Welcome to ERP System!</h1>\n<p>Hello <span th:text=\"${firstName}\">User</span>,</p>\n<p>Your account has been successfully created in our comprehensive Enterprise Resource Planning system.</p>\n<p>You can now access your dashboard and start managing your business operations efficiently.</p>\n<p><a th:href=\"${websiteUrl}\" style=\"background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;\">Access Your Account</a></p>\n<p>If you have any questions, please don't hesitate to contact our support team.</p>\n<p>Best regards,<br>The ERP System Team</p>\n</body>\n</html>",
+    "bodyText": "Welcome to ERP System - Your Business Management Solution\n\nHello ${firstName},\n\nYour account has been successfully created in our comprehensive Enterprise Resource Planning system.\n\nYou can now access your dashboard and start managing your business operations efficiently.\n\nAccess your account here: ${websiteUrl}\n\nIf you have any questions, please don't hesitate to contact our support team.\n\nBest regards,\nThe ERP System Team"
+  },
+  {
+    "name": "welcome",
+    "subject": "Willkommen beim ERP System - Ihre Business-Management-Lösung",
+    "language": "de",
+    "description": "Willkommens-E-Mail für neue ERP System Benutzer",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #2563eb;\">Willkommen beim ERP System!</h1>\n<p>Hallo <span th:text=\"${firstName}\">Benutzer</span>,</p>\n<p>Ihr Konto wurde erfolgreich in unserem umfassenden Enterprise Resource Planning System erstellt.</p>\n<p>Sie können jetzt auf Ihr Dashboard zugreifen und Ihre Geschäftsprozesse effizient verwalten.</p>\n<p><a th:href=\"${websiteUrl}\" style=\"background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;\">Auf Konto zugreifen</a></p>\n<p>Bei Fragen zögern Sie bitte nicht, unser Support-Team zu kontaktieren.</p>\n<p>Mit freundlichen Grüßen,<br>Das ERP System Team</p>\n</body>\n</html>",
+    "bodyText": "Willkommen beim ERP System - Ihre Business-Management-Lösung\n\nHallo ${firstName},\n\nIhr Konto wurde erfolgreich in unserem umfassenden Enterprise Resource Planning System erstellt.\n\nSie können jetzt auf Ihr Dashboard zugreifen und Ihre Geschäftsprozesse effizient verwalten.\n\nGreifen Sie auf Ihr Konto zu: ${websiteUrl}\n\nBei Fragen zögern Sie bitte nicht, unser Support-Team zu kontaktieren.\n\nMit freundlichen Grüßen,\nDas ERP System Team"
+  },
+  {
+    "name": "welcome",
+    "subject": "Bienvenue sur ERP System - Votre solution de gestion d'entreprise",
+    "language": "fr",
+    "description": "Email de bienvenue pour les nouveaux utilisateurs d'ERP System",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #2563eb;\">Bienvenue sur ERP System!</h1>\n<p>Bonjour <span th:text=\"${firstName}\">Utilisateur</span>,</p>\n<p>Votre compte a été créé avec succès dans notre système de planification des ressources d'entreprise complet.</p>\n<p>Vous pouvez maintenant accéder à votre tableau de bord et commencer à gérer vos opérations commerciales efficacement.</p>\n<p><a th:href=\"${websiteUrl}\" style=\"background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;\">Accéder à votre compte</a></p>\n<p>Si vous avez des questions, n'hésitez pas à contacter notre équipe de support.</p>\n<p>Cordialement,<br>L'équipe ERP System</p>\n</body>\n</html>",
+    "bodyText": "Bienvenue sur ERP System - Votre solution de gestion d'entreprise!\n\nBonjour ${firstName},\n\nVotre compte a été créé avec succès dans notre système de planification des ressources d'entreprise complet.\n\nVous pouvez maintenant accéder à votre tableau de bord et commencer à gérer vos opérations commerciales efficacement.\n\nAccédez à votre compte ici: ${websiteUrl}\n\nSi vous avez des questions, n'hésitez pas à contacter notre équipe de support.\n\nCordialement,\nL'équipe ERP System"
+  },
+  {
+    "name": "welcome",
+    "subject": "Добро пожаловать в ERP System - Ваше решение для управления бизнесом",
+    "language": "ru",
+    "description": "Приветственное письмо для новых пользователей ERP System",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #2563eb;\">Добро пожаловать в ERP System!</h1>\n<p>Здравствуйте, <span th:text=\"${firstName}\">Пользователь</span>,</p>\n<p>Ваша учётная запись успешно создана в нашей комплексной системе планирования ресурсов предприятия.</p>\n<p>Теперь вы можете получить доступ к своей панели управления и начать эффективно управлять бизнес-процессами.</p>\n<p><a th:href=\"${websiteUrl}\" style=\"background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;\">Доступ к аккаунту</a></p>\n<p>Если у вас есть вопросы, пожалуйста, не стесняйтесь обращаться в нашу службу поддержки.</p>\n<p>С уважением,<br>Команда ERP System</p>\n</body>\n</html>",
+    "bodyText": "Добро пожаловать в ERP System - Ваше решение для управления бизнесом!\n\nЗдравствуйте, ${firstName},\n\nВаша учётная запись успешно создана в нашей комплексной системе планирования ресурсов предприятия.\n\nТеперь вы можете получить доступ к своей панели управления и начать эффективно управлять бизнес-процессами.\n\nДоступ к аккаунту: ${websiteUrl}\n\nЕсли у вас есть вопросы, пожалуйста, не стесняйтесь обращаться в нашу службу поддержки.\n\nС уважением,\nКоманда ERP System"
+  },
+  {
+    "name": "password-reset",
+    "subject": "Password Reset Request",
+    "language": "en",
+    "description": "Password reset email",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #3b82f6;\">Password Reset</h1>\n<p>You have requested to reset your password. Click the link below to set a new password:</p>\n<p><a th:href=\"${resetUrl}\" style=\"background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;\">Reset Password</a></p>\n<p>If you did not request this, please ignore this email.</p>\n<p>This link will expire in 24 hours.</p>\n</body>\n</html>",
+    "bodyText": "Password Reset\n\nYou have requested to reset your password. Visit the following link to set a new password:\n${resetUrl}\n\nIf you did not request this, please ignore this email.\nThis link will expire in 24 hours."
+  },
+  {
+    "name": "password-reset",
+    "subject": "Passwort zurücksetzen",
+    "language": "de",
+    "description": "Passwort-Reset-E-Mail",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #3b82f6;\">Passwort zurücksetzen</h1>\n<p>Sie haben das Zurücksetzen Ihres Passworts angefordert. Klicken Sie auf den Link unten, um ein neues Passwort festzulegen:</p>\n<p><a th:href=\"${resetUrl}\" style=\"background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;\">Passwort zurücksetzen</a></p>\n<p>Falls Sie diese Anfrage nicht gestellt haben, ignorieren Sie bitte diese E-Mail.</p>\n<p>Dieser Link läuft in 24 Stunden ab.</p>\n</body>\n</html>",
+    "bodyText": "Passwort zurücksetzen\n\nSie haben das Zurücksetzen Ihres Passworts angefordert. Besuchen Sie den folgenden Link:\n${resetUrl}\n\nFalls Sie diese Anfrage nicht gestellt haben, ignorieren Sie bitte diese E-Mail.\nDieser Link läuft in 24 Stunden ab."
+  },
+  {
+    "name": "password-reset",
+    "subject": "Réinitialisation du mot de passe",
+    "language": "fr",
+    "description": "Email de réinitialisation",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #3b82f6;\">Réinitialisation du mot de passe</h1>\n<p>Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le lien ci-dessous:</p>\n<p><a th:href=\"${resetUrl}\" style=\"background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;\">Réinitialiser</a></p>\n<p>Si vous n avez pas fait cette demande, ignorez cet email.</p>\n<p>Ce lien expirera dans 24 heures.</p>\n</body>\n</html>",
+    "bodyText": "Réinitialisation du mot de passe\n\nVous avez demandé la réinitialisation de votre mot de passe. Visitez le lien:\n${resetUrl}\n\nSi vous n avez pas fait cette demande, ignorez cet email.\nCe lien expirera dans 24 heures."
+  },
+  {
+    "name": "password-reset",
+    "subject": "Сброс пароля",
+    "language": "ru",
+    "description": "Письмо для сброса пароля",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #3b82f6;\">Сброс пароля</h1>\n<p>Вы запросили сброс пароля. Нажмите на ссылку ниже:</p>\n<p><a th:href=\"${resetUrl}\" style=\"background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;\">Сбросить пароль</a></p>\n<p>Если вы не делали этот запрос, проигнорируйте это письмо.</p>\n<p>Ссылка действительна 24 часа.</p>\n</body>\n</html>",
+    "bodyText": "Сброс пароля\n\nВы запросили сброс пароля. Перейдите по ссылке:\n${resetUrl}\n\nЕсли вы не делали этот запрос, проигнорируйте это письмо.\nСсылка действительна 24 часа."
+  },
+  {
+    "name": "order-confirmation",
+    "subject": "MediVita Order Confirmation #[[${orderId}]]",
+    "language": "en",
+    "description": "MediVita order confirmation email",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #2563eb;\">MediVita Order Confirmation</h1>\n<p>Thank you for your order!</p>\n<p>Order ID: <strong th:text=\"${orderId}\">123</strong></p>\n<p>Total: <strong th:text=\"${orderTotal}\">$0.00</strong></p>\n<p>At MediVita, we craft health for life. We will notify you when your order ships.</p>\n<p>Crafting Health for Life,<br>The MediVita Team</p>\n</body>\n</html>",
+    "bodyText": "MediVita Order Confirmation\n\nThank you for your order!\nOrder ID: ${orderId}\nTotal: ${orderTotal}\n\nAt MediVita, we craft health for life. We will notify you when your order ships.\n\nCrafting Health for Life,\nThe MediVita Team"
+  },
+  {
+    "name": "order-confirmation",
+    "subject": "Bestellbestätigung #[[${orderId}]]",
+    "language": "de",
+    "description": "Bestellbestätigungs-E-Mail",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #3b82f6;\">Bestellbestätigung</h1>\n<p>Vielen Dank für Ihre Bestellung!</p>\n<p>Bestellnummer: <strong th:text=\"${orderId}\">123</strong></p>\n<p>Gesamtbetrag: <strong th:text=\"${orderTotal}\">0,00 €</strong></p>\n<p>Wir informieren Sie, sobald Ihre Bestellung versandt wird.</p>\n</body>\n</html>",
+    "bodyText": "Bestellbestätigung\n\nVielen Dank für Ihre Bestellung!\nBestellnummer: ${orderId}\nGesamtbetrag: ${orderTotal}\n\nWir informieren Sie, sobald Ihre Bestellung versandt wird."
+  },
+  {
+    "name": "order-confirmation",
+    "subject": "Confirmation de commande #[[${orderId}]]",
+    "language": "fr",
+    "description": "Email de confirmation de commande",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #3b82f6;\">Confirmation de commande</h1>\n<p>Merci pour votre commande!</p>\n<p>Numéro de commande: <strong th:text=\"${orderId}\">123</strong></p>\n<p>Total: <strong th:text=\"${orderTotal}\">0,00 €</strong></p>\n<p>Nous vous informerons lors de l expédition.</p>\n</body>\n</html>",
+    "bodyText": "Confirmation de commande\n\nMerci pour votre commande!\nNuméro de commande: ${orderId}\nTotal: ${orderTotal}\n\nNous vous informerons lors de l expédition."
+  },
+  {
+    "name": "order-confirmation",
+    "subject": "Подтверждение заказа #[[${orderId}]]",
+    "language": "ru",
+    "description": "Письмо подтверждения заказа",
+    "bodyHtml": "<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h1 style=\"color: #3b82f6;\">Подтверждение заказа</h1>\n<p>Спасибо за ваш заказ!</p>\n<p>Номер заказа: <strong th:text=\"${orderId}\">123</strong></p>\n<p>Итого: <strong th:text=\"${orderTotal}\">0 ₽</strong></p>\n<p>Мы уведомим вас об отправке.</p>\n</body>\n</html>",
+    "bodyText": "Подтверждение заказа\n\nСпасибо за ваш заказ!\nНомер заказа: ${orderId}\nИтого: ${orderTotal}\n\nМы уведомим вас об отправке."
+  }
+]

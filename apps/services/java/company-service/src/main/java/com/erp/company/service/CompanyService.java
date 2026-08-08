@@ -27,6 +27,11 @@ import java.util.UUID;
 @Slf4j
 public class CompanyService {
 
+    // Canonical demo company ID used by ALL services (Shop/Masterdata/Orders/Accounting seed
+    // data references it via their DemoCompanyId). Seeding this ID keeps the demo company
+    // visible to all seeded multi-tenant data.
+    public static final UUID DEMO_COMPANY_ID = UUID.fromString("ae161374-7185-4aa5-97f4-bcb35cf0ae19");
+
     private final CompanyRepository companyRepository;
     private final UserCompanyAssignmentRepository assignmentRepository;
     private final DynamicFieldDefinitionRepository fieldDefinitionRepository;
@@ -177,15 +182,20 @@ public class CompanyService {
                     String slug = demoCompanyName.toLowerCase().replace("_", "-").replace(" ", "-");
                     log.info("Intending to create demo company with name '{}' and slug '{}'", demoCompanyName, slug);
                     Company demoCompany = Company.builder()
+                            // Canonical demo company ID shared by all services (Shop/Masterdata/Orders/Accounting seed
+                            // data references it), so the demo company sees all seeded data.
+                            .id(DEMO_COMPANY_ID)
                             .name(demoCompanyName)
                             .slug(slug)
                             .isDemo(true)
+                            .description("We specialize in innovative pharmaceuticals, blending advanced science with a passion for well-being. Our mission: to deliver trusted, effective solutions for a healthier world.")
                             .settingsJson(Map.of(
-                                    "theme", "default",
+                                    "theme", "healthcare",
+                                    "tagline", "Crafting Health for Life",
+                                    "industry", "pharmaceutical",
+                                    "description", "Innovative pharmaceuticals blending advanced science with a passion for well-being. Our mission: to deliver trusted, effective solutions for a healthier world.",
                                     "timezone", "UTC",
-                                    "description", "Crafting Health for Life - We specialize in innovative pharmaceuticals, blending advanced science with a passion for well-being. Our mission: to deliver trusted, effective solutions for a healthier world.",
-                                    "industry", "Pharmaceuticals",
-                                    "website", "https://medivita.com",
+                                    "website", "https://www.medivita.example",
                                     "address", Map.of(
                                             "street", "123 Health Street",
                                             "city", "Medical City",
@@ -194,8 +204,13 @@ public class CompanyService {
                                             "country", "Germany"
                                     ),
                                     "contact", Map.of(
-                                            "email", "info@medivita.com",
-                                            "phone", "+49 123 456789"
+                                            "address", "Hauptstrasse 12",
+                                            "postalCode", "12345",
+                                            "city", "Berlin",
+                                            "country", "Germany",
+                                            "email", "info@medivita.example",
+                                            "phone", "+49 30 1234567",
+                                            "website", "https://www.medivita.example"
                                     ),
                                     "businessHours", Map.of(
                                             "monday", "08:00-18:00",
@@ -205,6 +220,12 @@ public class CompanyService {
                                             "friday", "08:00-17:00",
                                             "saturday", "closed",
                                             "sunday", "closed"
+                                    ),
+                                    "stats", List.of(
+                                            Map.of("value", "98%", "label", "Customer Satisfaction"),
+                                            Map.of("value", "50+", "label", "Products"),
+                                            Map.of("value", "125+", "label", "Countries"),
+                                            Map.of("value", "20+", "label", "Years")
                                     )
                             ))
                             .build();

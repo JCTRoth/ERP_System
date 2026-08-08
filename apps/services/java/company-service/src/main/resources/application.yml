@@ -24,6 +24,12 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    # Seeding moved to code (DataInitializerConfig -> createDemoCompanyIfNotExists).
+    # Allow removal of the old seed-only migrations from the classpath without
+    # failing on databases that already applied them (*:missing = older applied
+    # migrations no longer resolved, *:future = applied migrations newer than the
+    # latest resolved migration).
+    ignore-migration-patterns: "*:missing,*:future"
   
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}

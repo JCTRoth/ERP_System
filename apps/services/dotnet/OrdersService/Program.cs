@@ -15,6 +15,7 @@ builder.Services.AddDbContext<OrdersDbContext>(options =>
 // Add Services
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderItemService, OrderItemService>();
+builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 
 // Multi-tenancy
 builder.Services.AddHttpContextAccessor();
@@ -62,6 +63,13 @@ using (var scope = app.Services.CreateScope())
     {
         // For development, ensure the database is created
         dbContext.Database.EnsureCreated();
+
+        // Seed demo data (idempotent) — dev or when explicitly enabled
+        if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:EnableSeeding", false))
+        {
+            var seedService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
+            await seedService.SeedAsync();
+        }
     }
 }
 

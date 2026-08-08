@@ -210,7 +210,20 @@ Database ports:
 
 ==== Database Seeding
 
-UserService automatically seeds an admin user on startup.
+All backend services seed demo data **by code** at startup (idempotent):
+
+- `UserService` — super admin (`admin@erp-system.local`) + MediVita / Demo_Corporation demo users
+- `ShopService` — MediVita products, customers, orders
+- `MasterdataService` — currencies, tax codes, customers, departments, …
+- `AccountingService` — chart of accounts, invoices, journal entries
+- `OrdersService` — demo orders
+- `CompanyService` — demo company (`DataInitializerConfig`), using the canonical demo company ID
+- `NotificationService` — email templates (`EmailTemplateSeeder`)
+- `TranslationService` — translations (Flyway SQL, generated from frontend locale files)
+
+`scripts/dev/start-local.sh` calls `scripts/dev/seed-local.sh` after the backend is up.
+If a service database is empty, `seed-local.sh` restarts that service so its startup
+seeding re-runs (see `scripts/dev/README.md`).
 
 == Debugging Guide
 
