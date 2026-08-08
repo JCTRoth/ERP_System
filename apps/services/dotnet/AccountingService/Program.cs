@@ -24,6 +24,7 @@ builder.Services.AddDbContext<AccountingDbContext>(options =>
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
+builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 // BankAccountService, PaymentRecordService, and ReportingService temporarily disabled due to model mismatches
 
 // Multi-tenancy
@@ -103,14 +104,14 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 // Apply migrations or create database on startup
-InitializeAccountingDatabase(app);
+await InitializeAccountingDatabase(app);
 
 // Recalculate account balances from posted journal entries to ensure correctness
 RecalculateAccountBalances(app);
 
 app.Run();
 
-static void InitializeAccountingDatabase(WebApplication app)
+static async Task InitializeAccountingDatabase(WebApplication app)
 {
     const int maxAttempts = 12;
     const int delaySeconds = 5;
@@ -136,6 +137,11 @@ static void InitializeAccountingDatabase(WebApplication app)
             {
                 dbContext.Database.EnsureCreated();
             }
+
+            // Seed extended demo data (invoices, payments, journal entries) — idempotent,
+            // applies to fresh and existing databases alike.
+            var seedService = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
+            await seedService.SeedAsync();
 
             logger.LogInformation("Accounting database initialized on attempt {Attempt}", attempt);
             return;

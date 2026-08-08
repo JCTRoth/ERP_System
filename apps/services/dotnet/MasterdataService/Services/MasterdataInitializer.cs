@@ -108,6 +108,9 @@ internal static class MasterdataInitializer
         var departmentId = Guid.Parse("70000000-0000-0000-0000-000000000001");
         var employeeId = Guid.Parse("8a2f2e9e-8548-431f-9f03-9186942bb48f");
         var customerId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48f");
+        // Customers referenced by seeded AccountingService invoices (INV-2026-0002 / INV-2026-0003)
+        var customerSarahId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48c");
+        var customerRobertId = Guid.Parse("3fc2f2e9-8548-431f-9f03-9186942bb48b");
         var supplierId = Guid.Parse("6a2f2e9e-8548-431f-9f03-9186942bb48f");
         var assetCategoryId = Guid.Parse("80000000-0000-0000-0000-000000000001");
         var assetId = Guid.Parse("80000000-0000-0000-0000-000000000011");
@@ -342,6 +345,7 @@ internal static class MasterdataInitializer
             {
                 Id = customerId,
                 CustomerNumber = "CUST-000001",
+                CompanyId = MasterdataDbContext.DemoCompanyId,
                 Name = "Jonas R",
                 LegalName = "Mailbase.info",
                 Type = Models.CustomerType.Individual,
@@ -351,6 +355,52 @@ internal static class MasterdataInitializer
                 DefaultCurrencyId = usdId,
                 DefaultPaymentTermId = net30Id,
                 CreditLimit = 50000m,
+                CurrentBalance = 0m,
+                Status = Models.CustomerStatus.Active,
+                CreatedAt = now
+            });
+        }
+
+        // Sarah Mitchell - referenced by seeded AccountingService invoice INV-2026-0002
+        if (!dbContext.Customers.Any(c => c.CustomerNumber == "CUST-000002"))
+        {
+            dbContext.Customers.Add(new Models.Customer
+            {
+                Id = customerSarahId,
+                CustomerNumber = "CUST-000002",
+                CompanyId = MasterdataDbContext.DemoCompanyId,
+                Name = "Sarah Mitchell",
+                LegalName = "MediVita",
+                Type = Models.CustomerType.Individual,
+                ContactPerson = "Sarah Mitchell",
+                Email = "sarah.mitchell@medivita.com",
+                Phone = "+1-555-0302",
+                DefaultCurrencyId = usdId,
+                DefaultPaymentTermId = net30Id,
+                CreditLimit = 75000m,
+                CurrentBalance = 0m,
+                Status = Models.CustomerStatus.Active,
+                CreatedAt = now
+            });
+        }
+
+        // Robert Johnson - referenced by seeded AccountingService invoice INV-2026-0003
+        if (!dbContext.Customers.Any(c => c.CustomerNumber == "CUST-000003"))
+        {
+            dbContext.Customers.Add(new Models.Customer
+            {
+                Id = customerRobertId,
+                CustomerNumber = "CUST-000003",
+                CompanyId = MasterdataDbContext.DemoCompanyId,
+                Name = "Robert Johnson",
+                LegalName = "WellnessRx",
+                Type = Models.CustomerType.Individual,
+                ContactPerson = "Robert Johnson",
+                Email = "robert.johnson@wellnessrx.com",
+                Phone = "+1-555-0402",
+                DefaultCurrencyId = usdId,
+                DefaultPaymentTermId = net30Id,
+                CreditLimit = 60000m,
                 CurrentBalance = 0m,
                 Status = Models.CustomerStatus.Active,
                 CreatedAt = now
@@ -413,6 +463,42 @@ internal static class MasterdataInitializer
             });
         }
 
+        // Startup seeding runs without an HTTP company context, so rows created here can end
+        // up with a zero CompanyId. Ensure all tenant-scoped seed data belongs to the demo
+        // company so it is visible in company-scoped queries (e.g. the accounting invoice
+        // customer lookup).
+        RepairDemoCompanyScope(dbContext);
+
         dbContext.SaveChanges();
+    }
+
+    /// <summary>
+    /// Stamps the demo company id onto seed rows that were created without a company context
+    /// (zero CompanyId). Idempotent — rows that already have a company are left untouched.
+    /// </summary>
+    private static void RepairDemoCompanyScope(MasterdataDbContext dbContext)
+    {
+        var demoCompanyId = MasterdataDbContext.DemoCompanyId;
+        var zero = Guid.Empty;
+
+        void Stamp<T>(IQueryable<T> rows, Func<T, Guid?> companyId, Action<T, Guid> setCompanyId)
+            where T : class
+        {
+            foreach (var row in rows.IgnoreQueryFilters().ToList())
+            {
+                if (companyId(row) == zero)
+                {
+                    setCompanyId(row, demoCompanyId);
+                }
+            }
+        }
+
+        Stamp(dbContext.Customers, c => c.CompanyId, (c, id) => c.CompanyId = id);
+        Stamp(dbContext.Suppliers, s => s.CompanyId, (s, id) => s.CompanyId = id);
+        Stamp(dbContext.Assets, a => a.CompanyId, (a, id) => a.CompanyId = id);
+        Stamp(dbContext.AssetCategories, a => a.CompanyId, (a, id) => a.CompanyId = id);
+        Stamp(dbContext.Departments, d => d.CompanyId, (d, id) => d.CompanyId = id);
+        Stamp(dbContext.CostCenters, c => c.CompanyId, (c, id) => c.CompanyId = id);
+        Stamp(dbContext.Locations, l => l.CompanyId, (l, id) => l.CompanyId = id);
     }
 }
