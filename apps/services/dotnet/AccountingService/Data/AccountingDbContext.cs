@@ -375,6 +375,10 @@ public class AccountingDbContext : DbContext
 
     private static void SeedData(ModelBuilder modelBuilder)
     {
+        // Demo document dates are computed relative to the current date so the seeded
+        // data always stays fresh (recent invoices, current due dates, recent payments).
+        var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+
         // Seed default chart of accounts
         var cashId = Guid.Parse("a0000000-0000-0000-0000-000000000001");
         var bankId = Guid.Parse("a0000000-0000-0000-0000-000000000002");
@@ -574,8 +578,8 @@ public class AccountingDbContext : DbContext
                 BillingPostalCode = "20354",
                 BillingCountry = "DE",
                 VatNumber = "DE999999999",
-                IssueDate = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
-                DueDate = new DateTime(2026, 2, 4, 0, 0, 0, DateTimeKind.Utc),
+                IssueDate = today.AddDays(-60),
+                DueDate = today.AddDays(-30),
                 PaidDate = null,
                 Subtotal = 200.00m,
                 TaxAmount = 38.00m,
@@ -588,7 +592,7 @@ public class AccountingDbContext : DbContext
                 InternalNotes = "Seeded test invoice - linked to Jonas R",
                 PaymentTerms = "Net 30",
                 JournalEntryId = null,
-                CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-60)
             }
         );
 
@@ -610,7 +614,7 @@ public class AccountingDbContext : DbContext
                 TaxRate = 0.19m,
                 TaxAmount = 19.00m,
                 Total = 119.00m,
-                CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-60)
             },
             new InvoiceLineItem
             {
@@ -629,7 +633,7 @@ public class AccountingDbContext : DbContext
                 TaxRate = 0.19m,
                 TaxAmount = 19.00m,
                 Total = 119.00m,
-                CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-60)
             }
         );
 
@@ -646,8 +650,8 @@ public class AccountingDbContext : DbContext
                 Method = PaymentMethod.BankTransfer,
                 Amount = 100.00m,
                 Currency = "EUR",
-                PaymentDate = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                ClearedDate = new DateTime(2026, 1, 11, 0, 0, 0, DateTimeKind.Utc),
+                PaymentDate = today.AddDays(-55),
+                ClearedDate = today.AddDays(-54),
                 Reference = "PAYREF123",
                 TransactionId = "TX123456",
                 Notes = "Partial payment",
@@ -656,7 +660,7 @@ public class AccountingDbContext : DbContext
                 PayerIban = "DE89370400440532013000",
                 PayeeIban = "DE75512108001245126199",
                 JournalEntryId = null,
-                CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-55)
             },
             new PaymentRecord
             {
@@ -670,15 +674,15 @@ public class AccountingDbContext : DbContext
                 Method = PaymentMethod.CreditCard,
                 Amount = 150.00m,
                 Currency = "EUR",
-                PaymentDate = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc),
-                ClearedDate = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc),
+                PaymentDate = today.AddDays(-40),
+                ClearedDate = today.AddDays(-40),
                 Reference = "CC-2026-001",
                 TransactionId = "TX789012",
                 Notes = "Credit card payment",
                 PayerName = "Sarah Mitchell",
                 PayeeName = "ACME Corp",
                 JournalEntryId = null,
-                CreatedAt = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-40)
             },
             new PaymentRecord
             {
@@ -692,15 +696,15 @@ public class AccountingDbContext : DbContext
                 Method = PaymentMethod.BankTransfer,
                 Amount = 200.00m,
                 Currency = "EUR",
-                PaymentDate = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc),
-                ClearedDate = new DateTime(2026, 1, 14, 0, 0, 0, DateTimeKind.Utc),
+                PaymentDate = today.AddDays(-35),
+                ClearedDate = today.AddDays(-34),
                 Reference = "PAYREF456",
                 TransactionId = "TX345678",
                 Notes = "Full payment",
                 PayerName = "Robert Johnson",
                 PayeeName = "ACME Corp",
                 JournalEntryId = null,
-                CreatedAt = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-35)
             }
         );
 
@@ -724,9 +728,9 @@ public class AccountingDbContext : DbContext
                 BillingPostalCode = "02101",
                 BillingCountry = "USA",
                 VatNumber = null,
-                IssueDate = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc),
-                DueDate = new DateTime(2026, 2, 5, 0, 0, 0, DateTimeKind.Utc),
-                PaidDate = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc),
+                IssueDate = today.AddDays(-45),
+                DueDate = today.AddDays(-15),
+                PaidDate = today.AddDays(-40),
                 Subtotal = 150.00m,
                 TaxAmount = 28.50m,
                 TaxRate = 0.19m,
@@ -738,7 +742,7 @@ public class AccountingDbContext : DbContext
                 InternalNotes = "Seeded invoice for Sarah Mitchell - MediVita",
                 PaymentTerms = "Net 30",
                 JournalEntryId = null,
-                CreatedAt = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-45)
             },
             new Invoice
             {
@@ -758,9 +762,9 @@ public class AccountingDbContext : DbContext
                 BillingPostalCode = "60601",
                 BillingCountry = "USA",
                 VatNumber = null,
-                IssueDate = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc),
-                DueDate = new DateTime(2026, 2, 6, 0, 0, 0, DateTimeKind.Utc),
-                PaidDate = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc),
+                IssueDate = today.AddDays(-40),
+                DueDate = today.AddDays(-10),
+                PaidDate = today.AddDays(-35),
                 Subtotal = 200.00m,
                 TaxAmount = 38.00m,
                 TaxRate = 0.19m,
@@ -772,7 +776,7 @@ public class AccountingDbContext : DbContext
                 InternalNotes = "Seeded invoice for Robert Johnson - WellnessRx",
                 PaymentTerms = "Net 30",
                 JournalEntryId = null,
-                CreatedAt = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-40)
             }
         );
 
@@ -796,7 +800,7 @@ public class AccountingDbContext : DbContext
                 TaxRate = 0.19m,
                 TaxAmount = 28.50m,
                 Total = 178.50m,
-                CreatedAt = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-45)
             },
             // INV-2026-0003 line items
             new InvoiceLineItem
@@ -816,7 +820,7 @@ public class AccountingDbContext : DbContext
                 TaxRate = 0.19m,
                 TaxAmount = 38.00m,
                 Total = 238.00m,
-                CreatedAt = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-40)
             }
         );
 
@@ -842,7 +846,7 @@ public class AccountingDbContext : DbContext
                 Id = jeOpeningId,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2025-0001",
-                EntryDate = new DateTime(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddMonths(-8),
                 Description = "Opening balance - initial company capital",
                 Reference = "OPENING-2025",
                 Type = JournalEntryType.Standard,
@@ -850,7 +854,7 @@ public class AccountingDbContext : DbContext
                 TotalDebit = 50000.00m,
                 TotalCredit = 50000.00m,
                 Currency = "EUR",
-                CreatedAt = new DateTime(2025, 12, 1, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddMonths(-8)
             },
             // JE-Purchase: Purchase from PharmaChem (creates AP, matched by JE10 payment)
             new JournalEntry
@@ -858,7 +862,7 @@ public class AccountingDbContext : DbContext
                 Id = jePurchaseId,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0011",
-                EntryDate = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddDays(-30),
                 Description = "Purchase order - PharmaChem Industries quarterly supplies",
                 Reference = "PO-2026-Q1",
                 Type = JournalEntryType.Standard,
@@ -866,7 +870,7 @@ public class AccountingDbContext : DbContext
                 TotalDebit = 5800.00m,
                 TotalCredit = 5800.00m,
                 Currency = "EUR",
-                CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-30)
             },
             // JE1: Sales invoice INV-2026-0001 (Jonas R - €238.00)
             new JournalEntry
@@ -874,7 +878,7 @@ public class AccountingDbContext : DbContext
                 Id = je1Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0001",
-                EntryDate = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddDays(-60),
                 Description = "Sales invoice INV-2026-0001 - Jonas R",
                 Reference = "INV-2026-0001",
                 Type = JournalEntryType.Sales,
@@ -883,7 +887,7 @@ public class AccountingDbContext : DbContext
                 TotalCredit = 238.00m,
                 Currency = "EUR",
                 InvoiceId = invoiceId, // c0000000-...-0001
-                CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-60)
             },
             // JE2: Sales invoice INV-2026-0002 (Sarah Mitchell - €178.50)
             new JournalEntry
@@ -891,7 +895,7 @@ public class AccountingDbContext : DbContext
                 Id = je2Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0002",
-                EntryDate = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddDays(-45),
                 Description = "Sales invoice INV-2026-0002 - Sarah Mitchell",
                 Reference = "INV-2026-0002",
                 Type = JournalEntryType.Sales,
@@ -900,7 +904,7 @@ public class AccountingDbContext : DbContext
                 TotalCredit = 178.50m,
                 Currency = "EUR",
                 InvoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000002"),
-                CreatedAt = new DateTime(2026, 1, 6, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-45)
             },
             // JE3: Sales invoice INV-2026-0003 (Robert Johnson - €238.00)
             new JournalEntry
@@ -908,7 +912,7 @@ public class AccountingDbContext : DbContext
                 Id = je3Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0003",
-                EntryDate = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddDays(-40),
                 Description = "Sales invoice INV-2026-0003 - Robert Johnson",
                 Reference = "INV-2026-0003",
                 Type = JournalEntryType.Sales,
@@ -917,7 +921,7 @@ public class AccountingDbContext : DbContext
                 TotalCredit = 238.00m,
                 Currency = "EUR",
                 InvoiceId = Guid.Parse("c0000000-0000-0000-0000-000000000003"),
-                CreatedAt = new DateTime(2026, 1, 7, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-40)
             },
             // JE4: Payment PAY-2026-0001 (Jonas R - €100.00 partial)
             new JournalEntry
@@ -925,7 +929,7 @@ public class AccountingDbContext : DbContext
                 Id = je4Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0004",
-                EntryDate = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddDays(-55),
                 Description = "Payment received PAY-2026-0001 - Jonas R",
                 Reference = "PAY-2026-0001",
                 Type = JournalEntryType.Payment,
@@ -934,7 +938,7 @@ public class AccountingDbContext : DbContext
                 TotalCredit = 100.00m,
                 Currency = "EUR",
                 PaymentId = paymentId, // c0000000-...-0021
-                CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-55)
             },
             // JE5: Payment PAY-2026-0002 (Sarah Mitchell - €150.00)
             new JournalEntry
@@ -942,7 +946,7 @@ public class AccountingDbContext : DbContext
                 Id = je5Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0005",
-                EntryDate = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddDays(-40),
                 Description = "Payment received PAY-2026-0002 - Sarah Mitchell",
                 Reference = "PAY-2026-0002",
                 Type = JournalEntryType.Payment,
@@ -951,7 +955,7 @@ public class AccountingDbContext : DbContext
                 TotalCredit = 150.00m,
                 Currency = "EUR",
                 PaymentId = Guid.Parse("c0000000-0000-0000-0000-000000000022"),
-                CreatedAt = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-40)
             },
             // JE6: Payment PAY-2026-0003 (Robert Johnson - €200.00)
             new JournalEntry
@@ -959,7 +963,7 @@ public class AccountingDbContext : DbContext
                 Id = je6Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0006",
-                EntryDate = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddDays(-35),
                 Description = "Payment received PAY-2026-0003 - Robert Johnson",
                 Reference = "PAY-2026-0003",
                 Type = JournalEntryType.Payment,
@@ -968,7 +972,7 @@ public class AccountingDbContext : DbContext
                 TotalCredit = 200.00m,
                 Currency = "EUR",
                 PaymentId = Guid.Parse("c0000000-0000-0000-0000-000000000023"),
-                CreatedAt = new DateTime(2026, 1, 13, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-35)
             },
             // JE7: Adjusting entry - inventory adjustment
             new JournalEntry
@@ -976,7 +980,7 @@ public class AccountingDbContext : DbContext
                 Id = je7Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0007",
-                EntryDate = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddDays(-30),
                 Description = "Inventory adjustment - expired pharmaceutical stock write-off",
                 Reference = "ADJ-2026-001",
                 Type = JournalEntryType.Adjusting,
@@ -984,7 +988,7 @@ public class AccountingDbContext : DbContext
                 TotalDebit = 450.00m,
                 TotalCredit = 450.00m,
                 Currency = "EUR",
-                CreatedAt = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-30)
             },
             // JE8: Standard entry - office rent
             new JournalEntry
@@ -992,7 +996,7 @@ public class AccountingDbContext : DbContext
                 Id = je8Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0008",
-                EntryDate = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddMonths(-2),
                 Description = "Monthly office rent - January 2026",
                 Reference = "RENT-2026-01",
                 Type = JournalEntryType.Standard,
@@ -1000,7 +1004,7 @@ public class AccountingDbContext : DbContext
                 TotalDebit = 2500.00m,
                 TotalCredit = 2500.00m,
                 Currency = "EUR",
-                CreatedAt = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddMonths(-2)
             },
             // JE9: Standard entry - office rent Feb
             new JournalEntry
@@ -1008,7 +1012,7 @@ public class AccountingDbContext : DbContext
                 Id = je9Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0009",
-                EntryDate = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddMonths(-1),
                 Description = "Monthly office rent - February 2026",
                 Reference = "RENT-2026-02",
                 Type = JournalEntryType.Standard,
@@ -1016,7 +1020,7 @@ public class AccountingDbContext : DbContext
                 TotalDebit = 2500.00m,
                 TotalCredit = 2500.00m,
                 Currency = "EUR",
-                CreatedAt = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddMonths(-1)
             },
             // JE10: Recent - supplier payment
             new JournalEntry
@@ -1024,7 +1028,7 @@ public class AccountingDbContext : DbContext
                 Id = je10Id,
                 CompanyId = DemoCompanyId,
                 EntryNumber = "JE-2026-0010",
-                EntryDate = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc),
+                EntryDate = today.AddDays(-15),
                 Description = "Supplier payment - PharmaChem Industries quarterly order",
                 Reference = "SUPPAY-2026-Q1",
                 Type = JournalEntryType.Payment,
@@ -1032,7 +1036,7 @@ public class AccountingDbContext : DbContext
                 TotalDebit = 5800.00m,
                 TotalCredit = 5800.00m,
                 Currency = "EUR",
-                CreatedAt = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc)
+                CreatedAt = today.AddDays(-15)
             }
         );
 
