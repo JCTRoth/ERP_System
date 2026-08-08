@@ -11,17 +11,17 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./apps/frontend/src:/app/src
-      - ./apps/frontend/public:/app/public
-      - ./apps/frontend/index.html:/app/index.html
-      - ./apps/frontend/vite.config.ts:/app/vite.config.ts
-      - ./apps/frontend/tsconfig.json:/app/tsconfig.json
-      - ./apps/frontend/tsconfig.node.json:/app/tsconfig.node.json
-      - ./apps/frontend/package.json:/app/package.json
-      - ./apps/frontend/postcss.config.js:/app/postcss.config.js
-      - ./apps/frontend/tailwind.config.js:/app/tailwind.config.js
-      - ./apps/frontend/vitest.config.ts:/app/vitest.config.ts
-      - ./apps/frontend/vite.config.d.ts:/app/vite.config.d.ts
+      - ./apps/frontend/src:/app/src:z
+      - ./apps/frontend/public:/app/public:z
+      - ./apps/frontend/index.html:/app/index.html:z
+      - ./apps/frontend/vite.config.ts:/app/vite.config.ts:z
+      - ./apps/frontend/tsconfig.json:/app/tsconfig.json:z
+      - ./apps/frontend/tsconfig.node.json:/app/tsconfig.node.json:z
+      - ./apps/frontend/package.json:/app/package.json:z
+      - ./apps/frontend/postcss.config.js:/app/postcss.config.js:z
+      - ./apps/frontend/tailwind.config.js:/app/tailwind.config.js:z
+      - ./apps/frontend/vitest.config.ts:/app/vitest.config.ts:z
+      - ./apps/frontend/vite.config.d.ts:/app/vite.config.d.ts:z
       - /app/node_modules
     environment:
       - VITE_GATEWAY_URL=http://gateway:4000
@@ -36,16 +36,16 @@ services:
       context: ./apps/webshop
       dockerfile: Dockerfile.dev
     ports:
-      - "5174:5174"
+      - "5174:3008"
     volumes:
-      - ./apps/webshop/src:/app/src
-      - ./apps/webshop/index.html:/app/index.html
-      - ./apps/webshop/vite.config.ts:/app/vite.config.ts
-      - ./apps/webshop/tsconfig.json:/app/tsconfig.json
-      - ./apps/webshop/tsconfig.node.json:/app/tsconfig.node.json
-      - ./apps/webshop/package.json:/app/package.json
-      - ./apps/webshop/postcss.config.js:/app/postcss.config.js
-      - ./apps/webshop/tailwind.config.js:/app/tailwind.config.js
+      - ./apps/webshop/src:/app/src:z
+      - ./apps/webshop/index.html:/app/index.html:z
+      - ./apps/webshop/vite.config.ts:/app/vite.config.ts:z
+      - ./apps/webshop/tsconfig.json:/app/tsconfig.json:z
+      - ./apps/webshop/tsconfig.node.json:/app/tsconfig.node.json:z
+      - ./apps/webshop/package.json:/app/package.json:z
+      - ./apps/webshop/postcss.config.js:/app/postcss.config.js:z
+      - ./apps/webshop/tailwind.config.js:/app/tailwind.config.js:z
       - /app/node_modules
     environment:
       - VITE_GATEWAY_URL=http://gateway:4000
@@ -60,9 +60,9 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ./apps/gateway/src:/app/src
-      - ./apps/gateway/supergraph-config.yaml:/app/supergraph-config.yaml
-      - ./apps/gateway/supergraph.graphql:/app/supergraph.graphql
+      - ./apps/gateway/src:/app/src:z
+      - ./apps/gateway/supergraph-config.yaml:/app/supergraph-config.yaml:z
+      - ./apps/gateway/supergraph.graphql:/app/supergraph.graphql:z
     environment:
       - NODE_ENV=development
       - DEBUG=apollo:gateway
@@ -94,8 +94,9 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./apps/services/dotnet/UserService:/app
-      - ./apps/services/dotnet/Common:/Common
+      # :z relabels the bind mount for SELinux-enforcing hosts (e.g. Fedora)
+      - ./apps/services/dotnet/UserService:/app:z
+      - ./apps/services/dotnet/Common:/Common:z
     working_dir: /app
     command: dotnet run --urls http://0.0.0.0:5000
     environment:
@@ -106,15 +107,16 @@ services:
       - Jwt__Audience=ERP_System
       - Services__Company=http://company-service:8080/graphql
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   shop-service:
     image: mcr.microsoft.com/dotnet/sdk:8.0-alpine
     ports:
       - "5003:5003"
     volumes:
-      - ./apps/services/dotnet/ShopService:/app
-      - ./apps/services/dotnet/Common:/Common
+      - ./apps/services/dotnet/ShopService:/app:z
+      - ./apps/services/dotnet/Common:/Common:z
     working_dir: /app
     command: dotnet run --urls http://0.0.0.0:5003
     environment:
@@ -125,7 +127,8 @@ services:
       - Jwt__Audience=ERP_System
       - Services__TemplatesService=http://templates-service:8087
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   accounting-service:
     build:
@@ -143,15 +146,16 @@ services:
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   masterdata-service:
     image: mcr.microsoft.com/dotnet/sdk:8.0-alpine
     ports:
       - "5002:5002"
     volumes:
-      - ./apps/services/dotnet/MasterdataService:/app
-      - ./apps/services/dotnet/Common:/Common
+      - ./apps/services/dotnet/MasterdataService:/app:z
+      - ./apps/services/dotnet/Common:/Common:z
     working_dir: /app
     command: dotnet run --urls http://0.0.0.0:5002
     environment:
@@ -161,15 +165,16 @@ services:
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   orders-service:
     image: mcr.microsoft.com/dotnet/sdk:8.0-alpine
     ports:
       - "5004:5004"
     volumes:
-      - ./apps/services/dotnet/OrdersService:/app
-      - ./apps/services/dotnet/Common:/Common
+      - ./apps/services/dotnet/OrdersService:/app:z
+      - ./apps/services/dotnet/Common:/Common:z
     working_dir: /app
     command: dotnet run --urls http://0.0.0.0:5004
     environment:
@@ -179,7 +184,8 @@ services:
       - Jwt__Issuer=ERP_System
       - Jwt__Audience=ERP_System
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   # Java Services
   company-service:
@@ -189,7 +195,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./apps/services/java/company-service:/app
+      - ./apps/services/java/company-service:/app:z
       - /app/.gradle
       - /app/build
     environment:
@@ -201,7 +207,8 @@ services:
       - DB_USER=erp_company
       - DB_PASSWORD=postgres
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   notification-service:
     build:
@@ -210,7 +217,7 @@ services:
     ports:
       - "8082:8082"
     volumes:
-      - ./apps/services/java/notification-service:/app
+      - ./apps/services/java/notification-service:/app:z
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/notificationdb
@@ -227,7 +234,8 @@ services:
       - EMAIL_FROM=${EMAIL_FROM:-}
       - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-ERP System}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   # Build from source with compatible dependencies
   translation-service:
@@ -247,7 +255,8 @@ services:
       - DB_USER=erp_translation
       - DB_PASSWORD=postgres
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - default
     restart: unless-stopped
@@ -271,7 +280,8 @@ services:
       - USER_SERVICE_URL=http://user-service:5000
       - COMPANY_SERVICE_URL=http://company-service:8080
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - default
     restart: unless-stopped
@@ -284,13 +294,15 @@ services:
     ports:
       - "8087:8087"
     volumes:
-      - ./apps/services/nodejs/templates-service:/app
+      - ./apps/services/nodejs/templates-service:/app:z
+      - /app/node_modules
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://erp_templates:postgres@postgres:5432/templatesdb
       - DEFAULT_COMPANY_ID=ae161374-7185-4aa5-97f4-bcb35cf0ae19
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   # PostgreSQL Database (consolidated single instance)
   postgres:
@@ -318,6 +330,15 @@ services:
       - postgres-data:/var/lib/postgresql/data
       # :z relabels the bind mount for SELinux-enforcing hosts (e.g. Fedora)
       - ./infrastructure/postgres-init:/docker-entrypoint-initdb.d:ro,z
+    healthcheck:
+      # pg_isready alone returns true before init-multi-db.sh finishes.
+      # Adding a SELECT on pg_roles ensures all service users are created
+      # before downstream services try to connect.
+      test: ["CMD-SHELL", "pg_isready -U postgres && psql -U postgres -d postgres -c \"SELECT 1 FROM pg_roles WHERE rolname = 'erp_user'\" | grep -q 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
   # MinIO (S3-compatible storage for documents)
   minio:
@@ -345,7 +366,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      # :z relabels the bind mount for SELinux-enforcing hosts (e.g. Fedora)
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z
       - prometheus-data:/prometheus
 
   grafana:
@@ -355,7 +377,8 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
     volumes:
-      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      # :z relabels the bind mount for SELinux-enforcing hosts (e.g. Fedora)
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:z
       - grafana-data:/var/lib/grafana
 
   portainer:

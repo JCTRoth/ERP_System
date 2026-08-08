@@ -462,8 +462,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./infrastructure/prometheus/web-config.yml:/etc/prometheus/web-config.yml
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z
+      - ./infrastructure/prometheus/web-config.yml:/etc/prometheus/web-config.yml:ro,z
       - prometheus-data:/prometheus
       - /etc/letsencrypt/live/${DEPLOY_DOMAIN:-shopping-now.net}:/etc/prometheus/certs:ro
     command:
