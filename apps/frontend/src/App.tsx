@@ -87,18 +87,25 @@ export default function App() {
 
   // Refresh auth token on app mount to restore authorization context
   useEffect(() => {
-    const isAuthenticated = useAuthStore.getState().isAuthenticated;
-    const hasStoredToken = !!useAuthStore.getState().refreshToken;
-    
-    if (isAuthenticated && hasStoredToken) {
-      // Token refresh returns authorization context (companyId, permissions, etc.)
-      // This is needed after page reload to restore the full auth state
-      authService.refreshToken().finally(() => {
-        setAuthInitialized(true);
-      });
-    } else {
+    const initAuth = async () => {
+      const isAuthenticated = useAuthStore.getState().isAuthenticated;
+      const hasStoredToken = !!useAuthStore.getState().refreshToken;
+
+      if (isAuthenticated && hasStoredToken) {
+        // Token refresh returns authorization context (companyId, permissions, etc.)
+        // This is needed after page reload to restore the full auth state.
+        const refreshed = await authService.refreshToken();
+
+        // If the refresh failed (e.g. the persisted company was deleted or the demo
+        // DB was reset and company IDs changed), heal the stale company context so
+        // the user is not stuck with a company that no longer exists.
+        if (!refreshed) {
+          await authService.restoreCompanyContext();
+        }
+      }
       setAuthInitialized(true);
-    }
+    };
+    void initAuth();
   }, []);
 
   useEffect(() => {

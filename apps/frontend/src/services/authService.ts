@@ -211,6 +211,49 @@ class AuthService {
     }
   }
 
+  /**
+   * Heals a stale company context after a failed token refresh (e.g. the persisted
+   * company was deleted, or the demo DB was reset and company IDs changed).
+   *
+   * Re-fetches the user's current company assignments and:
+   *  - keeps the company when it is still valid,
+   *  - auto-switches to the first assignment when the user has exactly one
+   *    (or is a global super admin),
+   *  - otherwise clears the stale selection so the router sends the user to the
+   *    company selection page.
+   *
+   * @returns the resolved company id, or null when none could be restored.
+   */
+  async restoreCompanyContext(): Promise<string | null> {
+    const state = useAuthStore.getState();
+    const user = state.user;
+    if (!user) {
+      return null;
+    }
+
+    const assignments = await this.fetchCompanyAssignments(user.id);
+    useAuthStore.getState().setCompanyAssignments(assignments);
+
+    const currentCompanyId = useAuthStore.getState().currentCompanyId;
+    if (assignments.some((a) => a.companyId === currentCompanyId)) {
+      return currentCompanyId;
+    }
+
+    if (assignments.length > 0 && (assignments.length === 1 || state.isGlobalSuperAdmin)) {
+      try {
+        await this.switchCompany(assignments[0].companyId);
+        return assignments[0].companyId;
+      } catch (err) {
+        console.warn('Could not auto-restore company context:', err);
+      }
+    }
+
+    // Multiple companies for a regular user: clear the stale selection so the
+    // router redirects to the company selection page.
+    useAuthStore.getState().setCurrentCompany(null);
+    return null;
+  }
+
   async logout(): Promise<void> {
     const state = useAuthStore.getState();
     const refreshToken = state.refreshToken;
