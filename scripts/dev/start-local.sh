@@ -101,6 +101,7 @@ network_checks() {
     # Define ports that should be available
     local required_ports=(
         "5173:Frontend"
+        "5174:Webshop"
         "4000:Gateway"
         "5000:UserService"
         "5001:AccountingService"
@@ -327,15 +328,19 @@ verify_services() {
 }
 
 # ============================================================================
-# PHASE 7: START FRONTEND
+# PHASE 7: START FRONTEND & WEBSHOP
 # ============================================================================
 
 start_frontend() {
-    print_header "PHASE 7: Starting Frontend"
+    print_header "PHASE 7: Starting Frontend & Webshop"
 
     print_info "Starting frontend container..."
     docker compose -f "$COMPOSE_FILE" up -d frontend >/dev/null 2>&1
     print_status "Frontend container started"
+
+    print_info "Starting webshop container..."
+    docker compose -f "$COMPOSE_FILE" up -d webshop >/dev/null 2>&1
+    print_status "Webshop container started"
 
     print_info "Waiting for UI to be available (checking for content)..."
     local max_attempts=10
@@ -343,7 +348,19 @@ start_frontend() {
 
     while [ $attempt -lt $max_attempts ]; do
         if curl -sf --max-time 5 "http://localhost:5173" >/dev/null 2>&1; then
-            print_status "UI is serving content"
+            print_status "Frontend UI is serving content"
+            break
+        fi
+        echo -n "."
+        sleep 3
+        ((attempt++))
+    done
+
+    print_info "Waiting for webshop to be available..."
+    attempt=0
+    while [ $attempt -lt $max_attempts ]; do
+        if curl -sf --max-time 5 "http://localhost:5174" >/dev/null 2>&1; then
+            print_status "Webshop is serving content"
             return 0
         fi
         echo -n "."
@@ -351,7 +368,7 @@ start_frontend() {
         ((attempt++))
     done
 
-    print_warning "UI not responding yet (still loading is normal)"
+    print_warning "Webshop not responding yet (still loading is normal)"
     return 1
 }
 
@@ -462,6 +479,7 @@ display_access_information() {
     echo -e "${GREEN}Access URLs:${NC}"
     echo ""
     echo "  Frontend:               http://localhost:5173"
+    echo "  Webshop:                http://localhost:5174"
     echo "  GraphQL Gateway:        http://localhost:4000/graphql"
     echo "  User Service:           http://localhost:5000/graphql"
     echo "  Shop Service:           http://localhost:5003/graphql"
@@ -513,6 +531,7 @@ show_ports() {
     echo -e "${GREEN}Standard Service Ports:${NC}"
     echo ""
     echo "  Frontend:               5173"
+    echo "  Webshop:                5174"
     echo "  Gateway:                4000"
     echo "  UserService:            5000"
     echo "  AccountingService:      5001"
